@@ -191,6 +191,8 @@ python "${SKILL_DIR}/scripts/search.py" "搜索关键词" --limit 10
 
 免费额度：20 RPM（无 Key）/ 更高（有 Key）
 
+**注意：** 国内网络可能无法直接访问 Jina 服务，需要代理或使用其他数据源。
+
 ### SearXNG（可选，需自建）
 
 ```bash

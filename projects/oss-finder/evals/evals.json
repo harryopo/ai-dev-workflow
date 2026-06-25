@@ -1,7 +1,8 @@
 {
   "skill_name": "oss-finder",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "全网开源项目搜索工具的评测集（含调研功能）",
+  "last_updated": "2026-06-25",
   "test_cases": [
     {
       "id": "fuzzy-input-research",

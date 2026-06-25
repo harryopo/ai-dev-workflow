@@ -472,10 +472,12 @@ gh search repos "react" --stars ">1000" --language javascript --limit 20 --json 
 **特点：**
 - 国内访问速度快
 - 中文项目多
-- 未认证搜索可能返回空结果
+- **必须认证** — 未认证搜索会返回空结果或 400 错误
 
-**Token 配置：**
-- 设置 `GITEE_TOKEN` 获取有效结果
+**Token 配置（必须）：**
+1. 访问 https://gitee.com/profile/personal_access_tokens
+2. 创建个人访问令牌（需要 `projects` 权限）
+3. 设置环境变量：`export GITEE_TOKEN=your_token`
 
 ### npm（Node.js 包搜索）
 

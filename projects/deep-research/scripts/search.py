@@ -361,7 +361,7 @@ def format_json(data: dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description='Deep Research — 多源搜索引擎')
-    parser.add_argument('query', help='搜索关键词')
+    parser.add_argument('query', nargs='?', default='', help='搜索关键词')
     parser.add_argument('--sources', '-s', default='tavily,jina',
                         help='搜索源，逗号分隔 (tavily/jina/searxng)')
     parser.add_argument('--depth', '-d', default='basic',
@@ -386,6 +386,10 @@ def main():
             print("❌ 读取失败", file=sys.stderr)
             sys.exit(1)
         return
+
+    # 搜索模式需要 query
+    if not args.query:
+        parser.error("搜索模式需要提供关键词")
 
     # 多源搜索
     sources = [s.strip() for s in args.sources.split(',')]

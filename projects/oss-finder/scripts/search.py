@@ -326,9 +326,18 @@ class GitLabAPI(PlatformAPI):
     BASE_URL = "https://gitlab.com/api/v4"
 
     def search(self, query: str, **kwargs) -> dict:
+        # GitLab API 的 order_by 参数映射
+        sort_map = {
+            'stars': 'star_count',
+            'forks': 'forks_count',
+            'updated': 'last_activity_at',
+            'relevance': 'similarity'
+        }
+        sort_by = sort_map.get(kwargs.get('sort', 'stars'), 'star_count')
+
         params = {
             'search': query,
-            'order_by': kwargs.get('sort', 'star_count'),
+            'order_by': sort_by,
             'sort': kwargs.get('order', 'desc'),
             'per_page': min(kwargs.get('limit', 20), 100)
         }
@@ -381,15 +390,28 @@ class GiteeAPI(PlatformAPI):
     BASE_URL = "https://gitee.com/api/v5"
 
     def search(self, query: str, **kwargs) -> dict:
+        # Gitee 搜索需要认证
+        if not self.token:
+            print("⚠️  Gitee 搜索需要设置 GITEE_TOKEN", file=sys.stderr)
+            print("   获取 Token: https://gitee.com/profile/personal_access_tokens", file=sys.stderr)
+            return None
+
+        # Gitee API 排序参数映射
+        sort_map = {
+            'stars': 'stars_count',
+            'forks': 'forks_count',
+            'updated': 'updated_at',
+            'relevance': 'stars_count'  # Gitee 不支持 relevance，降级到 stars
+        }
+        sort_by = sort_map.get(kwargs.get('sort', 'stars'), 'stars_count')
+
         params = {
             'q': query,
-            'sort': kwargs.get('sort', 'stars_count'),
+            'sort': sort_by,
             'order': kwargs.get('order', 'desc'),
-            'per_page': min(kwargs.get('limit', 20), 100)
+            'per_page': min(kwargs.get('limit', 20), 100),
+            'access_token': self.token
         }
-
-        if self.token:
-            params['access_token'] = self.token
 
         url = f"{self.BASE_URL}/search/repositories?{urllib.parse.urlencode(params)}"
 
@@ -442,18 +464,14 @@ class NpmAPI(PlatformAPI):
             pkg = item.get('package', {})
             score = item.get('score', {}).get('detail', {})
 
-            repo_url = None
-            links = pkg.get('links', {})
-            if links.get('repository'):
-                repo_url = links['repository']
-            elif links.get('homepage'):
-                repo_url = links['homepage']
+            # npm 包链接优先使用 npmjs.com
+            npm_url = f"https://www.npmjs.com/package/{pkg['name']}"
 
             downloads = self._get_downloads(pkg['name'])
 
             results.append({
                 'name': pkg['name'],
-                'url': repo_url or f"https://www.npmjs.com/package/{pkg['name']}",
+                'url': npm_url,
                 'stars': 0,
                 'forks': 0,
                 'language': 'JavaScript',
