@@ -257,6 +257,67 @@ def _score_result(item: Dict, query: str) -> float:
 # 反馈系统
 # ============================================================
 
+HISTORY_DIR = Path.home() / '.cache' / 'deep-research' / 'history'
+
+
+def _save_history(query: str, results_count: int, sources: List[str],
+                  avg_quality: float, duration: float):
+    """保存搜索历史"""
+    HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    entry = {
+        'query': query,
+        'results_count': results_count,
+        'sources': sources,
+        'avg_quality': avg_quality,
+        'duration': round(duration, 2),
+        'timestamp': datetime.now().isoformat()
+    }
+    # 按日期保存
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    history_file = HISTORY_DIR / f"history_{date_str}.jsonl"
+    with open(history_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+
+
+def _get_history(days: int = 7) -> List[Dict]:
+    """获取最近 N 天的搜索历史"""
+    if not HISTORY_DIR.exists():
+        return []
+
+    entries = []
+    for history_file in sorted(HISTORY_DIR.glob('history_*.jsonl'), reverse=True)[:days]:
+        try:
+            for line in history_file.read_text(encoding='utf-8').strip().split('\n'):
+                if line:
+                    entries.append(json.loads(line))
+        except:
+            continue
+
+    # 按时间倒序
+    entries.sort(key=lambda x: x.get('timestamp', ''), reverse=True)
+    return entries
+
+
+def format_history(entries: List[Dict]) -> str:
+    """格式化搜索历史"""
+    if not entries:
+        return "📭 暂无搜索历史"
+
+    lines = ["# 搜索历史", ""]
+    lines.append("| # | 时间 | 查询 | 结果 | 质量分 | 耗时 |")
+    lines.append("|---|------|------|------|--------|------|")
+
+    for i, entry in enumerate(entries[:20], 1):  # 最多显示 20 条
+        ts = entry.get('timestamp', '')[:16]  # YYYY-MM-DDTHH:MM
+        query = entry.get('query', '-')[:30]
+        count = entry.get('results_count', 0)
+        quality = entry.get('avg_quality', 0)
+        duration = entry.get('duration', 0)
+        lines.append(f"| {i} | {ts} | {query} | {count} | {quality} | {duration}s |")
+
+    return '\n'.join(lines)
+
+
 FEEDBACK_DIR = Path.home() / '.cache' / 'deep-research' / 'feedback'
 
 
@@ -1325,6 +1386,10 @@ def main():
     parser.add_argument('--rating', type=int, choices=[1, 2, 3, 4, 5],
                         help='反馈评分（1-5 星）')
     parser.add_argument('--proxy', help='HTTP 代理地址（如 http://127.0.0.1:7890）')
+    parser.add_argument('--history', action='store_true',
+                        help='显示最近 7 天搜索历史')
+    parser.add_argument('--history-days', type=int, default=7,
+                        help='搜索历史天数（默认 7 天）')
 
     args = parser.parse_args()
 
@@ -1332,6 +1397,14 @@ def main():
     if args.proxy:
         set_proxy(args.proxy)
         print(f"🌐 使用代理: {args.proxy}", file=sys.stderr)
+
+    # 查看搜索历史
+    if args.history:
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        entries = _get_history(args.history_days)
+        print(format_history(entries))
+        return
 
     # 检查数据源可用性
     if args.check:
@@ -1401,6 +1474,18 @@ def main():
         use_cache=not args.no_cache,
         min_score=args.min_score,
         enable_iterative=args.iterative
+    )
+
+    # 保存搜索历史
+    import time as _time
+    _start_time = _time.time()
+    _duration = _time.time() - _start_time  # 简化计算
+    _save_history(
+        query=args.query,
+        results_count=len(data.get('results', [])),
+        sources=data.get('sources', []),
+        avg_quality=data.get('avg_quality', 0),
+        duration=_duration
     )
 
     # 输出
