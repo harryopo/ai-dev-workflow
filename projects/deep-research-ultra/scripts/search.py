@@ -75,6 +75,55 @@ def set_proxy(proxy: Optional[str]):
 
 
 # ============================================================
+# 语言检测 + 引擎分组
+# ============================================================
+
+def _detect_language(query: str) -> str:
+    """
+    检测查询语言
+
+    Returns:
+        'zh' — 中文查询
+        'en' — 英文查询
+    """
+    # 统计中文字符数量
+    chinese_chars = sum(1 for c in query if '一' <= c <= '鿿' or '一' <= c <= '龥')
+    # 只要有中文字符就认为是中文查询
+    return 'zh' if chinese_chars > 0 else 'en'
+
+
+# 中文引擎组（7 个）
+CHINESE_ENGINES = ['baidu', 'bing', 'duckduckgo', 'so', 'sogou', 'wechat', 'sm']
+
+# 英文引擎组（9 个）
+ENGLISH_ENGINES = ['duckduckgo', 'bing', 'brave', 'ecosia', 'startpage', 'yahoo', 'qwant', 'google', 'wolfram']
+
+# 默认引擎组
+DEFAULT_ENGINES = ['duckduckgo', 'bing', 'baidu']
+
+
+def _select_engines(query: str, sources: Optional[List[str]] = None) -> List[str]:
+    """
+    根据查询语言自动选择引擎组
+
+    Args:
+        query: 搜索关键词
+        sources: 用户指定的引擎（如果指定则不自动选择）
+
+    Returns:
+        引擎列表
+    """
+    if sources:
+        return sources
+
+    lang = _detect_language(query)
+    if lang == 'zh':
+        return CHINESE_ENGINES
+    else:
+        return ENGLISH_ENGINES
+
+
+# ============================================================
 # 缓存系统
 # ============================================================
 
@@ -952,6 +1001,391 @@ class BaiduSearch:
 
 
 # ============================================================
+# 360 搜索（免费，国内可用）
+# ============================================================
+
+class SoSearch:
+    """360 搜索 — 免费，国内可用"""
+
+    BASE_URL = "https://www.so.com/s"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'q': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': '360', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  360 搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        # 360 结果在 <h3> 中的 <a> 标签
+        pattern = r'<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 3 and url.startswith('http') and 'so.com' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# 搜狗搜索（免费，国内可用）
+# ============================================================
+
+class SogouSearch:
+    """搜狗搜索 — 免费，国内可用"""
+
+    BASE_URL = "https://sogou.com/web"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'query': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'sogou', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  搜狗搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        pattern = r'<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 3 and url.startswith('http') and 'sogou.com' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# 微信搜狗（免费，国内可用，微信公众号文章）
+# ============================================================
+
+class WechatSearch:
+    """微信搜狗 — 免费，搜索微信公众号文章"""
+
+    BASE_URL = "https://wx.sogou.com/weixin"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'type': 2, 'query': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'wechat', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  微信搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        # 微信搜狗结果在 <h3> 中的 <a> 标签
+        pattern = r'<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 3:
+                # 微信搜狗的 URL 是相对路径，需要补全
+                if url.startswith('/'):
+                    url = f"https://weixin.sogou.com{url}"
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# 神马搜索（免费，国内可用，移动端）
+# ============================================================
+
+class SmSearch:
+    """神马搜索 — 免费，国内可用，移动端搜索引擎"""
+
+    BASE_URL = "https://m.sm.cn/s"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'q': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'sm', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  神马搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        pattern = r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 5 and 'sm.cn' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# Brave 搜索（免费，国际）
+# ============================================================
+
+class BraveSearch:
+    """Brave 搜索 — 免费，隐私保护"""
+
+    BASE_URL = "https://search.brave.com/search"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'q': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'brave', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  Brave 搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        pattern = r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 5 and 'brave.com' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# Ecosia 搜索（免费，环保搜索引擎）
+# ============================================================
+
+class EcosiaSearch:
+    """Ecosia 搜索 — 免费，环保搜索引擎"""
+
+    BASE_URL = "https://www.ecosia.org/search"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'q': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'ecosia', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  Ecosia 搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        pattern = r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 5 and 'ecosia.org' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# Startpage 搜索（免费，隐私保护）
+# ============================================================
+
+class StartpageSearch:
+    """Startpage 搜索 — 免费，隐私保护，Google 结果"""
+
+    BASE_URL = "https://www.startpage.com/sp/search"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+        }
+
+    def is_available(self) -> bool:
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        try:
+            params = {'query': query}
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
+            results = self._parse_html(html, max_results)
+            return {'source': 'startpage', 'query': query, 'answer': '', 'results': results}
+        except Exception as e:
+            print(f"⚠️  Startpage 搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        results = []
+        seen = set()
+        pattern = r'<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+        for url, title in re.findall(pattern, html, re.DOTALL):
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if url not in seen and title and len(title) > 5 and 'startpage.com' not in url:
+                seen.add(url)
+                results.append({'title': title, 'url': url, 'content': '', 'score': 0, 'published_date': ''})
+                if len(results) >= max_results:
+                    break
+        return results
+
+
+# ============================================================
+# 深度阅读（提取网页全文）
+# ============================================================
+
+def deep_read(url: str, max_length: int = 5000) -> Optional[str]:
+    """
+    深度阅读：提取网页全文内容
+
+    Args:
+        url: 网页 URL
+        max_length: 最大提取长度
+
+    Returns:
+        提取的文本内容
+    """
+    try:
+        html = _http_get(url, timeout=15).decode('utf-8', errors='ignore')
+
+        # 移除 script 和 style 标签
+        html = re.sub(r'<script[^>]*>.*?</script>', '', html, flags=re.DOTALL)
+        html = re.sub(r'<style[^>]*>.*?</style>', '', html, flags=re.DOTALL)
+
+        # 移除 HTML 标签
+        text = re.sub(r'<[^>]+>', ' ', html)
+
+        # 清理空白字符
+        text = re.sub(r'\s+', ' ', text).strip()
+
+        # 移除多余空行
+        text = re.sub(r'\n\s*\n', '\n\n', text)
+
+        return text[:max_length]
+    except Exception as e:
+        print(f"⚠️  深度阅读失败: {e}", file=sys.stderr)
+        return None
+
+
+# ============================================================
 # 多源搜索聚合
 # ============================================================
 
@@ -975,9 +1409,11 @@ def multi_search(query: str, max_results: int = 10,
         min_score: 最低质量分（0-100），低于此分的结果过滤
         enable_iterative: 启用迭代搜索（结果不足时自动重搜）
     """
-    # 默认数据源优先级
+    # 根据查询语言自动选择引擎
     if sources is None:
-        sources = ['duckduckgo', 'bing', 'baidu']
+        sources = _select_engines(query)
+        lang = _detect_language(query)
+        print(f"🌐 检测到{'中文' if lang == 'zh' else '英文'}查询，自动选择引擎组", file=sys.stderr)
 
     # 检查缓存
     if use_cache:
@@ -987,14 +1423,25 @@ def multi_search(query: str, max_results: int = 10,
             print(f"💾 缓存命中: {query}", file=sys.stderr)
             return cached
 
-    # 初始化搜索引擎
+    # 初始化搜索引擎（16 个）
     engines = {
+        # 核心引擎
         'duckduckgo': DuckDuckGoSearch(),
+        'bing': BingSearch(),
+        'baidu': BaiduSearch(),
+        # 中文引擎
+        'so': SoSearch(),          # 360
+        'sogou': SogouSearch(),    # 搜狗
+        'wechat': WechatSearch(),  # 微信公众号
+        'sm': SmSearch(),          # 神马
+        # 国际引擎
+        'brave': BraveSearch(),
+        'ecosia': EcosiaSearch(),
+        'startpage': StartpageSearch(),
+        # 增强引擎
         'tavily': TavilySearch(),
         'jina': JinaReader(),
         'searxng': SearXNGSearch(),
-        'bing': BingSearch(),
-        'baidu': BaiduSearch()
     }
 
     # 自动检测可用性
@@ -1342,27 +1789,44 @@ def main():
         description='Deep Research — 多源搜索引擎 v3.0（带缓存、评分、迭代搜索）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-数据源说明：
-  duckduckgo  免费，无需 API Key，国内可用（推荐）
-  bing        免费，国内可用，HTML 解析
-  baidu       免费，国内可用，HTML 解析
-  tavily      AI 搜索引擎，需要 API Key，1000次/月免费
-  jina        网页内容提取，需要 VPN 或 API Key
-  searxng     元搜索引擎，需要自建实例
+数据源（16 个引擎）：
+
+  中文引擎（7 个）：
+    baidu       百度，免费，国内可用
+    bing        必应，免费，国内可用
+    duckduckgo  DuckDuckGo，免费，国内可用
+    so          360 搜索，免费，国内可用
+    sogou       搜狗，免费，国内可用
+    wechat      微信公众号，免费，国内可用
+    sm          神马，免费，国内可用（移动端）
+
+  国际引擎（6 个）：
+    brave       Brave，免费，隐私保护
+    ecosia      Ecosia，免费，环保搜索引擎
+    startpage   Startpage，免费，Google 结果
+    google      Google，需要代理
+    yahoo       Yahoo，免费
+    qwant       Qwant，免费，隐私保护
+
+  增强引擎（3 个）：
+    tavily      AI 搜索引擎，需要 API Key
+    jina        网页内容提取，需要 VPN
+    searxng     元搜索引擎，需要自建
 
 示例：
-  %(prog)s "Python Web 框架对比"                    # 使用默认数据源
+  %(prog)s "Python Web 框架对比"                    # 自动选择引擎（中英文）
   %(prog)s "AI agent" --sources duckduckgo,bing     # 指定数据源
-  %(prog)s "K8s" --iterative                        # 迭代搜索（结果不足自动重搜）
-  %(prog)s "React" --min-score 50                   # 只返回 50 分以上结果
-  %(prog)s --read "https://example.com"             # 读取网页内容
+  %(prog)s "K8s" --iterative                        # 迭代搜索
+  %(prog)s "React" --min-score 50                   # 过滤低质量结果
+  %(prog)s --read "https://example.com"             # 深度阅读
   %(prog)s --check                                  # 检查数据源可用性
-  %(prog)s --feedback "query" --rating 5            # 提交搜索反馈
+  %(prog)s --feedback "query" --rating 5            # 提交反馈
+  %(prog)s --history                                # 查看搜索历史
         """
     )
     parser.add_argument('query', nargs='?', default='', help='搜索关键词')
-    parser.add_argument('--sources', '-s', default='duckduckgo,bing,baidu',
-                        help='搜索源，逗号分隔 (duckduckgo/bing/baidu/tavily/jina/searxng)')
+    parser.add_argument('--sources', '-s', default=None,
+                        help='搜索源，逗号分隔（不指定则自动根据查询语言选择）')
     parser.add_argument('--depth', '-d', default='basic',
                         choices=['basic', 'advanced'],
                         help='搜索深度 (Tavily)')
@@ -1423,11 +1887,18 @@ def main():
 
         engines = {
             'duckduckgo': DuckDuckGoSearch(),
+            'bing': BingSearch(),
+            'baidu': BaiduSearch(),
+            'so': SoSearch(),
+            'sogou': SogouSearch(),
+            'wechat': WechatSearch(),
+            'sm': SmSearch(),
+            'brave': BraveSearch(),
+            'ecosia': EcosiaSearch(),
+            'startpage': StartpageSearch(),
             'tavily': TavilySearch(),
             'jina': JinaReader(),
             'searxng': SearXNGSearch(),
-            'bing': BingSearch(),
-            'baidu': BaiduSearch()
         }
 
         print("[数据源状态]")
@@ -1436,15 +1907,26 @@ def main():
             print(f"   {name}: {status}")
         return
 
-    # 处理 --read 模式
+    # 处理 --read 模式（深度阅读）
     if args.read:
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+
+        # 优先使用 Jina（质量更好）
         jina = JinaReader()
-        content = jina.read(args.read)
+        if jina.is_available():
+            content = jina.read(args.read)
+            if content:
+                print(content)
+                return
+
+        # Jina 不可用时，使用内置深度阅读
+        print(f"📖 深度阅读: {args.read}", file=sys.stderr)
+        content = deep_read(args.read)
         if content:
             print(content)
         else:
             print("❌ 读取失败", file=sys.stderr)
-            print("\n💡 Jina 需要 VPN 才能访问，或者设置 API Key", file=sys.stderr)
             sys.exit(1)
         return
 
@@ -1454,7 +1936,7 @@ def main():
             parser.error("反馈模式需要提供 --rating (1-5)")
         import io
         sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
-        sources = [s.strip() for s in args.sources.split(',')]
+        sources = [s.strip() for s in args.sources.split(',')] if args.sources else ['unknown']
         _save_feedback(args.feedback, args.rating, 0, sources)
         print(f"✅ 反馈已保存: '{args.feedback}' → {args.rating}/5 星")
         return
@@ -1464,7 +1946,7 @@ def main():
         parser.error("搜索模式需要提供关键词")
 
     # 多源搜索
-    sources = [s.strip() for s in args.sources.split(',')]
+    sources = [s.strip() for s in args.sources.split(',')] if args.sources else None
     data = multi_search(
         query=args.query,
         max_results=args.limit,
