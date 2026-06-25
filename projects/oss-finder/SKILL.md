@@ -16,7 +16,7 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion
 
 > **调研先行，精准搜索。**
 >
-> **七条铁律：**
+> **八条铁律：**
 > 1. **先理解再搜索** — 模糊提示词必须先调研，不能盲目搜索
 > 2. **用户确认后执行** — 调研结果必须让用户确认，避免无意义搜索
 > 3. **gh CLI 优先** — GitHub 搜索优先用 `gh search repos`（实时数据、无速率限制），不可用时降级到 REST API
@@ -24,6 +24,7 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion
 > 5. **GitHub 为主，其他为辅** — GitHub 数据最全，其他平台作为补充
 > 6. **国内网络优先** — GitHub 超时时自动降级到 Gitee
 > 7. **Token 可选** — 无 Token 也能用，有 Token 速率更高
+> 8. **降级透明** — 平台不可用时明确告知用户，推荐配置方案
 
 ---
 
@@ -500,16 +501,74 @@ gh search repos "react" --stars ">1000" --language javascript --limit 20 --json 
 
 ## 降级策略
 
-当 GitHub 不可用时：
+### 平台可用性矩阵
+
+| 平台 | 免费可用 | 需要 Token | 国内可用 | 推荐度 |
+|------|----------|------------|----------|--------|
+| GitHub (gh CLI) | ✅ | 可选（提高速率） | ✅ | ⭐⭐⭐⭐⭐ |
+| GitHub (REST API) | ✅ | 可选 | ✅ | ⭐⭐⭐⭐ |
+| GitLab | ✅ | 可选 | ✅ | ⭐⭐⭐ |
+| npm | ✅ | 不需要 | ✅ | ⭐⭐⭐⭐ |
+| PyPI | ✅ | 不需要 | ✅ | ⭐⭐⭐ |
+| Gitee | ❌ | **必须** | ✅ | ⭐⭐ |
+
+### 自动降级流程
 
 ```
-GitHub 超时/失败
-  ↓
-尝试 GitLab.com
-  ↓
-尝试 Gitee
-  ↓
-返回部分结果 + 提示
+GitHub 搜索（gh CLI 优先）
+  │
+  ├─ 成功 → 返回结果
+  │
+  └─ 失败/超时
+       │
+       ▼
+     GitHub REST API
+       │
+       ├─ 成功 → 返回结果
+       │
+       └─ 失败
+            │
+            ▼
+          GitLab
+            │
+            ├─ 成功 → 返回结果
+            │
+            └─ 失败
+                 │
+                 ▼
+               返回部分结果 + 提示用户
+```
+
+### Token 配置提示
+
+当用户需要使用需要认证的平台时，提示：
+
+**Gitee（必须 Token）：**
+```
+Gitee 搜索需要认证，请按以下步骤配置：
+
+1. 访问 https://gitee.com/profile/personal_access_tokens
+2. 创建个人访问令牌（需要 projects 权限）
+3. 设置环境变量：export GITEE_TOKEN=your_token
+```
+
+**GitHub（推荐 Token）：**
+```
+GitHub Token 可以提高搜索速率限制（从 10次/分钟 提升到 30次/分钟）。
+
+推荐使用 gh CLI（自动管理 Token）：
+  gh auth login
+
+或手动设置：
+  export GITHUB_TOKEN=ghp_xxxxx
+```
+
+**GitLab（可选 Token）：**
+```
+GitLab Token 可以突破速率限制。
+
+设置环境变量：
+  export GITLAB_TOKEN=glpat-xxxxx
 ```
 
 ---
@@ -535,6 +594,7 @@ output/oss-finder/
 - ❌ **禁止忽略错误** — API 失败必须记录并提示
 - ❌ **禁止伪造数据** — 只返回 API 真实数据
 - ❌ **禁止硬编码 Token** — Token 从环境变量读取
+- ❌ **禁止静默降级** — 平台不可用时必须告知用户原因和解决方案
 
 ---
 
