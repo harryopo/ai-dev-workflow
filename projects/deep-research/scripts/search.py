@@ -163,11 +163,17 @@ def _score_result(item: Dict, query: str) -> float:
         'zhihu.com', 'csdn.net', 'juejin.cn', 'segmentfault.com',
         'infoq.cn', 'jianshu.com', 'cnblogs.com', 'ruanyifeng.com',
         'python.org', 'nodejs.org', 'reactjs.org', 'vuejs.org',
+        'baidu.com/link',  # 百度重定向链接也算
+        'baidu.com',       # 百度百科等
     ]
     for domain in authoritative_domains:
         if domain in url:
             score += 20
             break
+
+    # 百度百科额外加分
+    if 'baike.baidu.com' in url or '百度百科' in title:
+        score += 10
 
     # 4. 时效性（10 分）
     pub_date = item.get('published_date', '')
@@ -760,9 +766,10 @@ class BaiduSearch:
     def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
         """搜索百度"""
         try:
+            # 请求量放大 3 倍（百度返回结果数不稳定）
             params = {
                 'wd': query,
-                'rn': min(max_results, 50),
+                'rn': min(max_results * 3, 50),
                 'ie': 'utf-8'
             }
             url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
@@ -794,17 +801,18 @@ class BaiduSearch:
         results = []
         seen = set()
 
-        # 方法1: h3 标题中的链接
+        # 方法1: h3 标题中的链接（百度重定向链接）
         h3_pattern = r'<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>'
         matches = re.findall(h3_pattern, html, re.DOTALL)
 
         for url, title in matches:
             title = re.sub(r'<[^>]+>', '', title).strip()
+            # 清理 &nbsp; 等 HTML 实体
+            title = title.replace('&nbsp;', ' ').replace('\xa0', ' ').strip()
+            # 百度结果 URL 是 baidu.com/link?url=... 重定向链接，保留
             if (url not in seen and
                 title and len(title) > 3 and
-                url.startswith('http') and
-                'baidu.com' not in url and
-                'baidustatic.com' not in url):
+                url.startswith('http')):
                 seen.add(url)
                 results.append({
                     'title': title,
@@ -816,25 +824,17 @@ class BaiduSearch:
                 if len(results) >= max_results:
                     break
 
-        # 方法2: 备用 — 所有外部链接
-        if not results:
-            link_pattern = r'<a[^>]+href="(https?://(?!www\.baidu\.com|baidustatic\.com)[^"]+)"[^>]*>(.*?)</a>'
-            matches = re.findall(link_pattern, html, re.DOTALL)
-            for url, title in matches:
-                title = re.sub(r'<[^>]+>', '', title).strip()
-                if (url not in seen and
-                    title and len(title) > 5 and
-                    not title.startswith('http')):
-                    seen.add(url)
-                    results.append({
-                        'title': title,
-                        'url': url,
-                        'content': '',
-                        'score': 0,
-                        'published_date': ''
-                    })
-                    if len(results) >= max_results:
-                        break
+        # 方法2: 提取摘要（c-abstract 或 content-right）
+        abstract_pattern = r'<span class="content-right_8Zs40">(.*?)</span>'
+        abstracts = re.findall(abstract_pattern, html, re.DOTALL)
+        if not abstracts:
+            abstract_pattern = r'<div class="c-abstract"[^>]*>(.*?)</div>'
+            abstracts = re.findall(abstract_pattern, html, re.DOTALL)
+
+        for i, abstract in enumerate(abstracts[:len(results)]):
+            clean = re.sub(r'<[^>]+>', '', abstract).strip()
+            if clean and i < len(results):
+                results[i]['content'] = clean[:200]
 
         return results
 
