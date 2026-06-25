@@ -1214,6 +1214,36 @@ def format_report(data: Dict) -> str:
     return '\n'.join(lines)
 
 
+def format_csv(data: Dict) -> str:
+    """
+    格式化为 CSV（Excel 可直接打开）
+
+    列：序号, 标题, URL, 摘要, 质量分, 来源, 发布日期
+    """
+    import csv
+    import io
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    # 表头
+    writer.writerow(['序号', '标题', 'URL', '摘要', '质量分', '来源', '发布日期'])
+
+    # 数据行
+    for i, item in enumerate(data.get('results', []), 1):
+        writer.writerow([
+            i,
+            item.get('title', ''),
+            item.get('url', ''),
+            item.get('content', '')[:200],
+            item.get('quality_score', ''),
+            item.get('source', data.get('sources', [''])[0] if data.get('sources') else ''),
+            item.get('published_date', '')
+        ])
+
+    return output.getvalue()
+
+
 # ============================================================
 # CLI
 # ============================================================
@@ -1250,8 +1280,8 @@ def main():
     parser.add_argument('--limit', '-n', type=int, default=10,
                         help='每个源的最大结果数')
     parser.add_argument('--format', '-f', default='markdown',
-                        choices=['markdown', 'json', 'report'],
-                        help='输出格式（markdown/json/report）')
+                        choices=['markdown', 'json', 'report', 'csv'],
+                        help='输出格式（markdown/json/report/csv）')
     parser.add_argument('--read', '-r', help='读取指定 URL 的内容')
     parser.add_argument('--check', action='store_true',
                         help='检查数据源可用性')
@@ -1347,6 +1377,8 @@ def main():
         print(format_json(data))
     elif args.format == 'report':
         print(format_report(data))
+    elif args.format == 'csv':
+        print(format_csv(data))
     else:
         print(format_markdown(data))
 
