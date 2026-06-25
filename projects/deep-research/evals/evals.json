@@ -1,7 +1,7 @@
 {
   "skill": "deep-research",
-  "version": "3.0.0",
-  "description": "深度调研工具测试集（v3.0 架构，含缓存/评分/迭代搜索/反馈）",
+  "version": "3.1.0",
+  "description": "深度调研工具测试集（v3.1 架构，含缓存/评分/迭代/报告/CSV/代理/历史）",
   "last_updated": "2026-06-25",
   "architecture": {
     "free_tier": ["duckduckgo", "bing", "baidu", "github-cli", "npm", "pypi"],
@@ -12,7 +12,12 @@
     "cache": "搜索结果缓存（1小时 TTL，~/.cache/deep-research/）",
     "scoring": "结果质量评分（0-100 分：标题相关性+内容丰富度+来源权威性+时效性）",
     "iterative": "迭代搜索（结果不足时自动用变体关键词重搜）",
+    "report": "报告生成（--format report，含执行摘要、来源分析、质量分布）",
+    "csv": "CSV 导出（--format csv，Excel 可直接打开）",
+    "proxy": "代理支持（--proxy http://127.0.0.1:7890）",
+    "history": "搜索历史（--history，查看最近 N 天搜索记录）",
     "feedback": "反馈系统（用户评分改进后续搜索）",
+    "retry": "重试机制（指数退避，3 次重试）",
     "keyword_diversity": "关键词多样性（自动生成中英文变体）"
   },
   "known_limitations": {

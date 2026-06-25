@@ -1,6 +1,6 @@
-# Deep Research — 深度调研工具 v3.0
+# Deep Research — 深度调研工具 v3.1
 
-> 多源并发搜索、质量评分、迭代搜索、缓存加速、反馈循环
+> 多源并发搜索、质量评分、迭代搜索、报告生成、CSV 导出、代理支持、搜索历史
 
 ## 架构概览
 
@@ -239,7 +239,7 @@ python scripts/search.py --read "https://docs.python.org/3/"
 - **oss-finder**: 开源项目搜索工具（本项目）
 - **skill-workspace**: Skill 开发工作台
 
-## v3.0 新特性
+## v3.1 新特性
 
 ### 🔍 搜索结果缓存
 - 缓存目录：`~/.cache/deep-research/`
@@ -256,10 +256,33 @@ python scripts/search.py --read "https://docs.python.org/3/"
 - 中文→英文映射（框架→framework）
 - 添加年份和"最佳"变体
 
+### 📋 报告生成
+- `--format report` 自动生成结构化研究报告
+- 包含：执行摘要、来源分析、质量分布、建议
+
+### 📊 CSV 导出
+- `--format csv` 输出标准 CSV 格式
+- Excel 可直接打开
+- 列：序号, 标题, URL, 摘要, 质量分, 来源, 发布日期
+
+### 🌐 代理支持
+- `--proxy http://127.0.0.1:7890` 支持 HTTP/HTTPS 代理
+- 企业网络环境可用
+
+### 📜 搜索历史
+- `--history` 查看最近 7 天搜索记录
+- `--history-days 30` 自定义天数
+- 存储：`~/.cache/deep-research/history/`
+
 ### 💬 反馈系统
 - 用户评分（1-5 星）改进后续搜索
 - 相似查询自动关联历史反馈
 - 反馈存储：`~/.cache/deep-research/feedback/`
+
+### 🔁 重试机制
+- 所有 HTTP 请求自动重试 3 次
+- 指数退避：1s → 2s → 4s
+- 网络不稳定时自动恢复
 
 ### 🚀 使用示例
 
@@ -273,17 +296,32 @@ python scripts/search.py "React" --min-score 50
 # 迭代搜索（冷门话题）
 python scripts/search.py "K8s 部署" --iterative
 
-# 禁用缓存
-python scripts/search.py "Python" --no-cache
+# 生成研究报告
+python scripts/search.py "AI agent" --format report
+
+# 导出 CSV
+python scripts/search.py "React" --format csv
+
+# 使用代理
+python scripts/search.py "Google" --proxy http://127.0.0.1:7890
+
+# 查看搜索历史
+python scripts/search.py --history
 
 # 提交反馈
 python scripts/search.py --feedback "Python Web 框架" --rating 5
-
-# JSON 格式输出（含质量分）
-python scripts/search.py "Kubernetes" --format json
 ```
 
 ## 更新日志
+
+### v3.1.0 (2026-06-25)
+
+- ✨ 新增报告生成（--format report）
+- ✨ 新增 CSV 导出（--format csv）
+- ✨ 新增代理支持（--proxy）
+- ✨ 新增搜索历史（--history）
+- ✨ 新增重试机制（指数退避 3 次）
+- ♻️ 更新 SKILL.md 文档
 
 ### v3.0.0 (2026-06-25)
 

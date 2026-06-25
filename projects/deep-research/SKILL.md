@@ -188,6 +188,43 @@ python scripts/search.py "React" --min-score 50
 python scripts/search.py "K8s 部署" --iterative
 ```
 
+### 报告生成
+
+自动生成结构化研究报告：
+
+```bash
+# 生成研究报告
+python scripts/search.py "Python Web 框架" --format report
+
+# 报告包含：执行摘要、来源分析、质量分布、建议
+```
+
+### CSV 导出
+
+```bash
+# 导出为 CSV（Excel 可直接打开）
+python scripts/search.py "React" --format csv
+
+# 列：序号, 标题, URL, 摘要, 质量分, 来源, 发布日期
+```
+
+### 代理支持
+
+```bash
+# 使用 HTTP 代理
+python scripts/search.py "Google" --proxy http://127.0.0.1:7890
+```
+
+### 搜索历史
+
+```bash
+# 查看最近 7 天搜索历史
+python scripts/search.py --history
+
+# 查看最近 30 天
+python scripts/search.py --history --history-days 30
+```
+
 ### 反馈系统
 
 用户评分改进后续搜索：
