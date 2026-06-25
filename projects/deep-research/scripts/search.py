@@ -119,6 +119,39 @@ def _retry(func, max_retries=3, base_delay=1.0):
     return wrapper
 
 
+def _http_get(url: str, headers: Optional[Dict] = None,
+              timeout: int = 15, max_retries: int = 3) -> bytes:
+    """
+    带重试的 HTTP GET 请求
+
+    Args:
+        url: 请求 URL
+        headers: 请求头
+        timeout: 超时时间（秒）
+        max_retries: 最大重试次数
+
+    Returns:
+        响应内容（bytes），已处理 gzip 解压
+    """
+    last_error = None
+    for attempt in range(max_retries):
+        try:
+            req = urllib.request.Request(url, headers=headers or {})
+            with urllib.request.urlopen(req, timeout=timeout) as response:
+                raw_data = response.read()
+                content_encoding = response.headers.get('Content-Encoding', '')
+                if content_encoding == 'gzip':
+                    return gzip.decompress(raw_data)
+                return raw_data
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError) as e:
+            last_error = e
+            if attempt < max_retries - 1:
+                delay = 1.0 * (2 ** attempt)
+                print(f"   ⏳ 重试 {attempt+1}/{max_retries}: {url[:50]}... ({delay:.1f}s)", file=sys.stderr)
+                time.sleep(delay)
+    raise last_error
+
+
 # ============================================================
 # 结果质量评分
 # ============================================================
@@ -668,20 +701,14 @@ class BingSearch:
                 'count': min(max_results, 50)
             }
             url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
-
-            req = urllib.request.Request(url, headers=self.headers)
-            with urllib.request.urlopen(req, timeout=15) as response:
-                html = response.read().decode('utf-8', errors='ignore')
-
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
             results = self._parse_html(html, max_results)
-
             return {
                 'source': 'bing',
                 'query': query,
                 'answer': '',
                 'results': results
             }
-
         except Exception as e:
             print(f"⚠️  Bing 搜索失败: {e}", file=sys.stderr)
             return None
@@ -773,25 +800,14 @@ class BaiduSearch:
                 'ie': 'utf-8'
             }
             url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
-
-            req = urllib.request.Request(url, headers=self.headers)
-            with urllib.request.urlopen(req, timeout=15) as response:
-                raw_data = response.read()
-                content_encoding = response.headers.get('Content-Encoding', '')
-                if content_encoding == 'gzip':
-                    html = gzip.decompress(raw_data).decode('utf-8', errors='ignore')
-                else:
-                    html = raw_data.decode('utf-8', errors='ignore')
-
+            html = _http_get(url, self.headers, timeout=15).decode('utf-8', errors='ignore')
             results = self._parse_html(html, max_results)
-
             return {
                 'source': 'baidu',
                 'query': query,
                 'answer': '',
                 'results': results
             }
-
         except Exception as e:
             print(f"⚠️  百度搜索失败: {e}", file=sys.stderr)
             return None
@@ -807,9 +823,7 @@ class BaiduSearch:
 
         for url, title in matches:
             title = re.sub(r'<[^>]+>', '', title).strip()
-            # 清理 &nbsp; 等 HTML 实体
             title = title.replace('&nbsp;', ' ').replace('\xa0', ' ').strip()
-            # 百度结果 URL 是 baidu.com/link?url=... 重定向链接，保留
             if (url not in seen and
                 title and len(title) > 3 and
                 url.startswith('http')):
@@ -824,7 +838,7 @@ class BaiduSearch:
                 if len(results) >= max_results:
                     break
 
-        # 方法2: 提取摘要（c-abstract 或 content-right）
+        # 方法2: 提取摘要
         abstract_pattern = r'<span class="content-right_8Zs40">(.*?)</span>'
         abstracts = re.findall(abstract_pattern, html, re.DOTALL)
         if not abstracts:
