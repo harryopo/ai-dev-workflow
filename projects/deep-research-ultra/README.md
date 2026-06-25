@@ -1,4 +1,4 @@
-# Deep Research — 深度调研工具 v3.1
+# Deep Research Ultra — 超级深度调研工具 v3.1
 
 > 多源并发搜索、质量评分、迭代搜索、报告生成、CSV 导出、代理支持、搜索历史
 

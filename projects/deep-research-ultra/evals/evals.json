@@ -1,7 +1,7 @@
 {
-  "skill": "deep-research",
+  "skill": "deep-research-ultra",
   "version": "3.1.0",
-  "description": "深度调研工具测试集（v3.1 架构，含缓存/评分/迭代/报告/CSV/代理/历史）",
+  "description": "超级深度调研工具测试集（v3.1 架构，含缓存/评分/迭代/报告/CSV/代理/历史）",
   "last_updated": "2026-06-25",
   "architecture": {
     "free_tier": ["duckduckgo", "bing", "baidu", "github-cli", "npm", "pypi"],

@@ -1,15 +1,15 @@
 ---
-name: deep-research
-version: 3.0.0
+name: deep-research-ultra
+version: 3.1.0
 description: |
-  深度调研工具，多源并发搜索、子 Agent 并行、生成带引用的研究报告。
-  当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"时调用。
+  超级深度调研工具，多源并发搜索、质量评分、迭代搜索、报告生成。
+  当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
 context: fork
 agent: general-purpose
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ---
 
-# Deep Research — 深度调研工具 v3.0
+# Deep Research Ultra — 超级深度调研工具 v3.1
 
 **三阶段模型：澄清 → 并行执行 → 报告生成。**
 
