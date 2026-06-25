@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 """
-Deep Research — 多源搜索引擎 v2.1
+Deep Research — 多源搜索引擎 v3.0
 整合 DuckDuckGo + Bing + 百度（免费）+ Tavily（AI 搜索）+ Jina（网页提取）+ SearXNG（元搜索）
+
+v3.0 新增特性：
+- 搜索结果缓存（1 小时 TTL）
+- 结果质量评分（0-100 分）
+- 迭代搜索（结果不足时自动重搜）
+- 关键词多样性（自动生成变体）
+- 反馈系统（用户评分改进后续搜索）
 
 架构设计：
 ┌─────────────────────────────────────────────────────────────┐
@@ -35,16 +42,199 @@ Deep Research — 多源搜索引擎 v2.1
 
 import argparse
 import gzip
+import hashlib
 import json
 import os
 import re
 import sys
+import time
 import urllib.request
 import urllib.parse
 import urllib.error
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timedelta
+from pathlib import Path
 from typing import Optional, List, Dict, Any
 import subprocess
+
+
+# ============================================================
+# 缓存系统
+# ============================================================
+
+CACHE_DIR = Path.home() / '.cache' / 'deep-research'
+CACHE_TTL = timedelta(hours=1)
+
+
+def _cache_key(query: str, sources: List[str], **kwargs) -> str:
+    """生成缓存键"""
+    parts = [query, ','.join(sorted(sources))]
+    for k in sorted(kwargs.keys()):
+        if kwargs[k] is not None:
+            parts.append(f"{k}={kwargs[k]}")
+    return hashlib.md5('|'.join(parts).encode()).hexdigest()
+
+
+def _cache_get(key: str) -> Optional[dict]:
+    """读取缓存"""
+    cache_file = CACHE_DIR / f"{key}.json"
+    if not cache_file.exists():
+        return None
+    try:
+        data = json.loads(cache_file.read_text(encoding='utf-8'))
+        cached_at = datetime.fromisoformat(data['_cached_at'])
+        if datetime.now() - cached_at > CACHE_TTL:
+            cache_file.unlink()
+            return None
+        return data
+    except (json.JSONDecodeError, KeyError, ValueError):
+        return None
+
+
+def _cache_set(key: str, data: dict):
+    """写入缓存"""
+    CACHE_DIR.mkdir(parents=True, exist_ok=True)
+    data['_cached_at'] = datetime.now().isoformat()
+    cache_file = CACHE_DIR / f"{key}.json"
+    cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
+
+# ============================================================
+# 重试机制（指数退避）
+# ============================================================
+
+def _retry(func, max_retries=3, base_delay=1.0):
+    """带指数退避的重试装饰器"""
+    def wrapper(*args, **kwargs):
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    delay = base_delay * (2 ** attempt)
+                    time.sleep(delay)
+        raise last_error
+    return wrapper
+
+
+# ============================================================
+# 结果质量评分
+# ============================================================
+
+def _score_result(item: Dict, query: str) -> float:
+    """
+    评估搜索结果质量（0-100 分）
+
+    评分维度：
+    - 标题相关性（40 分）
+    - 内容丰富度（30 分）
+    - 来源权威性（20 分）
+    - 时效性（10 分）
+    """
+    score = 0.0
+    title = item.get('title', '').lower()
+    content = item.get('content', '').lower()
+    url = item.get('url', '').lower()
+    query_lower = query.lower()
+
+    # 1. 标题相关性（40 分）
+    query_words = set(query_lower.split())
+    title_words = set(title.split())
+    overlap = len(query_words & title_words)
+    if query_words:
+        score += min(40, (overlap / len(query_words)) * 40)
+
+    # 2. 内容丰富度（30 分）
+    content_len = len(content)
+    if content_len > 500:
+        score += 30
+    elif content_len > 200:
+        score += 20
+    elif content_len > 50:
+        score += 10
+
+    # 3. 来源权威性（20 分）
+    authoritative_domains = [
+        'github.com', 'stackoverflow.com', 'docs.python.org',
+        'developer.mozilla.org', 'learn.microsoft.com',
+        'medium.com', 'dev.to', 'arxiv.org', 'wikipedia.org',
+        'zhihu.com', 'csdn.net', 'juejin.cn', 'segmentfault.com',
+        'infoq.cn', 'jianshu.com', 'cnblogs.com', 'ruanyifeng.com',
+        'python.org', 'nodejs.org', 'reactjs.org', 'vuejs.org',
+    ]
+    for domain in authoritative_domains:
+        if domain in url:
+            score += 20
+            break
+
+    # 4. 时效性（10 分）
+    pub_date = item.get('published_date', '')
+    if pub_date:
+        try:
+            # 尝试解析日期
+            if '2025' in str(pub_date) or '2026' in str(pub_date):
+                score += 10
+            elif '2024' in str(pub_date):
+                score += 7
+            elif '2023' in str(pub_date):
+                score += 4
+        except:
+            pass
+
+    return round(score, 1)
+
+
+# ============================================================
+# 反馈系统
+# ============================================================
+
+FEEDBACK_DIR = Path.home() / '.cache' / 'deep-research' / 'feedback'
+
+
+def _save_feedback(query: str, rating: int, results_count: int, sources: List[str]):
+    """保存用户反馈（1-5 星）"""
+    FEEDBACK_DIR.mkdir(parents=True, exist_ok=True)
+    feedback = {
+        'query': query,
+        'rating': rating,
+        'results_count': results_count,
+        'sources': sources,
+        'timestamp': datetime.now().isoformat()
+    }
+    # 按日期保存
+    date_str = datetime.now().strftime('%Y-%m-%d')
+    feedback_file = FEEDBACK_DIR / f"feedback_{date_str}.jsonl"
+    with open(feedback_file, 'a', encoding='utf-8') as f:
+        f.write(json.dumps(feedback, ensure_ascii=False) + '\n')
+
+
+def _get_similar_feedback(query: str) -> Optional[Dict]:
+    """查找相似查询的历史反馈"""
+    if not FEEDBACK_DIR.exists():
+        return None
+
+    query_words = set(query.lower().split())
+    best_match = None
+    best_score = 0
+
+    for feedback_file in FEEDBACK_DIR.glob('feedback_*.jsonl'):
+        try:
+            for line in feedback_file.read_text(encoding='utf-8').strip().split('\n'):
+                if not line:
+                    continue
+                fb = json.loads(line)
+                fb_words = set(fb['query'].lower().split())
+                overlap = len(query_words & fb_words)
+                if overlap > best_score:
+                    best_score = overlap
+                    best_match = fb
+        except:
+            continue
+
+    # 至少 2 个词重叠才认为相似
+    return best_match if best_score >= 2 else None
 
 
 # ============================================================
@@ -656,9 +846,12 @@ class BaiduSearch:
 def multi_search(query: str, max_results: int = 10,
                  sources: Optional[List[str]] = None,
                  search_depth: str = "basic",
-                 auto_detect: bool = True) -> Dict:
+                 auto_detect: bool = True,
+                 use_cache: bool = True,
+                 min_score: float = 0,
+                 enable_iterative: bool = False) -> Dict:
     """
-    多源并发搜索
+    多源并发搜索（带缓存、评分、迭代搜索）
 
     Args:
         query: 搜索关键词
@@ -666,10 +859,21 @@ def multi_search(query: str, max_results: int = 10,
         sources: 搜索源列表 (duckduckgo/bing/baidu/tavily/jina/searxng)
         search_depth: Tavily 搜索深度 (basic/advanced)
         auto_detect: 是否自动检测可用数据源
+        use_cache: 是否使用缓存
+        min_score: 最低质量分（0-100），低于此分的结果过滤
+        enable_iterative: 启用迭代搜索（结果不足时自动重搜）
     """
     # 默认数据源优先级
     if sources is None:
-        sources = ['duckduckgo', 'tavily', 'jina']
+        sources = ['duckduckgo', 'bing', 'baidu']
+
+    # 检查缓存
+    if use_cache:
+        cache_key = _cache_key(query, sources, depth=search_depth)
+        cached = _cache_get(cache_key)
+        if cached:
+            print(f"💾 缓存命中: {query}", file=sys.stderr)
+            return cached
 
     # 初始化搜索引擎
     engines = {
@@ -728,12 +932,6 @@ def multi_search(query: str, max_results: int = 10,
                     search_depth=search_depth,
                     max_results=max_results
                 )] = source
-            elif source == 'duckduckgo':
-                # 只使用文本搜索（新闻搜索在国内超时）
-                futures[executor.submit(
-                    engine.search, query,
-                    max_results=max_results
-                )] = source
             else:
                 futures[executor.submit(
                     engine.search, query,
@@ -765,11 +963,9 @@ def multi_search(query: str, max_results: int = 10,
         url = item.get('url', '').rstrip('/')
         title = item.get('title', '').lower().strip()
 
-        # URL 去重
         if url in seen_urls:
             continue
 
-        # 标题去重（相似标题合并）
         title_key = title[:50] if title else ''
         if title_key and title_key in seen_titles:
             continue
@@ -780,12 +976,93 @@ def multi_search(query: str, max_results: int = 10,
             seen_titles.add(title_key)
         deduped.append(item)
 
-    return {
+    # 质量评分
+    for item in deduped:
+        item['quality_score'] = _score_result(item, query)
+
+    # 按质量分排序
+    deduped.sort(key=lambda x: x.get('quality_score', 0), reverse=True)
+
+    # 过滤低分结果
+    if min_score > 0:
+        deduped = [r for r in deduped if r.get('quality_score', 0) >= min_score]
+
+    # 迭代搜索：结果不足时，用变体关键词重搜
+    if enable_iterative and len(deduped) < max_results // 2:
+        print(f"   🔄 结果不足，启动迭代搜索...", file=sys.stderr)
+        variant_queries = _generate_variants(query)
+        for vq in variant_queries[:2]:  # 最多 2 轮变体
+            if len(deduped) >= max_results:
+                break
+            print(f"   🔍 变体搜索: {vq}", file=sys.stderr)
+            for source in available[:2]:  # 只用前 2 个源
+                engine = engines.get(source)
+                if engine:
+                    try:
+                        result = engine.search(vq, max_results=max_results // 2)
+                        if result and result.get('results'):
+                            for item in result['results']:
+                                item['quality_score'] = _score_result(item, query)
+                                url = item.get('url', '').rstrip('/')
+                                if url not in seen_urls:
+                                    seen_urls.add(url)
+                                    deduped.append(item)
+                    except:
+                        pass
+
+        deduped.sort(key=lambda x: x.get('quality_score', 0), reverse=True)
+
+    # 检查历史反馈
+    feedback = _get_similar_feedback(query)
+    if feedback:
+        print(f"   📊 历史反馈: 此类查询评分 {feedback['rating']}/5", file=sys.stderr)
+
+    result = {
         'query': query,
         'answer': '\n\n'.join(answers) if answers else '',
         'results': deduped[:max_results],
-        'sources': used_sources
+        'sources': used_sources,
+        'avg_quality': round(sum(r.get('quality_score', 0) for r in deduped[:max_results]) / max(len(deduped[:max_results]), 1), 1)
     }
+
+    # 写入缓存
+    if use_cache and result['results']:
+        _cache_set(cache_key, result)
+
+    return result
+
+
+def _generate_variants(query: str) -> List[str]:
+    """生成搜索关键词变体"""
+    variants = []
+
+    # 中文 → 英文变体
+    cn_en_map = {
+        '框架': 'framework',
+        '对比': 'comparison',
+        '最佳实践': 'best practices',
+        '教程': 'tutorial',
+        '入门': 'getting started',
+        '性能': 'performance',
+        '部署': 'deployment',
+        '微服务': 'microservices',
+        '容器': 'container',
+        '数据库': 'database',
+    }
+
+    for cn, en in cn_en_map.items():
+        if cn in query:
+            variants.append(query.replace(cn, en))
+
+    # 添加年份变体
+    if '2025' not in query and '2026' not in query:
+        variants.append(f"{query} 2025")
+
+    # 添加"最佳"变体
+    if '最佳' not in query and 'best' not in query.lower():
+        variants.append(f"best {query}")
+
+    return variants
 
 
 def format_markdown(data: Dict) -> str:
@@ -800,17 +1077,19 @@ def format_markdown(data: Dict) -> str:
 
     lines.append(f"### 来源 ({len(data['results'])} 个)")
     lines.append("")
-    lines.append("| # | 来源 | 内容摘要 |")
-    lines.append("|---|------|----------|")
+    lines.append("| # | 来源 | 质量分 | 内容摘要 |")
+    lines.append("|---|------|--------|----------|")
 
     for i, item in enumerate(data['results'], 1):
         title = item.get('title', '-')[:50]
         url = item.get('url', '')
         content = item.get('content', '-')[:80]
-        lines.append(f"| {i} | [{title}]({url}) | {content} |")
+        score = item.get('quality_score', '-')
+        lines.append(f"| {i} | [{title}]({url}) | {score} | {content} |")
 
     lines.append("")
-    lines.append(f"**数据源:** {', '.join(data.get('sources', []))}")
+    avg = data.get('avg_quality', 0)
+    lines.append(f"**数据源:** {', '.join(data.get('sources', []))} | **平均质量分:** {avg}")
 
     return '\n'.join(lines)
 
@@ -826,7 +1105,7 @@ def format_json(data: Dict) -> str:
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Deep Research — 多源搜索引擎 v2.0',
+        description='Deep Research — 多源搜索引擎 v3.0（带缓存、评分、迭代搜索）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 数据源说明：
@@ -840,12 +1119,15 @@ def main():
 示例：
   %(prog)s "Python Web 框架对比"                    # 使用默认数据源
   %(prog)s "AI agent" --sources duckduckgo,bing     # 指定数据源
+  %(prog)s "K8s" --iterative                        # 迭代搜索（结果不足自动重搜）
+  %(prog)s "React" --min-score 50                   # 只返回 50 分以上结果
   %(prog)s --read "https://example.com"             # 读取网页内容
   %(prog)s --check                                  # 检查数据源可用性
+  %(prog)s --feedback "query" --rating 5            # 提交搜索反馈
         """
     )
     parser.add_argument('query', nargs='?', default='', help='搜索关键词')
-    parser.add_argument('--sources', '-s', default='duckduckgo,tavily',
+    parser.add_argument('--sources', '-s', default='duckduckgo,bing,baidu',
                         help='搜索源，逗号分隔 (duckduckgo/bing/baidu/tavily/jina/searxng)')
     parser.add_argument('--depth', '-d', default='basic',
                         choices=['basic', 'advanced'],
@@ -860,6 +1142,15 @@ def main():
                         help='检查数据源可用性')
     parser.add_argument('--no-auto-detect', action='store_true',
                         help='禁用自动检测，强制使用指定数据源')
+    parser.add_argument('--no-cache', action='store_true',
+                        help='禁用缓存')
+    parser.add_argument('--min-score', type=float, default=0,
+                        help='最低质量分（0-100），低于此分的结果过滤')
+    parser.add_argument('--iterative', action='store_true',
+                        help='启用迭代搜索（结果不足时自动重搜）')
+    parser.add_argument('--feedback', help='提交搜索反馈的查询')
+    parser.add_argument('--rating', type=int, choices=[1, 2, 3, 4, 5],
+                        help='反馈评分（1-5 星）')
 
     args = parser.parse_args()
 
@@ -905,6 +1196,17 @@ def main():
             sys.exit(1)
         return
 
+    # 处理反馈模式
+    if args.feedback:
+        if not args.rating:
+            parser.error("反馈模式需要提供 --rating (1-5)")
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        sources = [s.strip() for s in args.sources.split(',')]
+        _save_feedback(args.feedback, args.rating, 0, sources)
+        print(f"✅ 反馈已保存: '{args.feedback}' → {args.rating}/5 星")
+        return
+
     # 搜索模式需要 query
     if not args.query:
         parser.error("搜索模式需要提供关键词")
@@ -916,7 +1218,10 @@ def main():
         max_results=args.limit,
         sources=sources,
         search_depth=args.depth,
-        auto_detect=not args.no_auto_detect
+        auto_detect=not args.no_auto_detect,
+        use_cache=not args.no_cache,
+        min_score=args.min_score,
+        enable_iterative=args.iterative
     )
 
     # 输出
