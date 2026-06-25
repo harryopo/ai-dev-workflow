@@ -2,10 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-*.egg-info/
-dist/
-build/
-.eggs/
 
 # Cache
 .cache/
@@ -29,15 +25,35 @@ output/
 *.tmp
 *.bak
 
-# Installed skills (not user-developed)
+# 不需要的目录
 .agents/
 .trae/
 .claude/
 .memory/
 .temp_*
 skills/
+memory/
+.learnings/
+.mcp.json
+archive/
+docs/
+research/
 
-# Temp files
+# 不需要的项目
+projects/book-methodology-skills/
+projects/idea-to-dev/
+projects/site-cloner/
+projects/skill-dev/
+projects/skill-review/
+projects/skill-workspace/
+projects/super-frontend-design/
+projects/token-optimizer/
+projects/windows-desktop-dev/
+projects/测评/
+projects/待优化skill/
+projects/节省token_skill/
+
+# 临时文件
 20.205.243.166
 npm
-research/
+skills-lock.json
