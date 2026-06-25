@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "sciverse": {
+      "command": "npx",
+      "args": ["-y", "sciverse-mcp-server"],
+      "env": {
+        "SCIVERSE_API_TOKEN": "sci_r2e3saU77FRigCwjlxj0j-8GgcBZHv11_hTntscGCZE"
+      }
+    }
+  }
+}

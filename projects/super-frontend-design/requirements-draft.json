@@ -1,0 +1,93 @@
+{
+  "metadata": {
+    "title": "超级前端设计 Skill 需求文档",
+    "version": "1.0.0",
+    "status": "approved",
+    "created_at": "2026-06-13",
+    "updated_at": "2026-06-13",
+    "author": "super-frontend-design-team"
+  },
+  "requirements": [
+    {
+      "id": "REQ-001",
+      "priority": "P0",
+      "title": "需求调研对话流程",
+      "description": "新增 Phase 0 需求调研阶段，在任何设计执行前必须完成用户需求调研对话，明确设计目标、受众、功能、交互、风格偏好等关键信息",
+      "acceptance_criteria": [
+        "主入口工作流新增 Phase 0 需求调研阶段",
+        "调研问题覆盖：设计目标、目标受众、功能需求、交互需求、风格偏好、技术栈、参考案例",
+        "输出结构化的需求简报（design brief）",
+        "用户可跳过调研直接进入设计（快速通道模式）"
+      ],
+      "dependencies": [],
+      "implementation_notes": "修改 SKILL.md 主入口，在工作流中新增 Phase 0"
+    },
+    {
+      "id": "REQ-002",
+      "priority": "P0",
+      "title": "设计思考不局限于 Skill 内置框架",
+      "description": "设计思考角度不应局限于 Skill 内置的风格、配色、组件等，应鼓励跨领域借鉴和创新",
+      "acceptance_criteria": [
+        "主入口通用设计原则新增「跨领域借鉴」原则",
+        "设计阶段支持从非 UI 领域获取灵感（建筑、时尚、工业设计、自然等）",
+        "提供设计灵感来源清单（超越传统 UI 参考）"
+      ],
+      "dependencies": [],
+      "implementation_notes": "修改主入口通用设计原则部分"
+    },
+    {
+      "id": "REQ-003",
+      "priority": "P0",
+      "title": "全网搜索设计参考",
+      "description": "当内置设计数据库无法满足需求时（如后端页面、特殊领域），自动触发全网搜索，收集设计参考和最佳实践",
+      "acceptance_criteria": [
+        "主入口新增「research」子命令/流程阶段",
+        "当本地 references 无匹配时自动触发全网搜索",
+        "搜索来源包括：Dribbble、Behance、Pinterest、Awwwards、CSS Design Awards、site:dribbble.com 等",
+        "搜索结果经过综合优化，不是直接照搬",
+        "搜索结果与内置设计系统融合，保持一致性"
+      ],
+      "dependencies": [],
+      "implementation_notes": "修改主入口，新增 research 子命令；修改 design 子技能，在工作流中集成搜索"
+    },
+    {
+      "id": "REQ-004",
+      "priority": "P0",
+      "title": "搜索结果综合优化",
+      "description": "网上搜集的设计参考通常不够美观，需要进行综合优化，融合多源参考的优点，生成高质量设计方案",
+      "acceptance_criteria": [
+        "搜索结果经过「解构→分析→融合→优化」四步处理",
+        "提取参考中的优秀设计元素（布局、配色、排版、交互模式）",
+        "融合多个参考的优点，避免单一照搬",
+        "结合内置设计系统（色板、字体、Token）进行统一优化",
+        "输出优化后的设计方案，附参考来源说明"
+      ],
+      "dependencies": ["REQ-003"],
+      "implementation_notes": "在 design 子技能中新增参考优化流程"
+    },
+    {
+      "id": "REQ-005",
+      "priority": "P1",
+      "title": "更新主入口路由表和工作流",
+      "description": "更新主入口 SKILL.md 的路由表、工作流模式、子命令定义，反映新增的调研和搜索功能",
+      "acceptance_criteria": [
+        "路由表新增 research 子命令",
+        "工作流从 4 阶段扩展为 5 阶段：research → creative → theme → design → review",
+        "快速通道支持跳过 research 阶段",
+        "子命令输入输出表更新"
+      ],
+      "dependencies": ["REQ-001", "REQ-003"],
+      "implementation_notes": "全面更新主入口 SKILL.md"
+    }
+  ],
+  "dependencies": {
+    "internal": [
+      "subskills/design/SKILL.md - 需要在工作流中集成全网搜索",
+      "subskills/review/SKILL.md - 审查阶段无需修改"
+    ],
+    "external": [
+      "WebSearch - 全网搜索设计参考",
+      "WebFetch - 获取搜索结果页面内容"
+    ]
+  }
+}

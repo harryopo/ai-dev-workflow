@@ -1,0 +1,1523 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Dev - Claude Code Skill 开发助手</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --accent: #6366f1;
+    --accent-light: #818cf8;
+    --accent-dark: #4f46e5;
+    --surface: #0a0a0f;
+    --surface-2: #111118;
+    --surface-3: #1a1a24;
+    --surface-4: #22222f;
+    --text: #e8e8ed;
+    --text-muted: #7a7a8e;
+    --border: #252535;
+    --green: #22c55e;
+    --yellow: #eab308;
+    --red: #ef4444;
+    --gradient: linear-gradient(135deg, #6366f1, #a855f7, #ec4899);
+    --gradient-subtle: linear-gradient(135deg, rgba(99,102,241,0.08), rgba(168,85,247,0.05));
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, sans-serif;
+    background: var(--surface);
+    color: var(--text);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  code, .mono { font-family: 'JetBrains Mono', 'SF Mono', monospace; }
+
+  /* ==================== NAV ==================== */
+  nav {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 100;
+    padding: 1rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(24px) saturate(1.2);
+    background: rgba(10, 10, 15, 0.75);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-brand {
+    font-weight: 700;
+    font-size: 1.05rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .nav-brand span {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .nav-links { display: flex; gap: 1.75rem; }
+
+  .nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--text); }
+
+  /* ==================== HERO ==================== */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 8rem 2rem 6rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 900px;
+    height: 900px;
+    background: radial-gradient(circle, rgba(99,102,241,0.07) 0%, rgba(168,85,247,0.03) 40%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1rem;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 2rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: blink 2s ease-in-out infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 5.5vw, 4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.15;
+    margin-bottom: 1.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero h1 .gradient {
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    max-width: 520px;
+    line-height: 1.7;
+    margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    position: relative;
+    z-index: 1;
+  }
+
+  .btn {
+    padding: 0.8rem 1.6rem;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.25s;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: white;
+    box-shadow: 0 4px 20px rgba(99,102,241,0.25);
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(99,102,241,0.35);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { background: var(--surface-2); border-color: var(--text-muted); }
+
+  /* ==================== LAYOUT ==================== */
+  section { padding: 5rem 2rem; max-width: 1100px; margin: 0 auto; }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--accent-light);
+    margin-bottom: 0.75rem;
+  }
+
+  .section-title {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.75rem;
+  }
+
+  .section-desc {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    max-width: 560px;
+    margin-bottom: 3rem;
+    line-height: 1.7;
+  }
+
+  .divider {
+    width: 100%;
+    max-width: 1100px;
+    margin: 0 auto;
+    border: none;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ==================== PROBLEM ==================== */
+  .problem-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .problem-card {
+    padding: 1.75rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: border-color 0.3s;
+  }
+
+  .problem-card:hover { border-color: var(--accent); }
+
+  .problem-icon { font-size: 1.75rem; margin-bottom: 0.75rem; display: block; }
+
+  .problem-card h3 { font-size: 1rem; margin-bottom: 0.5rem; }
+
+  .problem-card p { color: var(--text-muted); font-size: 0.85rem; line-height: 1.6; }
+
+  /* ==================== STATS ==================== */
+  .stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+    padding: 2.5rem 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    margin: 3rem 0;
+  }
+
+  .stat { text-align: center; }
+
+  .stat-value {
+    font-size: 2.2rem;
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    line-height: 1;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ==================== ARCHITECTURE ==================== */
+  .arch-diagram {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin-bottom: 3rem;
+    overflow-x: auto;
+  }
+
+  .arch-diagram h3 {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text);
+  }
+
+  .arch-layers {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .arch-layer {
+    display: grid;
+    grid-template-columns: 120px 1fr 100px;
+    align-items: center;
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: 0;
+    position: relative;
+  }
+
+  .arch-layer:first-child { border-radius: 12px 12px 0 0; }
+  .arch-layer:last-child { border-radius: 0 0 12px 12px; }
+  .arch-layer + .arch-layer { border-top: none; }
+
+  .arch-layer .layer-level {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--accent-light);
+    white-space: nowrap;
+  }
+
+  .arch-layer .layer-content { flex: 1; }
+
+  .arch-layer .layer-content strong {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .arch-layer .layer-content span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+  }
+
+  .arch-layer .layer-tokens {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .arch-layer:nth-child(1) { background: rgba(99,102,241,0.04); }
+  .arch-layer:nth-child(2) { background: rgba(168,85,247,0.03); }
+  .arch-layer:nth-child(3) { background: rgba(236,72,153,0.02); }
+
+  .arch-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    position: relative;
+  }
+
+  .arch-arrow::before {
+    content: '';
+    position: absolute;
+    left: 60px;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--border);
+  }
+
+  /* ==================== PRINCIPLES ==================== */
+  .principles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .principle-card {
+    padding: 1.75rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .principle-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+
+  .principle-card:hover::before { opacity: 1; }
+
+  .principle-card h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .principle-card h3 .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .principle-card p {
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    line-height: 1.65;
+  }
+
+  .principle-card .highlight {
+    color: var(--accent-light);
+    font-weight: 500;
+  }
+
+  /* ==================== STRUCTURE ==================== */
+  .structure-visual {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  .file-tree {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 1.5rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    line-height: 2;
+    color: var(--text-muted);
+  }
+
+  .file-tree .dir { color: var(--accent-light); font-weight: 600; }
+  .file-tree .required { color: var(--green); }
+  .file-tree .optional { color: var(--text-muted); }
+
+  .structure-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .structure-item {
+    padding: 1.25rem 1.5rem;
+    border-radius: 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: 90px 1fr;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  .structure-item .item-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--accent-light);
+    padding-top: 0.1rem;
+  }
+
+  .structure-item .item-desc {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  .structure-item .item-desc strong { color: var(--text); }
+
+  /* ==================== FEATURES ==================== */
+  .features-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .feature-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: center;
+    padding: 2rem;
+    border-radius: 16px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+  }
+
+  .feature-row:nth-child(even) .feature-visual { order: -1; }
+
+  .feature-text h3 { font-size: 1.2rem; margin-bottom: 0.5rem; }
+
+  .feature-text p {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.7;
+    margin-bottom: 1rem;
+  }
+
+  .feature-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+  .tag {
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    background: rgba(99,102,241,0.08);
+    color: var(--accent-light);
+    border: 1px solid rgba(99,102,241,0.15);
+  }
+
+  .feature-visual {
+    background: var(--surface-3);
+    border-radius: 10px;
+    padding: 1.25rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.9;
+    color: var(--text-muted);
+    overflow-x: auto;
+  }
+
+  .feature-visual .kw { color: #c084fc; }
+  .feature-visual .str { color: #86efac; }
+  .feature-visual .comment { color: #3a3a4a; }
+  .feature-visual .key { color: #93c5fd; }
+  .feature-visual .warn { color: #fbbf24; }
+  .feature-visual .err { color: #f87171; }
+
+  /* ==================== FAILURE ==================== */
+  .failure-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  .failure-card {
+    padding: 1.5rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    position: relative;
+  }
+
+  .failure-card .failure-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 6px;
+  }
+
+  .failure-card .failure-type.red { background: rgba(239,68,68,0.1); color: #f87171; }
+  .failure-card .failure-type.yellow { background: rgba(234,179,8,0.1); color: #fbbf24; }
+  .failure-card .failure-type.blue { background: rgba(99,102,241,0.1); color: #818cf8; }
+  .failure-card .failure-type.purple { background: rgba(168,85,247,0.1); color: #c084fc; }
+
+  .failure-card h4 { font-size: 0.95rem; margin-bottom: 0.4rem; }
+
+  .failure-card .symptom {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    line-height: 1.5;
+  }
+
+  .failure-card .fix {
+    font-size: 0.8rem;
+    color: var(--green);
+    font-weight: 500;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border);
+  }
+
+  .failure-card .fix::before { content: '→ '; }
+
+  /* ==================== EVALS ==================== */
+  .evals-visual {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 2rem;
+  }
+
+  .evals-visual h3 {
+    font-size: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .evals-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+  }
+
+  .evals-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .evals-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid rgba(37,37,53,0.5);
+    color: var(--text-muted);
+    vertical-align: top;
+  }
+
+  .evals-table tr:last-child td { border-bottom: none; }
+
+  .evals-table .eval-type {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+  }
+
+  .eval-type.core { background: rgba(99,102,241,0.1); color: var(--accent-light); }
+  .eval-type.edge { background: rgba(234,179,8,0.1); color: #fbbf24; }
+  .eval-type.pit { background: rgba(239,68,68,0.1); color: #f87171; }
+
+  /* ==================== GOTCHAS ==================== */
+  .gotchas-flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 2rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .gotchas-node {
+    padding: 1rem 1.25rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    min-width: 140px;
+    flex-shrink: 0;
+  }
+
+  .gotchas-node .node-label {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.3rem;
+  }
+
+  .gotchas-node .node-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .gotchas-arrow {
+    flex-shrink: 0;
+    padding: 0 0.5rem;
+    color: var(--text-muted);
+    font-size: 1.2rem;
+  }
+
+  .gotchas-examples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+
+  .gotcha-item {
+    padding: 1.25rem;
+    border-radius: 10px;
+    background: var(--surface-3);
+    border-left: 3px solid var(--yellow);
+  }
+
+  .gotcha-item h4 {
+    font-size: 0.85rem;
+    margin-bottom: 0.4rem;
+    color: var(--yellow);
+  }
+
+  .gotcha-item p {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+  }
+
+  /* ==================== STRONG-WEAK ==================== */
+  .model-split {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 2rem;
+    align-items: center;
+  }
+
+  .model-card {
+    padding: 2rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    text-align: center;
+  }
+
+  .model-card .model-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .model-card h3 { font-size: 1.1rem; margin-bottom: 0.5rem; }
+
+  .model-card .model-role {
+    font-size: 0.75rem;
+    color: var(--accent-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.75rem;
+  }
+
+  .model-card ul {
+    list-style: none;
+    text-align: left;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  .model-card ul li::before {
+    content: '·';
+    color: var(--accent-light);
+    font-weight: 700;
+    margin-right: 0.5rem;
+  }
+
+  .model-divider {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .model-divider .arrow { font-size: 1.5rem; }
+
+  /* ==================== WORKFLOW ==================== */
+  .workflow-steps {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 1rem;
+    counter-reset: step;
+  }
+
+  .step {
+    padding: 1.5rem 1.25rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    position: relative;
+    counter-increment: step;
+  }
+
+  .step::before {
+    content: counter(step, decimal-leading-zero);
+    display: block;
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.75rem;
+    line-height: 1;
+  }
+
+  .step h3 { font-size: 0.9rem; margin-bottom: 0.4rem; }
+
+  .step p { color: var(--text-muted); font-size: 0.78rem; line-height: 1.6; }
+
+  /* ==================== PATHS ==================== */
+  .paths-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+  }
+
+  .path-card {
+    padding: 1.75rem;
+    border-radius: 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    text-align: center;
+    transition: all 0.3s;
+  }
+
+  .path-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+
+  .path-card.recommended {
+    border-color: var(--accent);
+    background: var(--gradient-subtle);
+  }
+
+  .path-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 11px;
+    background: var(--gradient);
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1rem;
+  }
+
+  .path-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+
+  .path-card p { color: var(--text-muted); font-size: 0.8rem; line-height: 1.6; }
+
+  .path-order {
+    margin-top: 0.75rem;
+    font-size: 0.7rem;
+    color: var(--accent-light);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ==================== ITERATION ==================== */
+  .iteration-loop {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 2rem 0;
+    overflow-x: auto;
+  }
+
+  .loop-node {
+    padding: 1rem 1.25rem;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    text-align: center;
+    min-width: 130px;
+    flex-shrink: 0;
+  }
+
+  .loop-node .node-text {
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .loop-arrow {
+    padding: 0 0.4rem;
+    color: var(--accent-light);
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* ==================== CTA ==================== */
+  .cta-section {
+    text-align: center;
+    padding: 5rem 2rem;
+    position: relative;
+  }
+
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(99,102,241,0.05) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .cta-section h2 {
+    font-size: clamp(1.6rem, 3vw, 2.2rem);
+    margin-bottom: 0.75rem;
+    position: relative;
+  }
+
+  .cta-section p {
+    color: var(--text-muted);
+    max-width: 460px;
+    margin: 0 auto 2rem;
+    position: relative;
+    font-size: 0.95rem;
+  }
+
+  /* ==================== FOOTER ==================== */
+  footer {
+    padding: 2.5rem 2rem;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  footer a { color: var(--accent-light); text-decoration: none; }
+
+  /* ==================== RESPONSIVE ==================== */
+  @media (max-width: 768px) {
+    .nav-links { display: none; }
+    .feature-row { grid-template-columns: 1fr; }
+    .feature-row:nth-child(even) .feature-visual { order: 0; }
+    .paths-grid { grid-template-columns: 1fr; }
+    .stats-bar { grid-template-columns: repeat(2, 1fr); }
+    .hero-actions { flex-direction: column; }
+    .workflow-steps { grid-template-columns: 1fr 1fr; }
+    .failure-grid { grid-template-columns: 1fr; }
+    .model-split { grid-template-columns: 1fr; }
+    .model-divider { flex-direction: row; }
+    .structure-visual { grid-template-columns: 1fr; }
+    .arch-layer { grid-template-columns: 80px 1fr; }
+    .arch-layer .layer-tokens { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="url(#navg)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <defs><linearGradient id="navg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1"/><stop offset="100%" stop-color="#a855f7"/></linearGradient></defs>
+      <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+    </svg>
+    <span>Skill Dev</span>
+  </div>
+  <div class="nav-links">
+    <a href="#architecture">架构</a>
+    <a href="#principles">原则</a>
+    <a href="#structure">结构</a>
+    <a href="#features">能力</a>
+    <a href="#failure">失败处理</a>
+    <a href="#workflow">流程</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge"><span class="dot"></span>Claude Code 元技能</div>
+  <h1>把重复经验沉淀成<br><span class="gradient">Agent 可复用的 Skill</span></h1>
+  <p class="hero-sub">Skill Dev 引导你完成从需求分析到部署验证的完整流程，生成符合官方规范的 SKILL.md。不是让模型更聪明，而是把做法写成可复用的流程。</p>
+  <div class="hero-actions">
+    <a href="#architecture" class="btn btn-primary">了解架构</a>
+    <a href="#workflow" class="btn btn-ghost">查看流程</a>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section id="problem">
+  <div class="section-label">痛点</div>
+  <h2 class="section-title">为什么需要 Skill？</h2>
+  <p class="section-desc">Agent 不是完全不会做，而是每次都像第一次做。你刚刚纠正过的格式、跑通过的工具顺序，换个任务又要重新解释一遍。</p>
+
+  <div class="problem-grid">
+    <div class="problem-card">
+      <span class="problem-icon">&#x1F504;</span>
+      <h3>重复解释</h3>
+      <p>同样是代码审查，明天还要提醒它先看 diff、再看测试、最后列风险。每次换任务就要重新解释一遍。</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">&#x1F916;</span>
+      <h3>不稳定输出</h3>
+      <p>Agent 每次的输出格式、检查步骤、工具使用都不一样。不是不会做，而是没有稳定的执行路径。</p>
+    </div>
+    <div class="problem-card">
+      <span class="problem-icon">&#x1F4C8;</span>
+      <h3>经验无法沉淀</h3>
+      <p>你踩过的坑、改过的口径、确认过的边界，如果每次都靠聊天临时补，迟早还会再漏一次。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- STATS -->
+<section>
+  <div class="stats-bar">
+    <div class="stat"><div class="stat-value">3</div><div class="stat-label">加载层级</div></div>
+    <div class="stat"><div class="stat-value">7</div><div class="stat-label">最小要素</div></div>
+    <div class="stat"><div class="stat-value">4</div><div class="stat-label">失败类型</div></div>
+    <div class="stat"><div class="stat-value">5</div><div class="stat-label">开发步骤</div></div>
+  </div>
+</section>
+
+<!-- ARCHITECTURE -->
+<section id="architecture">
+  <div class="section-label">核心架构</div>
+  <h2 class="section-title">渐进式加载</h2>
+  <p class="section-desc">Agent 并不是一开始就把所有 Skill、所有参考资料都读进来。Skill 采用三层渐进式加载：先用很短的信息判断要不要用，再逐层打开更详细的说明。</p>
+
+  <div class="arch-diagram">
+    <h3>三层加载机制</h3>
+    <div class="arch-layers">
+      <div class="arch-layer">
+        <span class="layer-level">Level 1</span>
+        <div class="layer-content">
+          <strong>元数据</strong>
+          <span>name + description — 会话启动时加载，Agent 据此决定是否触发</span>
+        </div>
+        <span class="layer-tokens">~100 tokens</span>
+      </div>
+      <div class="arch-arrow">↓ 用户任务匹配 description 时触发</div>
+      <div class="arch-layer">
+        <span class="layer-level">Level 2</span>
+        <div class="layer-content">
+          <strong>SKILL.md 正文</strong>
+          <span>触发条件、工作流程、输出规范、失败处理 — 被调用时全文注入</span>
+        </div>
+        <span class="layer-tokens">~2000 tokens</span>
+      </div>
+      <div class="arch-arrow">↓ 正文引用 references/ 或 scripts/ 时加载</div>
+      <div class="arch-layer">
+        <span class="layer-level">Level 3</span>
+        <div class="layer-content">
+          <strong>目录资源</strong>
+          <span>references/ scripts/ examples/ — 仅读取当前需要的文件</span>
+        </div>
+        <span class="layer-tokens">按需加载</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="feature-visual" style="max-width: 100%; margin-bottom: 2rem;">
+    <span class="comment">// description 始终在上下文里，正文和目录资源只在调用时才加载</span><br>
+    <span class="comment">// 这是上下文管理策略，不是可选功能</span><br>
+    <br>
+    <span class="kw">description 前 250 字符</span> = <span class="str">"路由触发器"</span><br>
+    <span class="comment">// 做什么 + 触发词 + 产出类型</span><br>
+    <span class="comment">// 所有 Skill 的 description 共享上下文的 1%</span>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PRINCIPLES -->
+<section id="principles">
+  <div class="section-label">设计原则</div>
+  <h2 class="section-title">Skill 开发的核心原则</h2>
+  <p class="section-desc">这些原则决定了 Skill 的质量上限。违反任何一条，Skill 的效果都会大打折扣。</p>
+
+  <div class="principles-grid">
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(99,102,241,0.1)">&#x1F3AF;</span>强模型写，弱模型跑</h3>
+      <p>复杂、模糊、需要归纳经验的部分，交给<span class="highlight">更强的模型</span>来整理。一旦流程被写成 Skill，后续同类任务就可以由更便宜、更快的模型按步骤执行。验收标准：弱模型也能稳定产出。</p>
+    </div>
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(168,85,247,0.1)">&#x1F9E9;</span>渐进式加载</h3>
+      <p>入口短才能准确触发，主干清楚才能稳定执行，资料可追溯才能补细节，动作可执行才能脚本化。<span class="highlight">不是把所有内容堆在模型面前</span>，而是在每一步只拿当前必要的信息。</p>
+    </div>
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(236,72,153,0.1)">&#x1F4D0;</span>边界越清楚越好</h3>
+      <p>一个 Skill 做一件事。按任务阶段拆、按输入类型拆、按输出格式拆。可以组合，但不建议都塞进一个 Skill。<span class="highlight">边界越清楚，后面越好维护。</span></p>
+    </div>
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(34,197,94,0.1)">&#x1F41B;</span>从特化开始</h3>
+      <p>先覆盖一个具体场景，用真实 case 验证。当同一类规则在 <span class="highlight">3+ 个不同 case</span> 里重复出现时，再把它泛化。过早泛化会导致误触发率上升。</p>
+    </div>
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(234,179,8,0.1)">&#x26A0;&#xFE0F;</span>失败即素材</h3>
+      <p>不要把失败当作问题，把它当作下一版规则、样例和评测的来源。Gotchas 飞轮：<span class="highlight">真实失败 → 追加边界 → 下次避免</span>。一个 Skill 越成熟，越清楚哪些路不能走。</p>
+    </div>
+    <div class="principle-card">
+      <h3><span class="icon" style="background:rgba(239,68,68,0.1)">&#x1F6D1;</span>不是所有任务都值得 Skill 化</h3>
+      <p>一个边界模糊、很少触发、没人维护的 Skill，不但不会提高效率，反而可能污染路由、浪费上下文。<span class="highlight">先跑 baseline，再决定要不要写。</span></p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- STRUCTURE -->
+<section id="structure">
+  <div class="section-label">目录结构</div>
+  <h2 class="section-title">好 Skill 的最小结构</h2>
+  <p class="section-desc">最小可以只有 SKILL.md，但好用的 Skill 会把触发、执行、资料、验证分开写清楚。</p>
+
+  <div class="structure-visual">
+    <div class="file-tree">
+      <span class="dir">my-skill/</span><br>
+      &nbsp;&nbsp;<span class="required">SKILL.md</span> <span class="optional"># 必须</span><br>
+      &nbsp;&nbsp;<span class="dir">references/</span> <span class="optional"># 参考资料</span><br>
+      &nbsp;&nbsp;<span class="dir">scripts/</span> <span class="optional"># 脚本化动作</span><br>
+      &nbsp;&nbsp;<span class="dir">examples/</span> <span class="optional"># 好结果、坏结果</span><br>
+      &nbsp;&nbsp;<span class="dir">evals/</span> <span class="optional"># 评测集</span>
+    </div>
+
+    <div class="structure-items">
+      <div class="structure-item">
+        <span class="item-name">SKILL.md</span>
+        <div class="item-desc"><strong>核心说明书。</strong>告诉 Agent 什么时候用、按什么顺序做、输出什么格式、什么情况下停下来。包含 frontmatter、触发条件、工作流程、输入规范、输出契约、失败处理、示例。</div>
+      </div>
+      <div class="structure-item">
+        <span class="item-name">references/</span>
+        <div class="item-desc"><strong>参考资料，按需加载。</strong>长规范、API 文档、业务背景、模板。只有 SKILL.md 引用时才读取，不会一次性塞进上下文。用 ${CLAUDE_SKILL_DIR} 引用。</div>
+      </div>
+      <div class="structure-item">
+        <span class="item-name">scripts/</span>
+        <div class="item-desc"><strong>脚本化稳定动作。</strong>参数固定 + 每次都执行的动作，做成脚本或 CLI 示例。模型擅长理解意图，但不擅长精确记住参数组合。</div>
+      </div>
+      <div class="structure-item">
+        <span class="item-name">examples/</span>
+        <div class="item-desc"><strong>好结果、坏结果、边界样例。</strong>让 Agent 能对照判断质量。至少 3 个标准样例、2 个边界样例、1 个反例。</div>
+      </div>
+      <div class="structure-item">
+        <span class="item-name">evals/</span>
+        <div class="item-desc"><strong>最小评测集。</strong>每次改 Skill 后，用它检查有没有把原本会做的事情改坏。不是证明作者写得对，而是快速发现回归。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-label">能力</div>
+  <h2 class="section-title">Skill Dev 能帮你做什么</h2>
+  <p class="section-desc">从判断任务是否值得 Skill 化，到生成、测试、部署，全流程引导。</p>
+
+  <div class="features-list">
+    <div class="feature-row">
+      <div class="feature-text">
+        <h3>前置判断</h3>
+        <p>不是所有任务都值得 Skill 化。先跑 baseline，观察 Agent 是否稳定暴露同一类问题，再决定要不要写。避免创建边界模糊、很少触发的无效 Skill。</p>
+        <div class="feature-tags">
+          <span class="tag">baseline 测试</span>
+          <span class="tag">稳定性判断</span>
+          <span class="tag">成本评估</span>
+        </div>
+      </div>
+      <div class="feature-visual">
+        <span class="comment"># 前置判断三步法</span><br>
+        <span class="key">1.</span> 任务重复出现过几次？<br>
+        <span class="key">2.</span> Agent 每次稳定犯同一类错？<br>
+        <span class="key">3.</span> 先跑 3-5 个真实 case<br>
+        <br>
+        <span class="kw">if</span> 不稳定: <span class="str">"边界不清，不适合 Skill 化"</span>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-text">
+        <h3>Description 写作</h3>
+        <p>前 250 字符必须包含：做什么 + 触发词 + 产出类型。写之前先回答三个自检问题，改 description 必须同步补正例和反例评测。</p>
+        <div class="feature-tags">
+          <span class="tag">三个自检问题</span>
+          <span class="tag">路由触发器</span>
+          <span class="tag">正例/反例</span>
+        </div>
+      </div>
+      <div class="feature-visual">
+        <span class="comment"># description 三个自检问题</span><br>
+        <span class="key">Q1:</span> 用户真实会怎么提需求？<br>
+        <span class="key">Q2:</span> 哪些相邻需求不该触发？<br>
+        <span class="key">Q3:</span> 加载后产出什么类型结果？<br>
+        <br>
+        <span class="comment"># 前 250 字符结构</span><br>
+        <span class="key">0-50:</span> 核心功能<br>
+        <span class="key">50-100:</span> 触发关键词<br>
+        <span class="key">100-200:</span> 产出类型<br>
+        <span class="key">200-250:</span> 边界提示
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-text">
+        <h3>脚本化稳定动作</h3>
+        <p>模型擅长理解意图，但不擅长精确记住参数组合。参数固定 + 每次都执行的动作，做成脚本比让模型每次"想起来"稳定得多。</p>
+        <div class="feature-tags">
+          <span class="tag">参数固定 → 脚本化</span>
+          <span class="tag">参数变化 → workflow</span>
+          <span class="tag">偶尔执行 → 写在正文</span>
+        </div>
+      </div>
+      <div class="feature-visual">
+        <span class="comment"># 脚本化判断标准</span><br>
+        <span class="kw">if</span> 参数固定 <span class="kw">and</span> 每次执行:<br>
+        &nbsp;&nbsp;→ <span class="str">脚本化 (scripts/)</span><br>
+        <span class="kw">elif</span> 参数变化 <span class="kw">and</span> 需要判断:<br>
+        &nbsp;&nbsp;→ <span class="warn">写进 workflow</span><br>
+        <span class="kw">else</span>:<br>
+        &nbsp;&nbsp;→ <span class="comment">workflow 里写命令即可</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- FAILURE -->
+<section id="failure">
+  <div class="section-label">失败处理</div>
+  <h2 class="section-title">四种失败类型与修复动作</h2>
+  <p class="section-desc">每次失败都是改进的素材。识别失败类型，找到对应的修复动作，形成迭代飞轮。</p>
+
+  <div class="failure-grid">
+    <div class="failure-card">
+      <span class="failure-type red">触发错误</span>
+      <h4>该触发没触发 / 不该触发却触发了</h4>
+      <p class="symptom">description 写得太宽或太窄，和相邻 Skill 触发范围重叠</p>
+      <p class="fix">改 description，补正例和反例评测</p>
+    </div>
+    <div class="failure-card">
+      <span class="failure-type yellow">步骤遗漏</span>
+      <h4>Agent 跳过关键步骤</h4>
+      <p class="symptom">workflow 只有原则没有动作，Agent 自由发挥</p>
+      <p class="fix">补 workflow，加检查点，写明确动作</p>
+    </div>
+    <div class="failure-card">
+      <span class="failure-type blue">输出不合格</span>
+      <h4>格式错、内容缺、无法验收</h4>
+      <p class="symptom">输出契约不明确，没有格式模板和示例</p>
+      <p class="fix">补 examples，明确输出契约和模板</p>
+    </div>
+    <div class="failure-card">
+      <span class="failure-type purple">工具误用</span>
+      <h4>用错工具或参数组合</h4>
+      <p class="symptom">Agent 每次"想起来"的参数不一样</p>
+      <p class="fix">补 gotchas，脚本化稳定动作</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- GOTCHAS -->
+<section>
+  <div class="section-label">Gotchas 飞轮</div>
+  <h2 class="section-title">把失败变成边界</h2>
+  <p class="section-desc">不要每次遇到问题就重写整份说明。把真实失败追加成 gotcha：什么情况下不要触发、哪个工具容易误用、连续失败时停在哪里。</p>
+
+  <div class="gotchas-flow">
+    <div class="gotchas-node">
+      <div class="node-label">触发</div>
+      <div class="node-text">遇到真实 case</div>
+    </div>
+    <div class="gotchas-arrow">→</div>
+    <div class="gotchas-node">
+      <div class="node-label">执行</div>
+      <div class="node-text">跑 Skill</div>
+    </div>
+    <div class="gotchas-arrow">→</div>
+    <div class="gotchas-node">
+      <div class="node-label">发现</div>
+      <div class="node-text">记录失败点</div>
+    </div>
+    <div class="gotchas-arrow">→</div>
+    <div class="gotchas-node">
+      <div class="node-label">修复</div>
+      <div class="node-text">追加 gotcha</div>
+    </div>
+    <div class="gotchas-arrow">→</div>
+    <div class="gotchas-node">
+      <div class="node-label">验证</div>
+      <div class="node-text">下一个 case</div>
+    </div>
+  </div>
+
+  <div class="gotchas-examples">
+    <div class="gotcha-item">
+      <h4>G1: 看起来像但不该触发</h4>
+      <p>用户说"帮我看看这段代码"可能是问功能，不是审查。判断依据：是否提到"质量"、"安全"、"性能"等关键词。</p>
+    </div>
+    <div class="gotcha-item">
+      <h4>G2: 容易误用的工具</h4>
+      <p>不要用 Write 直接覆盖用户文件，先用 Edit 做 diff。Write 会丢失用户未提交的修改。</p>
+    </div>
+    <div class="gotcha-item">
+      <h4>G3: 连续失败时停止</h4>
+      <p>如果连续 3 次输出不符合格式要求，停下来问用户。不要无限重试。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- STRONG-WEAK MODEL -->
+<section>
+  <div class="section-label">分工模型</div>
+  <h2 class="section-title">强模型写，弱模型跑</h2>
+  <p class="section-desc">渐进式加载还有一个实际价值：它把"写流程"和"跑流程"分开了。</p>
+
+  <div class="model-split">
+    <div class="model-card">
+      <div class="model-icon">&#x1F9E0;</div>
+      <div class="model-role">写 Skill</div>
+      <h3>强模型（Opus）</h3>
+      <ul>
+        <li>归纳经验、提炼流程</li>
+        <li>处理模糊、复杂的判断</li>
+        <li>复盘对话，找出纠正点</li>
+        <li>设计触发条件和边界</li>
+      </ul>
+    </div>
+    <div class="model-divider">
+      <span class="arrow">→</span>
+      <span>SKILL.md</span>
+      <span>→</span>
+    </div>
+    <div class="model-card">
+      <div class="model-icon">&#x2699;&#xFE0F;</div>
+      <div class="model-role">跑 Skill</div>
+      <h3>弱模型（Haiku）</h3>
+      <ul>
+        <li>按步骤执行流程</li>
+        <li>遵循明确的约束</li>
+        <li>输出格式固定的结果</li>
+        <li>遇到边界知道停下来</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- EVALS -->
+<section>
+  <div class="section-label">评测机制</div>
+  <h2 class="section-title">用 Evals 抓回归</h2>
+  <p class="section-desc">给一组输入，让 Skill 产出结果，再按标准判断好不好。不是为了证明写得对，而是为了快速发现回归。</p>
+
+  <div class="evals-visual">
+    <h3>评测样本结构</h3>
+    <table class="evals-table">
+      <thead>
+        <tr>
+          <th>类型</th>
+          <th>数量</th>
+          <th>用途</th>
+          <th>示例</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="eval-type core">核心样本</span></td>
+          <td>5-10 个</td>
+          <td>用户最常提交的任务</td>
+          <td>标准草稿 → 知识库文章</td>
+        </tr>
+        <tr>
+          <td><span class="eval-type edge">边界样本</span></td>
+          <td>3-5 个</td>
+          <td>空输入、资料不全、格式混乱</td>
+          <td>结构混乱的会议纪要</td>
+        </tr>
+        <tr>
+          <td><span class="eval-type pit">已知坑</span></td>
+          <td>3-5 个</td>
+          <td>之前误触发、乱用工具的案例</td>
+          <td>不该触发却触发了的场景</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="feature-visual" style="max-width: 100%; margin-top: 1.5rem;">
+    <span class="comment">// 评测策略</span><br>
+    <span class="kw">新建 Skill</span>: 比较 <span class="str">"有 Skill"</span> vs <span class="str">"无 Skill"</span><br>
+    <span class="kw">优化 Skill</span>: 比较 <span class="str">"新版"</span> vs <span class="str">"旧版"</span><br>
+    <br>
+    <span class="comment">// 每次改 Skill 后用同一把尺子回看</span><br>
+    <span class="comment">// 才知道是真变好还是看起来更复杂</span>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- WORKFLOW -->
+<section id="workflow">
+  <div class="section-label">开发流程</div>
+  <h2 class="section-title">五步开发流程</h2>
+  <p class="section-desc">从需求分析到部署验证，每一步都有明确动作和验收标准。</p>
+
+  <div class="workflow-steps">
+    <div class="step">
+      <h3>需求分析</h3>
+      <p>功能定位、触发设计、执行模式、输出规范、参考资料。用对话引导用户明确需求。</p>
+    </div>
+    <div class="step">
+      <h3>生成 SKILL.md</h3>
+      <p>按官方规范生成 frontmatter、触发条件、工作流程、输入规范、输出契约、失败处理。</p>
+    </div>
+    <div class="step">
+      <h3>保存本地</h3>
+      <p>先保存到项目目录，创建完整目录结构。不直接写入全局目录。</p>
+    </div>
+    <div class="step">
+      <h3>本地测试</h3>
+      <p>7 项验收清单 + Evals 评测集。用真实 case 测试，用弱模型验证稳定性。</p>
+    </div>
+    <div class="step">
+      <h3>部署全局</h3>
+      <p>测试通过后复制到 ~/.claude/skills/。先改本地，验证后再部署。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ITERATION -->
+<section>
+  <div class="section-label">迭代循环</div>
+  <h2 class="section-title">持续改进</h2>
+  <p class="section-desc">一个 Skill 的成熟过程不是"写完 → 发布 → 结束"，而是一个小循环。</p>
+
+  <div class="iteration-loop">
+    <div class="loop-node"><div class="node-text">遇到 case</div></div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node"><div class="node-text">跑 Skill</div></div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node"><div class="node-text">记录问题</div></div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node"><div class="node-text">改 description<br>workflow<br>examples<br>scripts</div></div>
+    <div class="loop-arrow">→</div>
+    <div class="loop-node"><div class="node-text">下一个 case<br>验证</div></div>
+  </div>
+
+  <div class="principles-grid" style="margin-top: 2rem;">
+    <div class="principle-card">
+      <h3>&#x1F4C8; 泛化时机</h3>
+      <p>同一条规则在 3+ 个不同 case 里重复出现。用户主动要求"这个也适用另一个场景"。边界条件已经验证清楚。</p>
+    </div>
+    <div class="principle-card">
+      <h3>&#x1F3F0; 特化信号</h3>
+      <p>泛化后误触发率上升。不同场景的输出格式差异太大。用户反馈"什么都能做但什么都做不好"。</p>
+    </div>
+    <div class="principle-card">
+      <h3>&#x1F6D1; 退役条件</h3>
+      <p>模型原生能力已覆盖。维护成本超过收益。流程已过时。和新 Skill 大量重叠。退役不是失败。</p>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- PATHS -->
+<section>
+  <div class="section-label">开发路径</div>
+  <h2 class="section-title">选择你的路径</h2>
+  <p class="section-desc">根据实际情况选择，能复用就别从空白页开始。</p>
+
+  <div class="paths-grid">
+    <div class="path-card">
+      <div class="path-letter">A</div>
+      <h3>找现成的</h3>
+      <p>常见场景去 skills.sh 搜索。安装前读一遍 SKILL.md，检查 7 项判断标准。</p>
+      <div class="path-order">优先级 1</div>
+    </div>
+    <div class="path-card recommended">
+      <div class="path-letter">B</div>
+      <h3>改造适配</h3>
+      <p>找到方向接近的 Skill，保留核心结构，改 description、workflow、输出格式等 7 个点。</p>
+      <div class="path-order">优先级 2</div>
+    </div>
+    <div class="path-card">
+      <div class="path-letter">C</div>
+      <h3>从零写</h3>
+      <p>没有合适 Skill，或强依赖内部系统。走完整 5 步流程，从最小版本开始。</p>
+      <div class="path-order">优先级 3</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>开始开发你的第一个 Skill</h2>
+  <p>选一个本周重复出现过的 case，写一句 description，列 5 步 workflow，用同一个 case 跑一遍。</p>
+  <div class="hero-actions" style="justify-content: center;">
+    <a href="https://code.claude.com/docs/en/skills" class="btn btn-primary" target="_blank">阅读官方文档</a>
+    <a href="https://skills.sh" class="btn btn-ghost" target="_blank">浏览 Skills 目录</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <p>Skill Dev &mdash; Claude Code Skill 开发助手</p>
+  <p style="margin-top: 0.4rem;">基于 <a href="https://code.claude.com/docs/en/skills">Claude Code 官方规范</a> + 社区实战方法论</p>
+</footer>
+
+</body>
+</html>

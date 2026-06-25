@@ -1,0 +1,234 @@
+{
+  "skill_name": "oss-finder",
+  "version": "1.1.0",
+  "description": "全网开源项目搜索工具的评测集（含调研功能）",
+  "test_cases": [
+    {
+      "id": "fuzzy-input-research",
+      "name": "模糊输入触发调研",
+      "description": "测试模糊提示词是否触发调研流程",
+      "input": "react",
+      "expected": {
+        "should_research": true,
+        "research_report": true,
+        "user_confirmation": true
+      }
+    },
+    {
+      "id": "specific-input-direct-search",
+      "name": "明确输入直接搜索",
+      "description": "测试明确提示词是否直接搜索",
+      "input": "react table component --stars >500 --language typescript --limit 10",
+      "expected": {
+        "should_research": false,
+        "direct_search": true,
+        "has_results": true
+      }
+    },
+    {
+      "id": "research-report-quality",
+      "name": "调研报告质量",
+      "description": "测试调研报告是否包含必要信息",
+      "input": "python web",
+      "expected": {
+        "report_has_sections": [
+          "识别的搜索方向",
+          "推荐搜索策略",
+          "预期结果"
+        ],
+        "directions_count_min": 2,
+        "has_platform_recommendation": true,
+        "has_filter_recommendation": true
+      }
+    },
+    {
+      "id": "user-confirmation-flow",
+      "name": "用户确认流程",
+      "description": "测试用户确认流程是否完整",
+      "input": "date formatter",
+      "expected": {
+        "has_ask_user_question": true,
+        "questions_count_min": 2,
+        "options_count_min": 2
+      }
+    },
+    {
+      "id": "basic-github-search",
+      "name": "基础 GitHub 搜索",
+      "description": "测试基本的 GitHub 搜索功能",
+      "input": "搜索 python web framework",
+      "expected": {
+        "platform": "github",
+        "has_results": true,
+        "results_count_min": 1,
+        "fields": ["name", "url", "stars", "language", "description"]
+      }
+    },
+    {
+      "id": "github-with-stars-filter",
+      "name": "GitHub Stars 筛选",
+      "description": "测试按 Stars 筛选功能",
+      "input": "搜索 react 组件库 --stars >1000 --limit 10",
+      "expected": {
+        "platform": "github",
+        "has_results": true,
+        "all_stars_above": 1000,
+        "results_count_max": 10
+      }
+    },
+    {
+      "id": "github-with-language-filter",
+      "name": "GitHub 语言筛选",
+      "description": "测试按编程语言筛选功能",
+      "input": "搜索 machine learning --language python --limit 5",
+      "expected": {
+        "platform": "github",
+        "has_results": true,
+        "all_language": "Python",
+        "results_count_max": 5
+      }
+    },
+    {
+      "id": "npm-search",
+      "name": "npm 包搜索",
+      "description": "测试 npm 包搜索功能",
+      "input": "搜索 date formatter --platform npm --limit 10",
+      "expected": {
+        "platform": "npm",
+        "has_results": true,
+        "results_count_min": 1,
+        "fields": ["name", "url", "description", "version"]
+      }
+    },
+    {
+      "id": "pypi-query",
+      "name": "PyPI 包查询",
+      "description": "测试 PyPI 按包名查询功能",
+      "input": "查询 requests --platform pypi",
+      "expected": {
+        "platform": "pypi",
+        "has_results": true,
+        "results_count": 1,
+        "first_result_name": "requests"
+      }
+    },
+    {
+      "id": "gitlab-search",
+      "name": "GitLab 搜索",
+      "description": "测试 GitLab 搜索功能",
+      "input": "搜索 devops tools --platform gitlab --limit 5",
+      "expected": {
+        "platform": "gitlab",
+        "has_results": true,
+        "results_count_min": 0,
+        "results_count_max": 5
+      }
+    },
+    {
+      "id": "gitee-search",
+      "name": "Gitee 搜索",
+      "description": "测试 Gitee 搜索功能",
+      "input": "搜索 python 工具 --platform gitee --limit 5",
+      "expected": {
+        "platform": "gitee",
+        "has_results": true,
+        "results_count_min": 0,
+        "results_count_max": 5
+      }
+    },
+    {
+      "id": "json-output",
+      "name": "JSON 输出格式",
+      "description": "测试 JSON 输出格式",
+      "input": "搜索 flask --format json --limit 3",
+      "expected": {
+        "output_format": "json",
+        "has_fields": ["query", "platform", "total", "results"]
+      }
+    },
+    {
+      "id": "cross-platform-search",
+      "name": "跨平台搜索",
+      "description": "测试跨平台搜索功能",
+      "input": "搜索 graphql client --platform all --limit 10",
+      "expected": {
+        "platform": "all",
+        "has_results": true,
+        "results_count_min": 1
+      }
+    },
+    {
+      "id": "save-results",
+      "name": "保存结果",
+      "description": "测试结果保存功能",
+      "input": "搜索 express --save --limit 5",
+      "expected": {
+        "has_results": true,
+        "files_saved": true
+      }
+    }
+  ],
+  "edge_cases": [
+    {
+      "id": "empty-query",
+      "name": "空查询",
+      "description": "测试空查询处理",
+      "input": "",
+      "expected": {
+        "should_error": true,
+        "error_message": "搜索关键词"
+      }
+    },
+    {
+      "id": "invalid-platform",
+      "name": "无效平台",
+      "description": "测试无效平台处理",
+      "input": "搜索 test --platform invalid",
+      "expected": {
+        "should_error": true,
+        "error_message": "不支持的平台"
+      }
+    },
+    {
+      "id": "rate-limit-handling",
+      "name": "速率限制处理",
+      "description": "测试速率限制处理",
+      "input": "快速连续搜索多次",
+      "expected": {
+        "graceful_handling": true,
+        "error_message": "速率限制"
+      }
+    },
+    {
+      "id": "network-timeout",
+      "name": "网络超时",
+      "description": "测试网络超时处理",
+      "input": "在弱网环境下搜索",
+      "expected": {
+        "graceful_handling": true,
+        "timeout_seconds": 30
+      }
+    }
+  ],
+  "performance": [
+    {
+      "id": "response-time",
+      "name": "响应时间",
+      "description": "测试搜索响应时间",
+      "input": "搜索 react --limit 20",
+      "expected": {
+        "max_time_seconds": 10
+      }
+    },
+    {
+      "id": "large-result-set",
+      "name": "大结果集",
+      "description": "测试大结果集处理",
+      "input": "搜索 javascript --limit 100",
+      "expected": {
+        "has_results": true,
+        "results_count_max": 100
+      }
+    }
+  ]
+}

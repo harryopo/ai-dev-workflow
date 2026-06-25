@@ -1,0 +1,58 @@
+{
+  "skill_name": "book-methodology-skills",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我从《精益创业》提取方法论，生成对应的 skill",
+      "expected_output": "提取 8-12 个核心方法论，每个生成独立的 SKILL.md，包含触发场景、执行步骤、输出格式",
+      "assertions": [
+        { "id": "a1", "text": "方法论数量在 5-12 个之间" },
+        { "id": "a2", "text": "每个方法论有 name_en、name_cn、trigger_scenario、steps、output_format" },
+        { "id": "a3", "text": "生成的 SKILL.md 符合 frontmatter 规范" },
+        { "id": "a4", "text": "包含 MVP、Build-Measure-Learn、Pivot 等核心方法论" }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "从微信读书的《认知觉醒》提取方法论",
+      "expected_output": "通过 WeRead API 获取笔记和划线，提取方法论并生成 skill",
+      "assertions": [
+        { "id": "a1", "text": "先调用 /store/search 获取 bookId" },
+        { "id": "a2", "text": "获取用户笔记、划线、热门划线" },
+        { "id": "a3", "text": "笔记太少时提示切换到网络搜索" },
+        { "id": "a4", "text": "提取的方法论基于实际笔记内容" }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "上传《原子习惯.pdf》，帮我提取方法论",
+      "expected_output": "从 PDF 文件中识别章节，提取核心方法论",
+      "assertions": [
+        { "id": "a1", "text": "读取 PDF 文件内容" },
+        { "id": "a2", "text": "识别目录结构和核心章节" },
+        { "id": "a3", "text": "提取的方法论与书籍内容一致" },
+        { "id": "a4", "text": "生成的 skill 保存到本地目录" }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "从《思考快与慢》提取方法论，我有 PDF 也想搜索补充",
+      "expected_output": "混合方式：文件提取为主，网络搜索补充背景和案例",
+      "assertions": [
+        { "id": "a1", "text": "优先从文件提取核心内容" },
+        { "id": "a2", "text": "用网络搜索补充案例和背景" },
+        { "id": "a3", "text": "最终方法论结合了两种来源" }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "这本书有 30 多个方法论，全都提取吗",
+      "expected_output": "告知用户方法论过多，建议控制在 8-12 个最核心的，提供清单供选择",
+      "assertions": [
+        { "id": "a1", "text": "提示方法论数量过多" },
+        { "id": "a2", "text": "建议提取最核心的 8-12 个" },
+        { "id": "a3", "text": "提供方法论清单供用户选择" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Cache
+.cache/
+*.cache
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Output
+output/
+
+# Temporary
+*-temp.md
+*.tmp
+*.bak
+
+# Installed skills (not user-developed)
+.agents/
+.trae/
+.claude/
+.memory/
+.temp_*
+skills/
+
+# Temp files
+20.205.243.166
+npm
+research/

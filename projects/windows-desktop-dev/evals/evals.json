@@ -1,0 +1,89 @@
+{
+  "skill_name": "windows-desktop-dev",
+  "version": "1.0.0",
+  "last_updated": "2026-05-30",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "帮我开发一个计算器应用，能做加减乘除",
+      "expected_output": "创建一个完整的计算器项目，包含 main.py 和 ui/main_window.py，能运行并执行基本计算",
+      "assertions": [
+        { "id": "a1", "text": "项目目录结构正确" },
+        { "id": "a2", "text": "main.py 可以运行" },
+        { "id": "a3", "text": "界面显示计算器按钮" },
+        { "id": "a4", "text": "能执行加减乘除运算" }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "做一个记账软件，能记录每天的收入和支出",
+      "expected_output": "创建一个记账应用，使用 SQLite 存储数据，能添加和查看收支记录",
+      "assertions": [
+        { "id": "a1", "text": "使用 SQLite 数据库" },
+        { "id": "a2", "text": "能添加收入记录" },
+        { "id": "a3", "text": "能添加支出记录" },
+        { "id": "a4", "text": "能查看历史记录" }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "做一个待办事项应用",
+      "expected_output": "创建一个待办事项应用，能添加、完成、删除任务",
+      "assertions": [
+        { "id": "a1", "text": "能添加新任务" },
+        { "id": "a2", "text": "能标记任务完成" },
+        { "id": "a3", "text": "能删除任务" },
+        { "id": "a4", "text": "数据持久化存储" }
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "做一个文件管理器，能浏览文件和文件夹",
+      "expected_output": "创建一个文件管理器，能显示目录结构，打开文件",
+      "assertions": [
+        { "id": "a1", "text": "能显示文件列表" },
+        { "id": "a2", "text": "能进入子目录" },
+        { "id": "a3", "text": "能返回上级目录" },
+        { "id": "a4", "text": "能打开文件" }
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "做一个文本编辑器，能打开和保存txt文件",
+      "expected_output": "创建一个文本编辑器，能打开、编辑、保存文本文件",
+      "assertions": [
+        { "id": "a1", "text": "能打开txt文件" },
+        { "id": "a2", "text": "能编辑文本内容" },
+        { "id": "a3", "text": "能保存文件" },
+        { "id": "a4", "text": "有基本的菜单栏" }
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Python怎么写循环？",
+      "expected_output": "不应该触发此 Skill，应该直接回答技术问题",
+      "assertions": [
+        { "id": "a1", "text": "不创建项目目录" },
+        { "id": "a2", "text": "直接回答技术问题" }
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "帮我写个网页",
+      "expected_output": "不应该触发此 Skill，应该提示用户这是网页开发",
+      "assertions": [
+        { "id": "a1", "text": "不触发桌面应用开发流程" },
+        { "id": "a2", "text": "提示用户这是网页开发" }
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "做一个计算器",
+      "expected_output": "应该追问：在哪里创建项目？",
+      "assertions": [
+        { "id": "a1", "text": "追问项目目录" },
+        { "id": "a2", "text": "确认功能需求" }
+      ]
+    }
+  ]
+}

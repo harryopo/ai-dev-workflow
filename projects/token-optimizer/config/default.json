@@ -1,0 +1,17 @@
+{
+  "threshold": 5000,
+  "auto_compress": true,
+  "save_history": true,
+  "history_days": 30,
+  "price_per_1k_tokens": 0.015,
+  "compression_algorithms": {
+    "json": "SmartCrusher",
+    "code": "CodeCompressor",
+    "text": "Kompress-base"
+  },
+  "report_settings": {
+    "auto_save": true,
+    "format": "markdown",
+    "include_suggestions": true
+  }
+}
