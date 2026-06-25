@@ -1,6 +1,6 @@
 ---
 name: deep-research
-version: 2.2.0
+version: 3.0.0
 description: |
   深度调研工具，多源并发搜索、子 Agent 并行、生成带引用的研究报告。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"时调用。
@@ -9,7 +9,7 @@ agent: general-purpose
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ---
 
-# Deep Research — 深度调研工具 v2.2
+# Deep Research — 深度调研工具 v3.0
 
 **三阶段模型：澄清 → 并行执行 → 报告生成。**
 
@@ -139,6 +139,70 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 > 5. **引用可追溯** — 报告中每个关键结论必须附带来源链接
 > 6. **诚实标注** — 无法验证的信息标注"待确认"
 > 7. **降级透明** — 数据源不可用时明确告知用户，推荐配置方案
+
+---
+
+## v3.0 增强特性
+
+### 搜索结果缓存
+
+- 缓存目录：`~/.cache/deep-research/`
+- TTL：1 小时
+- 缓存键：基于查询 + 数据源 + 参数的 MD5 哈希
+- 命中时直接返回，不发起网络请求
+
+```bash
+# 正常搜索（自动缓存）
+python scripts/search.py "Python Web 框架"
+
+# 禁用缓存
+python scripts/search.py "Python Web 框架" --no-cache
+```
+
+### 结果质量评分
+
+自动评估每个搜索结果的质量（0-100 分）：
+
+| 维度 | 分值 | 评分标准 |
+|------|------|----------|
+| 标题相关性 | 40 分 | 查询词与标题的重叠度 |
+| 内容丰富度 | 30 分 | 摘要长度（>500 字满分） |
+| 来源权威性 | 20 分 | GitHub/知乎/CSDN/StackOverflow 等 |
+| 时效性 | 10 分 | 2025-2026 年满分 |
+
+```bash
+# 只返回 50 分以上结果
+python scripts/search.py "React" --min-score 50
+```
+
+### 迭代搜索
+
+结果不足时，自动生成关键词变体重搜：
+
+- 中文 → 英文映射（框架 → framework，最佳实践 → best practices）
+- 添加年份变体（2025）
+- 添加"最佳"变体
+
+```bash
+# 启用迭代搜索
+python scripts/search.py "K8s 部署" --iterative
+```
+
+### 反馈系统
+
+用户评分改进后续搜索：
+
+```bash
+# 提交反馈
+python scripts/search.py --feedback "Python Web 框架" --rating 5
+
+# 历史反馈自动关联相似查询
+python scripts/search.py "Python Web 框架"  # 显示: 历史反馈: 此类查询评分 5/5
+```
+
+### 关键词多样性
+
+子问题自动生成 2-3 组不同关键词，提高覆盖面。
 
 ---
 

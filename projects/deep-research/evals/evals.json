@@ -1,22 +1,37 @@
 {
   "skill": "deep-research",
-  "version": "2.2.0",
-  "description": "深度调研工具测试集（v2.2 架构，含 Bing/百度）",
+  "version": "3.0.0",
+  "description": "深度调研工具测试集（v3.0 架构，含缓存/评分/迭代搜索/反馈）",
   "last_updated": "2026-06-25",
   "architecture": {
     "free_tier": ["duckduckgo", "bing", "baidu", "github-cli", "npm", "pypi"],
     "enhanced_tier": ["tavily", "jina", "gitee"],
     "self_hosted_tier": ["searxng"]
   },
+  "features": {
+    "cache": "搜索结果缓存（1小时 TTL，~/.cache/deep-research/）",
+    "scoring": "结果质量评分（0-100 分：标题相关性+内容丰富度+来源权威性+时效性）",
+    "iterative": "迭代搜索（结果不足时自动用变体关键词重搜）",
+    "feedback": "反馈系统（用户评分改进后续搜索）",
+    "keyword_diversity": "关键词多样性（自动生成中英文变体）"
+  },
   "known_limitations": {
     "duckduckgo": "免费，国内可用，无需配置，使用中国区域 (cn-zh)",
     "bing": "免费，国内可用，HTML 解析，无需配置",
-    "baidu": "免费，国内可用，HTML 解析，支持 gzip 压缩",
+    "baidu": "免费，国内可用，HTML 解析，支持 gzip，结果数不稳定（已用 rn*3 缓解）",
     "tavily": "需要设置 TAVILY_API_KEY，1000次/月免费",
     "jina": "国内网络无法访问，需要 VPN",
     "searxng": "需要自建实例，默认 localhost:8080"
   },
   "fixes": {
+    "v3.0.0": [
+      "新增搜索结果缓存（1小时 TTL）",
+      "新增结果质量评分（0-100 分）",
+      "新增迭代搜索（--iterative，结果不足自动重搜）",
+      "新增反馈系统（--feedback --rating）",
+      "优化百度 HTML 解析（修复重定向 URL 过滤，增大请求量）",
+      "更新默认数据源为 duckduckgo,bing,baidu"
+    ],
     "v2.2.0": [
       "集成 Bing 搜索引擎（免费，国内可用）",
       "集成百度搜索引擎（免费，国内可用，支持 gzip）",
@@ -118,6 +133,66 @@
         "执行时间 10-15 分钟"
       ],
       "category": "depth"
+    },
+    {
+      "id": "dr-009",
+      "name": "缓存命中",
+      "input": "连续两次搜索相同关键词",
+      "expected_behavior": [
+        "第二次搜索显示缓存命中",
+        "结果与第一次一致",
+        "响应时间显著缩短"
+      ],
+      "category": "cache",
+      "v3_feature": true
+    },
+    {
+      "id": "dr-010",
+      "name": "质量评分过滤",
+      "input": "搜索 React --min-score 50",
+      "expected_behavior": [
+        "所有返回结果质量分 >= 50",
+        "结果按质量分降序排列",
+        "显示平均质量分"
+      ],
+      "category": "scoring",
+      "v3_feature": true
+    },
+    {
+      "id": "dr-011",
+      "name": "迭代搜索",
+      "input": "搜索一个冷门话题 --iterative",
+      "expected_behavior": [
+        "结果不足时自动启动迭代搜索",
+        "生成关键词变体（中文→英文、添加年份）",
+        "变体搜索结果合并到最终结果"
+      ],
+      "category": "iterative",
+      "v3_feature": true
+    },
+    {
+      "id": "dr-012",
+      "name": "反馈系统",
+      "input": "搜索后提交 --feedback --rating 5",
+      "expected_behavior": [
+        "反馈成功保存",
+        "下次相似查询显示历史反馈",
+        "反馈文件存储在 ~/.cache/deep-research/feedback/"
+      ],
+      "category": "feedback",
+      "v3_feature": true
+    },
+    {
+      "id": "dr-013",
+      "name": "百度搜索增强",
+      "input": "使用百度搜索中文技术话题",
+      "expected_behavior": [
+        "返回 5+ 个结果",
+        "百度百科结果质量分更高",
+        "结果 URL 为百度重定向链接"
+      ],
+      "category": "baidu",
+      "v3_feature": true
     }
   ]
 }

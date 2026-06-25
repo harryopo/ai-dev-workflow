@@ -1,6 +1,6 @@
-# Deep Research — 深度调研工具 v2.2
+# Deep Research — 深度调研工具 v3.0
 
-> 多源并发搜索、子 Agent 并行、生成带引用的研究报告
+> 多源并发搜索、质量评分、迭代搜索、缓存加速、反馈循环
 
 ## 架构概览
 
@@ -239,7 +239,61 @@ python scripts/search.py --read "https://docs.python.org/3/"
 - **oss-finder**: 开源项目搜索工具（本项目）
 - **skill-workspace**: Skill 开发工作台
 
+## v3.0 新特性
+
+### 🔍 搜索结果缓存
+- 缓存目录：`~/.cache/deep-research/`
+- TTL：1 小时，自动过期
+- 命中时直接返回，不发起网络请求
+
+### 📊 结果质量评分
+- 自动评估每个结果（0-100 分）
+- 维度：标题相关性(40) + 内容丰富度(30) + 来源权威性(20) + 时效性(10)
+- 按质量分排序，支持 `--min-score` 过滤
+
+### 🔄 迭代搜索
+- 结果不足时自动用变体关键词重搜
+- 中文→英文映射（框架→framework）
+- 添加年份和"最佳"变体
+
+### 💬 反馈系统
+- 用户评分（1-5 星）改进后续搜索
+- 相似查询自动关联历史反馈
+- 反馈存储：`~/.cache/deep-research/feedback/`
+
+### 🚀 使用示例
+
+```bash
+# 基础搜索（自动缓存 + 评分）
+python scripts/search.py "Python Web 框架"
+
+# 只返回高质量结果
+python scripts/search.py "React" --min-score 50
+
+# 迭代搜索（冷门话题）
+python scripts/search.py "K8s 部署" --iterative
+
+# 禁用缓存
+python scripts/search.py "Python" --no-cache
+
+# 提交反馈
+python scripts/search.py --feedback "Python Web 框架" --rating 5
+
+# JSON 格式输出（含质量分）
+python scripts/search.py "Kubernetes" --format json
+```
+
 ## 更新日志
+
+### v3.0.0 (2026-06-25)
+
+- ✨ 新增搜索结果缓存（1小时 TTL）
+- ✨ 新增结果质量评分（0-100 分）
+- ✨ 新增迭代搜索（--iterative）
+- ✨ 新增反馈系统（--feedback --rating）
+- ✨ 新增关键词多样性（中英文变体）
+- 🐛 优化百度 HTML 解析（修复重定向 URL 过滤）
+- ♻️ 更新默认数据源为 duckduckgo,bing,baidu
 
 ### v2.2.0 (2026-06-25)
 
