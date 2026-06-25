@@ -2,93 +2,123 @@
 
 > 三阶段模型：澄清 → 并行执行 → 报告生成
 
-## 简介
+## 架构
 
-Deep Research 是一个 Claude Code Skill，参考 Kimi Deep Research 的工作流程，整合 oss-finder、agent-reach、crawl4ai 等工具链，通过子 Agent 并行实现高效调研。
+```
+┌─────────────────────────────────────────────────────┐
+│                    Deep Research                      │
+│                                                       │
+│  ┌───────────┐  ┌───────────┐  ┌───────────┐       │
+│  │  Tavily   │  │   Jina    │  │ SearXNG   │       │
+│  │ AI 搜索   │  │ 网页提取  │  │ 元搜索    │       │
+│  └─────┬─────┘  └─────┬─────┘  └─────┬─────┘       │
+│        │              │              │               │
+│        └──────────┬───┴──────────────┘               │
+│                   │                                   │
+│            ┌──────┴──────┐                           │
+│            │  多源聚合    │                           │
+│            └──────┬──────┘                           │
+│                   │                                   │
+│  ┌────────────────┼────────────────┐                 │
+│  │         子 Agent 并行            │                 │
+│  │  Agent 1  Agent 2  Agent 3  ... │                 │
+│  └────────────────┬────────────────┘                 │
+│                   │                                   │
+│            ┌──────┴──────┐                           │
+│            │  报告生成    │                           │
+│            └─────────────┘                           │
+└─────────────────────────────────────────────────────┘
+```
 
-## 核心特性
+## 整合的工具
 
-- **Kimi 三阶段模型** — 澄清问题 → 并行执行 → 报告生成
-- **子 Agent 并行** — 3-5 个子 Agent 同时调研不同维度
-- **多源交叉验证** — 每个结论至少 2 个独立来源支持
-- **工具链整合** — oss-finder + crawl4ai + agent-reach
-- **引用可追溯** — 报告中每个关键结论附带来源链接
+| 工具 | 来源 | 用途 | 免费额度 |
+|------|------|------|----------|
+| **Tavily** | tavily.com | AI 搜索引擎 | 1000 次/月 |
+| **Jina Reader** | jina.ai | 网页内容提取 | 20 RPM |
+| **SearXNG** | github.com/searxng/searxng | 元搜索引擎 | 完全免费（需自建） |
+| **oss-finder** | 本项目 | 开源项目搜索 | 免费 |
 
-## 使用方式
+## 为什么选这些工具
+
+1. **Tavily** — 专为 AI Agent 设计，返回结构化结果，集成最简单
+2. **Jina Reader** — 一个 GET 请求就能把网页转 Markdown，免费可用
+3. **SearXNG** — 开源免费，聚合 70+ 搜索引擎，需 Docker 自建
+4. **oss-finder** — 本项目开发的 GitHub/npm/PyPI 搜索工具
+
+## 快速开始
+
+### 1. 配置 Tavily（推荐）
+
+```bash
+# 注册：https://app.tavily.com
+# 获取 API Key 后设置环境变量
+export TAVILY_API_KEY=tvly-xxxxx
+```
+
+### 2. 配置 Jina（可选）
+
+```bash
+# 注册：https://jina.ai
+# 基础功能无需 Key，有 Key 额度更高
+export JINA_API_KEY=jina_xxxxx
+```
+
+### 3. 使用
+
+```bash
+# 网页搜索
+python scripts/search.py "Python Web 框架对比 2025"
+
+# 多源搜索
+python scripts/search.py "React vs Vue" --sources tavily,jina
+
+# 深度搜索
+python scripts/search.py "Kubernetes 最佳实践" --depth advanced
+
+# 读取网页内容
+python scripts/search.py --read "https://example.com/article"
+```
+
+### 4. 深度调研（Claude Code Skill）
 
 ```
 /deep-research 2025 年最值得学习的 Python Web 框架
 /deep-research Kubernetes 生产环境最佳实践
-/deep-research 大语言模型微调技术
 ```
 
-## 工作流程
-
-### 阶段一：澄清
-
-收到模糊主题时，使用 AskUserQuestion 确认：
-- 调研目标（技术选型/市场分析/学术研究/问题诊断）
-- 调研深度（快速/标准/深度）
-- 关注维度（功能/性能/社区/案例）
-
-### 阶段二：并行执行
-
-1. 拆解为 3-5 个子问题
-2. 每个子问题启动一个独立 Agent
-3. 所有 Agent 并行执行
-4. 每个 Agent 使用指定的工具搜索
-
-### 阶段三：报告生成
-
-1. 收集所有 Agent 结果
-2. 交叉验证关键结论
-3. 标注矛盾点和争议
-4. 生成结构化报告
-
-## 报告结构
+## 输出示例
 
 ```markdown
-# {调研主题} — 深度调研报告
+## 搜索结果: Python Web 框架对比 2025
 
-## 执行摘要
-[核心结论]
+### AI 回答
+[Tavily] FastAPI 是 2025 年最流行的 Python Web 框架...
 
-## 1. {子问题 1}
-[分析 + 引用]
+### 来源 (5 个)
 
-## 2. {子问题 2}
-[分析 + 引用]
+| # | 来源 | 内容摘要 |
+|---|------|----------|
+| 1 | [FastAPI vs Django](https://...) | FastAPI 在性能上优于 Django... |
+| 2 | [Python Web 框架排名](https://...) | 2025 年排名：FastAPI, Django, Flask... |
 
-## N. 结论与建议
-
-## 来源列表
-## 调研方法
+**数据源:** tavily, jina
 ```
-
-## 数据源
-
-| 数据类型 | 工具 | 适用场景 |
-|----------|------|----------|
-| 开源项目 | oss-finder | GitHub/npm/PyPI 搜索 |
-| 网页内容 | crawl4ai | 文档/博客深度阅读 |
-| 社交讨论 | agent-reach | Twitter/Reddit/B站 |
-| 搜索引擎 | deep-research-pro | 多引擎搜索 |
 
 ## 目录结构
 
 ```
 deep-research/
-├── SKILL.md           # 主入口
+├── SKILL.md           # 主入口（含架构说明）
 ├── README.md          # 本文件
-├── evals/
-│   └── evals.json     # 测试集
-└── references/
-    └── tool-integration.md  # 工具集成指南
+├── scripts/
+│   └── search.py      # 多源搜索引擎
+├── references/
+│   └── tool-integration.md
+└── evals/
+    └── evals.json
 ```
 
-## 依赖
+## 许可证
 
-- oss-finder（开源项目搜索）
-- agent-reach（社交媒体搜索）
-- crawl4ai MCP（网页深度阅读）
-- Claude Code Agent（子 Agent 并行）
+MIT License

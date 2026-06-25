@@ -1,8 +1,8 @@
 ---
 name: deep-research
 description: |
-  深度调研工具，自动拆解问题、并行多源搜索、生成带引用的研究报告。
-  当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
+  深度调研工具，多源并发搜索、子 Agent 并行、生成带引用的研究报告。
+  当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"时调用。
 context: fork
 agent: general-purpose
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
@@ -12,7 +12,56 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 
 **三阶段模型：澄清 → 并行执行 → 报告生成。**
 
-参考 Kimi Deep Research 的工作流程，整合 oss-finder、agent-reach、crawl4ai 等工具链，通过子 agent 并行实现高效调研。
+---
+
+## 架构说明
+
+### 整合的开源工具
+
+| 工具 | 来源 | 用途 | 许可证 |
+|------|------|------|--------|
+| **Tavily** | tavily.com | AI 搜索引擎（主搜索） | 商业，有免费额度 |
+| **Jina Reader** | jina.ai | 网页内容提取 + 搜索 | 商业，有免费额度 |
+| **SearXNG** | github.com/searxng/searxng | 元搜索引擎聚合 | AGPL-3.0 |
+| **oss-finder** | 本项目 | 开源项目搜索 | MIT |
+
+### 为什么选这些工具
+
+1. **Tavily** — 专为 AI Agent 设计，返回结构化结果，免费额度 1000 次/月
+2. **Jina Reader** — 极简 API（一个 GET 请求），免费可用，擅长网页转 Markdown
+3. **SearXNG** — 完全免费开源，聚合 70+ 搜索引擎，需自建
+4. **oss-finder** — 本项目开发，GitHub/npm/PyPI 项目搜索
+
+### 数据流
+
+```
+用户输入调研主题
+      │
+      ▼
+┌─────────────────┐
+│  阶段一：澄清    │  AskUserQuestion 确认目标/深度/维度
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│  阶段二：拆解    │  拆解为 3-5 个子问题
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────────────────────────────────────┐
+│  阶段三：并行执行（子 Agent）                      │
+│                                                   │
+│  Agent 1: Tavily 搜索 + Jina 读取网页             │
+│  Agent 2: oss-finder 搜索开源项目                  │
+│  Agent 3: Jina Search 搜索 + 内容提取              │
+│  Agent 4: SearXNG 聚合搜索（如果可用）             │
+└────────┬────────────────────────────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│  阶段四：综合    │  交叉验证、标注矛盾、生成报告
+└─────────────────┘
+```
 
 ---
 
@@ -20,13 +69,14 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 
 > **先澄清，再拆解，并行执行，综合报告。**
 >
-> **六条铁律：**
+> **七条铁律：**
 > 1. **澄清优先** — 模糊主题必须先问用户，不能自作主张
-> 2. **拆解为王** — 复杂问题拆解为 3-5 个独立子问题，每个子问题对应一个子 agent
-> 3. **并行执行** — 子 agent 之间无依赖关系时必须并行，不要串行等待
-> 4. **多源交叉** — 每个子问题至少搜索 2-3 个不同来源，交叉验证
+> 2. **拆解为王** — 复杂问题拆解为 3-5 个独立子问题
+> 3. **并行执行** — 独立子问题必须并行，不要串行等待
+> 4. **多源交叉** — 每个子问题至少搜索 2-3 个不同来源
 > 5. **引用可追溯** — 报告中每个关键结论必须附带来源链接
-> 6. **迭代深入** — 第一轮结果不够深入时，自动发起第二轮搜索
+> 6. **诚实标注** — 无法验证的信息标注"待确认"
+> 7. **开源透明** — 使用的工具和数据源必须明确告知用户
 
 ---
 
@@ -44,9 +94,9 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 - 其他
 
 **问题 2：调研深度**
-- 快速浏览（5-10 个来源，2-3 分钟）
-- 标准调研（15-25 个来源，5-8 分钟）（默认）
-- 深度研究（30+ 个来源，10-15 分钟）
+- 快速浏览（5-10 个来源，1-2 分钟）
+- 标准调研（15-25 个来源，3-5 分钟）（默认）
+- 深度研究（30+ 个来源，8-15 分钟）
 
 **问题 3：关注维度（可多选）**
 - 核心功能/特性
@@ -56,203 +106,127 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 - 实际案例/最佳实践
 - 其他（用户自定义）
 
-**跳过条件：** 用户输入已足够明确（如"对比 React vs Vue vs Svelte 的性能"）时，可跳过澄清直接执行。
-
 ### 阶段二：并行执行（Execute）
 
-#### 2.1 拆解子问题
+#### 搜索工具选择
 
-根据用户确认的调研目标，将主题拆解为 3-5 个子问题：
+根据子问题选择合适的搜索工具：
 
-```
-主题：2025 年最值得学习的 Python Web 框架
+| 数据类型 | 工具 | 命令 |
+|----------|------|------|
+| 网页/文章 | Tavily | `python scripts/search.py "query" --sources tavily` |
+| 网页内容提取 | Jina Reader | `python scripts/search.py --read URL` |
+| 开源项目 | oss-finder | `python ../oss-finder/scripts/search.py "query"` |
+| 多源聚合 | 全部 | `python scripts/search.py "query" --sources tavily,jina,searxng` |
 
-拆解为：
-1. 主流框架最新版本对比（Django/Flask/FastAPI/Starlette）
-2. 性能基准测试数据（TechEmpower 等）
-3. 社区活跃度和生态成熟度（GitHub/Stack Overflow）
-4. 实际项目采用情况和最佳实践
-5. 新兴框架值得关注的（Litestar/Robyn/Granian）
-```
-
-#### 2.2 确定数据源
-
-根据子问题选择合适的数据源：
-
-| 数据类型 | 工具 | 适用场景 |
-|----------|------|----------|
-| 开源项目 | oss-finder | GitHub/GitLab/npm/PyPI 搜索 |
-| 网页内容 | crawl4ai MCP | 文章/文档/博客深度阅读 |
-| 社交讨论 | agent-reach | Twitter/Reddit/B站/小红书 |
-| 搜索引擎 | deep-research-pro | 多引擎搜索（中英文） |
-| 技术文档 | Agent + WebFetch | 官方文档/README |
-
-#### 2.3 并行调度
-
-每个子问题启动一个独立 Agent，所有 Agent 并行执行：
+#### 子 Agent Prompt
 
 ```
-Agent 1: "搜索 Python Web 框架最新版本和特性"
-  → oss-finder: django, flask, fastapi, starlette
-  → crawl4ai: 各框架官方文档
+你是深度调研的子 Agent，负责调研以下子问题：
 
-Agent 2: "搜索 Python Web 框架性能基准测试"
-  → WebFetch: TechEmpower Round 22+
-  → 搜索: "python web framework benchmark 2025"
+**子问题：** {问题描述}
+**所属主题：** {调研主题}
 
-Agent 3: "分析社区活跃度和生态"
-  → oss-finder: 各框架 GitHub stars/forks/issues
-  → agent-reach: Reddit/Twitter 讨论热度
+**任务：**
+1. 使用搜索工具获取信息
+2. 阅读并评估来源
+3. 提取关键发现（3-5 条）
+4. 标注来源可信度
 
-Agent 4: "搜索实际项目采用案例"
-  → 搜索: "companies using fastapi" "django vs flask production"
-  → crawl4ai: 技术博客/案例分析
+**搜索命令：**
+python "${SKILL_DIR}/scripts/search.py" "搜索关键词" --limit 10
 
-Agent 5: "调研新兴框架"
-  → oss-finder: "python web framework" stars>500 created>2024-01-01
-  → 搜索: "python web framework 2025 new"
+**输出：**
+- 关键发现（带来源 URL）
+- 矛盾点
+- 来源可信度
 ```
-
-#### 2.4 进度监控
-
-每个 Agent 完成后输出：
-- 搜索的来源数量
-- 关键发现摘要（3-5 条）
-- 发现的矛盾点/待验证信息
 
 ### 阶段三：报告生成（Report）
 
-#### 3.1 综合分析
-
-收集所有 Agent 的结果后：
-1. 交叉验证：同一结论有多个来源支持
-2. 矛盾处理：标注争议点，给出不同观点
-3. 去重合并：相同来源的不同角度合并
-
-#### 3.2 输出结构
+报告结构：
 
 ```markdown
-# {调研主题} — 深度调研报告
+# {调研主题}
 
 **调研时间：** YYYY-MM-DD
 **调研深度：** 快速/标准/深度
-**来源数量：** N 个独立来源
+**数据源：** Tavily, Jina, oss-finder, ...
 
 ---
 
 ## 执行摘要
-
-[3-5 句话概括核心结论]
-
----
+[核心结论]
 
 ## 1. {子问题 1}
-
-[分析内容，带行内引用 [1]]
-
-**关键发现：**
-- 发现 1 [来源 1]
-- 发现 2 [来源 2]
+[分析 + 引用]
 
 ## 2. {子问题 2}
-
-...
+[分析 + 引用]
 
 ## N. 结论与建议
 
-[基于所有发现的综合建议]
-
----
-
 ## 来源列表
-
-| # | 来源 | URL | 关键信息 |
-|---|------|-----|----------|
-| 1 | 来源名 | URL | 摘要 |
-| 2 | ... | ... | ... |
-
----
-
-## 调研方法
-
-- 搜索引擎：{使用的引擎}
-- 数据平台：{使用的平台}
-- 搜索策略：{关键词组合}
-- 执行时间：{总耗时}
-```
-
-#### 3.3 保存与交付
-
-- 保存到 `~/research/{slug}/report.md`
-- 保存原始数据到 `~/research/{slug}/sources.json`
-- 可选：生成交互式 HTML 报告（参考 super-frontend-design）
-
----
-
-## 子 Agent Prompt 模板
-
-每个子 Agent 使用以下 prompt 结构：
-
-```
-你是一个深度调研子 Agent，负责调研以下子问题：
-
-**子问题：** {子问题描述}
-**所属主题：** {调研主题}
-**关注维度：** {用户选择的维度}
-
-**任务：**
-1. 使用指定的工具搜索相关信息
-2. 阅读并评估找到的来源
-3. 提取关键发现（3-5 条）
-4. 标注来源的可信度（高/中/低）
-5. 发现矛盾点时记录下来
-
-**可用工具：**
-- oss-finder: 开源项目搜索
-- crawl4ai: 网页深度阅读
-- WebFetch: 简单网页抓取
-- Bash: 执行命令行工具
-
-**输出格式：**
-- 关键发现（带来源链接）
-- 矛盾点/待验证信息
-- 来源可信度评估
+| # | 来源 | URL | 可信度 |
+|---|------|-----|--------|
 ```
 
 ---
 
-## 工具集成
+## 搜索引擎配置
 
-### oss-finder 集成
+### Tavily（推荐）
 
-用于开源项目搜索：
+1. 注册：https://app.tavily.com
+2. 获取 API Key
+3. 设置环境变量：`export TAVILY_API_KEY=tvly-xxxxx`
+
+免费额度：约 1000 次/月
+
+### Jina Reader（可选）
+
+1. 注册：https://jina.ai
+2. 获取 API Key（基础功能无需 Key）
+3. 设置环境变量：`export JINA_API_KEY=jina_xxxxx`
+
+免费额度：20 RPM（无 Key）/ 更高（有 Key）
+
+### SearXNG（可选，需自建）
 
 ```bash
-python "${SKILL_DIR}/../oss-finder/scripts/search.py" "query" --stars ">1000" --limit 10 --format json
+# Docker 部署
+docker run -d -p 8080:8080 searxng/searxng
+
+# 设置环境变量
+export SEARXNG_URL=http://localhost:8080
 ```
 
-### crawl4ai MCP 集成
+---
 
-用于网页深度阅读：
+## 使用示例
 
-```
-使用 crawl4ai MCP 工具抓取 URL 内容
-支持 JavaScript 渲染的页面
-```
-
-### agent-reach 集成
-
-用于社交媒体搜索：
+### 快速搜索
 
 ```bash
-# Twitter
-agent-reach twitter search "query" --limit 10
+# 网页搜索
+python scripts/search.py "Python Web 框架对比 2025"
 
-# Reddit
-agent-reach reddit search "query" --limit 10
+# 指定数据源
+python scripts/search.py "React vs Vue" --sources tavily,jina
 
-# B站
-agent-reach bilibili search "query" --limit 10
+# 深度搜索
+python scripts/search.py "Kubernetes 最佳实践" --depth advanced
+
+# 读取网页内容
+python scripts/search.py --read "https://example.com/article"
+```
+
+### 深度调研
+
+```
+/deep-research 2025 年最值得学习的 Python Web 框架
+/deep-research Kubernetes 生产环境最佳实践
+/deep-research 大语言模型微调技术
 ```
 
 ---
@@ -262,16 +236,14 @@ agent-reach bilibili search "query" --limit 10
 - ❌ **禁止跳过澄清** — 模糊主题必须先确认
 - ❌ **禁止串行执行** — 独立子问题必须并行
 - ❌ **禁止无来源结论** — 每个结论必须有出处
-- ❌ **禁止单一来源** — 每个子问题至少 2 个来源
-- ❌ **禁止忽略矛盾** — 矛盾点必须在报告中标注
-- ❌ **禁止伪造引用** — 来源必须真实可访问
+- ❌ **禁止隐藏数据源** — 必须告知用户用了哪些工具
 
 ---
 
 ## 参考资料
 
+- Tavily API: https://docs.tavily.com
+- Jina Reader: https://jina.ai/reader
+- SearXNG: https://docs.searxng.org
 - Kimi Deep Research: https://kimi.moonshot.cn/deep-research
 - oss-finder: `${SKILL_DIR}/../oss-finder/SKILL.md`
-- agent-reach: `~/.claude/skills/agent-reach/SKILL.md`
-- crawl4ai: MCP 工具
-- super-frontend-design: HTML 报告生成
