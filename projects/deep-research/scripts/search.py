@@ -718,12 +718,21 @@ class BingSearch:
         results = []
         seen = set()
 
-        # 模式1: <h2> 标签中的链接
+        # 模式1: <h2> 标签中的链接 + 摘要
+        # Bing 结构: <h2><a href="...">Title</a></h2> ... <p>Snippet</p>
         h2_pattern = r'<h2[^>]*>\s*<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
         matches = re.findall(h2_pattern, html, re.DOTALL)
 
-        for url, title in matches:
+        # 提取摘要（<p> 标签，紧跟在 <h2> 之后）
+        snippet_pattern = r'<h2[^>]*>.*?</h2>.*?<p[^>]*>(.*?)</p>'
+        snippets = re.findall(snippet_pattern, html, re.DOTALL)
+
+        for i, (url, title) in enumerate(matches):
             title = re.sub(r'<[^>]+>', '', title).strip()
+            # 提取摘要
+            content = ''
+            if i < len(snippets):
+                content = re.sub(r'<[^>]+>', '', snippets[i]).strip()
             if (url not in seen and
                 'bing.com' not in url and
                 'microsoft.com' not in url and
@@ -733,7 +742,7 @@ class BingSearch:
                 results.append({
                     'title': title,
                     'url': url,
-                    'content': '',
+                    'content': content[:200],
                     'score': 0,
                     'published_date': ''
                 })
