@@ -1,8 +1,14 @@
 {
   "skill_name": "oss-finder",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "全网开源项目搜索工具的评测集（含调研功能）",
   "last_updated": "2026-06-25",
+  "features": {
+    "gh_cli_priority": "GitHub 搜索优先使用 gh CLI（实时数据）",
+    "cross_platform_dedup": "跨平台智能去重，合并同一项目信息",
+    "multi_platform_search": "支持 GitHub/GitLab/Gitee/npm/PyPI",
+    "concurrent_search": "跨平台并发搜索，耗时 ~3s"
+  },
   "test_cases": [
     {
       "id": "fuzzy-input-research",

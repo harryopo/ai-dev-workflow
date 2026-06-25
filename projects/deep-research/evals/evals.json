@@ -1,7 +1,7 @@
 {
   "skill": "deep-research",
-  "version": "2.0.0",
-  "description": "深度调研工具测试集（v2.0 架构）",
+  "version": "2.1.0",
+  "description": "深度调研工具测试集（v2.1 架构）",
   "last_updated": "2026-06-25",
   "architecture": {
     "free_tier": ["duckduckgo", "github-cli", "npm", "pypi"],
@@ -9,10 +9,17 @@
     "self_hosted_tier": ["searxng"]
   },
   "known_limitations": {
-    "duckduckgo": "免费，国内可用，无需配置",
+    "duckduckgo": "免费，国内可用，无需配置，使用中国区域 (cn-zh)",
     "tavily": "需要设置 TAVILY_API_KEY，1000次/月免费",
     "jina": "国内网络无法访问，需要 VPN",
     "searxng": "需要自建实例，默认 localhost:8080"
+  },
+  "fixes": {
+    "v2.1.0": [
+      "修复 DuckDuckGo 搜索超时问题，使用中国区域",
+      "禁用新闻搜索（国内访问 Yahoo News 超时）",
+      "优化去重算法，支持 URL 和标题双重去重"
+    ]
   },
   "evals": [
     {
