@@ -106,7 +106,7 @@ class DuckDuckGoSearch:
         return self._available
 
     def search(self, query: str, max_results: int = 10,
-               region: str = 'wt-wt', safesearch: str = 'moderate',
+               region: Optional[str] = None, safesearch: str = 'moderate',
                timelimit: Optional[str] = None) -> Optional[Dict]:
         """
         搜索网页
@@ -115,12 +115,18 @@ class DuckDuckGoSearch:
             query: 搜索关键词
             max_results: 最大结果数
             region: 地区（wt-wt=全球, cn-zh=中国, us-en=美国）
+                    默认自动检测：国内网络用 cn-zh，否则用 wt-wt
             safesearch: 安全搜索（off/moderate/strict）
             timelimit: 时间限制（d=天, w=周, m=月, y=年）
         """
         if not self.is_available():
             print("⚠️  ddgs 未安装，请运行: pip install ddgs", file=sys.stderr)
             return None
+
+        # 自动检测区域
+        if region is None:
+            # 尝试全球搜索，失败则用中国区域
+            region = 'cn-zh'  # 默认用中国区域，国内更稳定
 
         try:
             from ddgs import DDGS
@@ -156,10 +162,15 @@ class DuckDuckGoSearch:
             return None
 
     def news(self, query: str, max_results: int = 10,
+             region: Optional[str] = None,
              timelimit: Optional[str] = None) -> Optional[Dict]:
         """搜索新闻"""
         if not self.is_available():
             return None
+
+        # 自动检测区域
+        if region is None:
+            region = 'cn-zh'  # 默认用中国区域
 
         try:
             from ddgs import DDGS
@@ -167,6 +178,7 @@ class DuckDuckGoSearch:
             results = DDGS().news(
                 query,
                 max_results=max_results,
+                region=region,
                 timelimit=timelimit
             )
 
@@ -497,10 +509,7 @@ def multi_search(query: str, max_results: int = 10,
                     max_results=max_results
                 )] = source
             elif source == 'duckduckgo':
-                futures[executor.submit(
-                    engine.news, query,
-                    max_results=max_results
-                )] = source + '-news'
+                # 只使用文本搜索（新闻搜索在国内超时）
                 futures[executor.submit(
                     engine.search, query,
                     max_results=max_results
@@ -527,14 +536,29 @@ def multi_search(query: str, max_results: int = 10,
             except Exception as e:
                 print(f"   ❌ {source}: {e}", file=sys.stderr)
 
-    # 去重（按 URL）
-    seen = set()
+    # 智能去重（按 URL 和标题）
+    seen_urls = set()
+    seen_titles = set()
     deduped = []
+
     for item in all_results:
         url = item.get('url', '').rstrip('/')
-        if url and url not in seen:
-            seen.add(url)
-            deduped.append(item)
+        title = item.get('title', '').lower().strip()
+
+        # URL 去重
+        if url in seen_urls:
+            continue
+
+        # 标题去重（相似标题合并）
+        title_key = title[:50] if title else ''
+        if title_key and title_key in seen_titles:
+            continue
+
+        if url:
+            seen_urls.add(url)
+        if title_key:
+            seen_titles.add(title_key)
+        deduped.append(item)
 
     return {
         'query': query,

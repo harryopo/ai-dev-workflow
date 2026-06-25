@@ -618,17 +618,93 @@ def get_api(platform: str, token: Optional[str] = None) -> PlatformAPI:
     return apis[platform](token)
 
 
+def _normalize_url(url: str) -> str:
+    """标准化 URL 用于去重"""
+    # 去掉协议、末尾斜杠、www
+    url = url.rstrip('/').replace('https://', '').replace('http://', '')
+    url = url.replace('www.', '')
+    # npm 包 URL 统一格式
+    if 'npmjs.com/package/' in url:
+        return url
+    # GitHub URL 统一格式
+    if 'github.com/' in url:
+        return url.lower()
+    return url
+
+
+def _extract_project_name(name: str, url: str) -> str:
+    """提取项目名称用于跨平台去重"""
+    # npm 包名：去掉 @scope/ 前缀
+    if '/' in name and not name.startswith('http'):
+        name = name.split('/')[-1]
+    # GitHub 仓库名：取最后一段
+    if 'github.com/' in url:
+        parts = url.rstrip('/').split('/')
+        if len(parts) >= 2:
+            return parts[-1].lower()
+    return name.lower()
+
+
+def _merge_project_info(existing: dict, new: dict) -> dict:
+    """合并同一项目在不同平台的信息"""
+    merged = existing.copy()
+
+    # 保留更完整的描述
+    if not merged.get('description') and new.get('description'):
+        merged['description'] = new['description']
+
+    # 合并 topics
+    existing_topics = set(merged.get('topics', []))
+    new_topics = set(new.get('topics', []))
+    if new_topics:
+        merged['topics'] = list(existing_topics | new_topics)
+
+    # 保留所有平台信息
+    if 'platforms' not in merged:
+        merged['platforms'] = [merged.get('platform', 'unknown')]
+    if new.get('platform') and new['platform'] not in merged['platforms']:
+        merged['platforms'].append(new['platform'])
+
+    # 保留 npm 下载量信息
+    if new.get('downloads_weekly') and not merged.get('downloads_weekly'):
+        merged['downloads_weekly'] = new['downloads_weekly']
+    if new.get('downloads_monthly') and not merged.get('downloads_monthly'):
+        merged['downloads_monthly'] = new['downloads_monthly']
+
+    # 保留版本信息
+    if new.get('version') and not merged.get('version'):
+        merged['version'] = new['version']
+
+    return merged
+
+
 def _dedup_results(results: list) -> list:
-    """按项目 URL 去重"""
-    seen = set()
+    """智能去重：按 URL 和项目名称去重，合并同一项目信息"""
+    seen_urls = set()
+    seen_names = {}
     deduped = []
+
     for item in results:
         url = item.get('url', '')
-        # 标准化 URL（去掉末尾斜杠和协议）
-        normalized = url.rstrip('/').replace('https://', '').replace('http://', '')
-        if normalized not in seen:
-            seen.add(normalized)
-            deduped.append(item)
+        normalized_url = _normalize_url(url)
+
+        # URL 去重
+        if normalized_url in seen_urls:
+            continue
+
+        # 项目名称去重（跨平台）
+        project_name = _extract_project_name(item.get('name', ''), url)
+        if project_name in seen_names:
+            # 合并信息到已有项目
+            existing_idx = seen_names[project_name]
+            deduped[existing_idx] = _merge_project_info(deduped[existing_idx], item)
+            continue
+
+        # 新项目
+        seen_urls.add(normalized_url)
+        seen_names[project_name] = len(deduped)
+        deduped.append(item)
+
     return deduped
 
 
@@ -851,7 +927,17 @@ def search_all_platforms(query: str, tokens: dict, **kwargs) -> dict:
 # ============================================================
 
 def main():
-    parser = argparse.ArgumentParser(description='OSS Finder - 全网开源项目搜索')
+    parser = argparse.ArgumentParser(
+        description='OSS Finder - 全网开源项目搜索',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+示例：
+  %(prog)s "react table"                          # GitHub 搜索
+  %(prog)s "python web framework" --platform all  # 跨平台搜索
+  %(prog)s "ai agent" --stars ">1000" --limit 10  # 筛选高 stars 项目
+  %(prog)s "flask" --platform npm --format json   # npm 搜索
+        """
+    )
     parser.add_argument('query', help='搜索关键词')
     parser.add_argument('--platform', '-p', default='github',
                         choices=['github', 'gitlab', 'gitee', 'npm', 'pypi', 'all'],
