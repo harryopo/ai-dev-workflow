@@ -1122,6 +1122,98 @@ def format_json(data: Dict) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 
+def format_report(data: Dict) -> str:
+    """
+    生成结构化研究报告
+
+    包含：执行摘要、来源分析、质量分布、建议
+    """
+    query = data['query']
+    results = data.get('results', [])
+    sources = data.get('sources', [])
+    avg_quality = data.get('avg_quality', 0)
+
+    lines = []
+    lines.append(f"# 调研报告：{query}")
+    lines.append("")
+    lines.append(f"**生成时间：** {datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    lines.append(f"**数据源：** {', '.join(sources)}")
+    lines.append(f"**结果数量：** {len(results)}")
+    lines.append(f"**平均质量分：** {avg_quality}")
+    lines.append("")
+
+    # 执行摘要
+    lines.append("## 执行摘要")
+    lines.append("")
+    if results:
+        high_quality = [r for r in results if r.get('quality_score', 0) >= 50]
+        lines.append(f"- 共获取 **{len(results)}** 条搜索结果")
+        lines.append(f"- 高质量结果（≥50 分）：**{len(high_quality)}** 条")
+        lines.append(f"- 数据源覆盖：**{len(sources)}** 个平台")
+        if avg_quality >= 50:
+            lines.append("- 整体质量：**优秀** ✅")
+        elif avg_quality >= 30:
+            lines.append("- 整体质量：**良好** ⚠️")
+        else:
+            lines.append("- 整体质量：**一般** ❌（建议增加数据源或优化关键词）")
+    else:
+        lines.append("- 未获取到搜索结果")
+    lines.append("")
+
+    # 来源分析
+    lines.append("## 来源分析")
+    lines.append("")
+    lines.append("| # | 来源 | 质量分 | 标题 |")
+    lines.append("|---|------|--------|------|")
+    for i, item in enumerate(results, 1):
+        title = item.get('title', '-')[:60]
+        score = item.get('quality_score', '-')
+        url = item.get('url', '')
+        lines.append(f"| {i} | [{title}]({url}) | {score} | {title[:30]} |")
+    lines.append("")
+
+    # 质量分布
+    lines.append("## 质量分布")
+    lines.append("")
+    score_ranges = {'优秀 (≥70)': 0, '良好 (50-69)': 0, '一般 (30-49)': 0, '较差 (<30)': 0}
+    for item in results:
+        score = item.get('quality_score', 0)
+        if score >= 70:
+            score_ranges['优秀 (≥70)'] += 1
+        elif score >= 50:
+            score_ranges['良好 (50-69)'] += 1
+        elif score >= 30:
+            score_ranges['一般 (30-49)'] += 1
+        else:
+            score_ranges['较差 (<30)'] += 1
+
+    for range_name, count in score_ranges.items():
+        bar = '█' * count
+        lines.append(f"- {range_name}: {bar} ({count})")
+    lines.append("")
+
+    # 建议
+    lines.append("## 建议")
+    lines.append("")
+    if avg_quality < 30:
+        lines.append("- ⚠️ 平均质量分较低，建议：")
+        lines.append("  - 使用更精确的关键词")
+        lines.append("  - 添加更多数据源（--sources duckduckgo,bing,baidu,tavily）")
+        lines.append("  - 启用迭代搜索（--iterative）")
+    elif avg_quality < 50:
+        lines.append("- 💡 质量中等，可以：")
+        lines.append("  - 使用 --min-score 50 过滤低质量结果")
+        lines.append("  - 尝试不同的关键词组合")
+    else:
+        lines.append("- ✅ 质量良好，结果可信度较高")
+    lines.append("")
+
+    lines.append("---")
+    lines.append(f"*由 Deep Research v3.0 自动生成*")
+
+    return '\n'.join(lines)
+
+
 # ============================================================
 # CLI
 # ============================================================
@@ -1158,8 +1250,8 @@ def main():
     parser.add_argument('--limit', '-n', type=int, default=10,
                         help='每个源的最大结果数')
     parser.add_argument('--format', '-f', default='markdown',
-                        choices=['markdown', 'json'],
-                        help='输出格式')
+                        choices=['markdown', 'json', 'report'],
+                        help='输出格式（markdown/json/report）')
     parser.add_argument('--read', '-r', help='读取指定 URL 的内容')
     parser.add_argument('--check', action='store_true',
                         help='检查数据源可用性')
@@ -1253,6 +1345,8 @@ def main():
 
     if args.format == 'json':
         print(format_json(data))
+    elif args.format == 'report':
+        print(format_report(data))
     else:
         print(format_markdown(data))
 
