@@ -1,5 +1,6 @@
 ---
 name: deep-research
+version: 2.1.0
 description: |
   深度调研工具，多源并发搜索、子 Agent 并行、生成带引用的研究报告。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"时调用。

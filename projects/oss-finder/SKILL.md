@@ -1,5 +1,6 @@
 ---
 name: oss-finder
+version: 1.3.0
 description: |
   开源项目搜索工具。跨 GitHub/GitLab/Gitee/npm/PyPI 搜索开源项目，支持 stars/language/topic 等筛选。
   当用户说"搜索开源项目"、"找开源实现"、"有哪些开源"、"开源推荐"、"find open source"、"search repos"时调用。
