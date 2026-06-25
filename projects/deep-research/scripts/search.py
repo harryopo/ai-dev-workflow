@@ -59,6 +59,22 @@ import subprocess
 
 
 # ============================================================
+# 全局配置
+# ============================================================
+
+_global_proxy: Optional[str] = None
+
+
+def set_proxy(proxy: Optional[str]):
+    """设置全局代理"""
+    global _global_proxy
+    _global_proxy = proxy
+    if proxy:
+        os.environ['HTTP_PROXY'] = proxy
+        os.environ['HTTPS_PROXY'] = proxy
+
+
+# ============================================================
 # 缓存系统
 # ============================================================
 
@@ -120,7 +136,8 @@ def _retry(func, max_retries=3, base_delay=1.0):
 
 
 def _http_get(url: str, headers: Optional[Dict] = None,
-              timeout: int = 15, max_retries: int = 3) -> bytes:
+              timeout: int = 15, max_retries: int = 3,
+              proxy: Optional[str] = None) -> bytes:
     """
     带重试的 HTTP GET 请求
 
@@ -129,15 +146,26 @@ def _http_get(url: str, headers: Optional[Dict] = None,
         headers: 请求头
         timeout: 超时时间（秒）
         max_retries: 最大重试次数
+        proxy: HTTP 代理地址（如 http://127.0.0.1:7890）
 
     Returns:
         响应内容（bytes），已处理 gzip 解压
     """
+    # 使用指定代理或全局代理
+    effective_proxy = proxy or _global_proxy
+
+    # 构建 opener（支持代理）
+    if effective_proxy:
+        proxy_handler = urllib.request.ProxyHandler({'http': effective_proxy, 'https': effective_proxy})
+        opener = urllib.request.build_opener(proxy_handler)
+    else:
+        opener = urllib.request.build_opener()
+
     last_error = None
     for attempt in range(max_retries):
         try:
             req = urllib.request.Request(url, headers=headers or {})
-            with urllib.request.urlopen(req, timeout=timeout) as response:
+            with opener.open(req, timeout=timeout) as response:
                 raw_data = response.read()
                 content_encoding = response.headers.get('Content-Encoding', '')
                 if content_encoding == 'gzip':
@@ -1296,8 +1324,14 @@ def main():
     parser.add_argument('--feedback', help='提交搜索反馈的查询')
     parser.add_argument('--rating', type=int, choices=[1, 2, 3, 4, 5],
                         help='反馈评分（1-5 星）')
+    parser.add_argument('--proxy', help='HTTP 代理地址（如 http://127.0.0.1:7890）')
 
     args = parser.parse_args()
+
+    # 设置代理
+    if args.proxy:
+        set_proxy(args.proxy)
+        print(f"🌐 使用代理: {args.proxy}", file=sys.stderr)
 
     # 检查数据源可用性
     if args.check:
