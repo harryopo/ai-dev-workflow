@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Deep Research — 多源搜索引擎 v2.0
-整合 DuckDuckGo（免费）+ Tavily（AI 搜索）+ Jina（网页提取）+ SearXNG（元搜索）
+Deep Research — 多源搜索引擎 v2.1
+整合 DuckDuckGo + Bing + 百度（免费）+ Tavily（AI 搜索）+ Jina（网页提取）+ SearXNG（元搜索）
 
 架构设计：
 ┌─────────────────────────────────────────────────────────────┐
@@ -9,6 +9,8 @@ Deep Research — 多源搜索引擎 v2.0
 ├─────────────────────────────────────────────────────────────┤
 │  免费层（无需配置）                                             │
 │  ├── DuckDuckGo    网页搜索，国内可用                          │
+│  ├── Bing          网页搜索，国内可用                          │
+│  ├── 百度           网页搜索，国内可用                          │
 │  ├── GitHub CLI    开源项目搜索                                │
 │  ├── npm           Node.js 包搜索                             │
 │  └── PyPI          Python 包查询                              │
@@ -24,14 +26,18 @@ Deep Research — 多源搜索引擎 v2.0
 
 数据来源：
 - DuckDuckGo: https://github.com/deedy5/ddgs (MIT)
+- Bing: https://www.bing.com (免费，HTML 解析)
+- 百度: https://www.baidu.com (免费，HTML 解析)
 - Tavily: https://tavily.com (商业，有免费额度)
 - Jina: https://jina.ai (商业，有免费额度)
 - SearXNG: https://github.com/searxng/searxng (AGPL-3.0)
 """
 
 import argparse
+import gzip
 import json
 import os
+import re
 import sys
 import urllib.request
 import urllib.parse
@@ -432,6 +438,218 @@ class SearXNGSearch:
 
 
 # ============================================================
+# Bing 搜索（免费，国内可用）
+# ============================================================
+
+class BingSearch:
+    """Bing 搜索 — 免费，国内可用"""
+
+    BASE_URL = "https://www.bing.com/search"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+        }
+
+    def is_available(self) -> bool:
+        """检查 Bing 是否可访问"""
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10,
+               language: str = 'zh-Hans') -> Optional[Dict]:
+        """搜索 Bing"""
+        try:
+            params = {
+                'q': query,
+                'setlang': language,
+                'count': min(max_results, 50)
+            }
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+
+            req = urllib.request.Request(url, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=15) as response:
+                html = response.read().decode('utf-8', errors='ignore')
+
+            results = self._parse_html(html, max_results)
+
+            return {
+                'source': 'bing',
+                'query': query,
+                'answer': '',
+                'results': results
+            }
+
+        except Exception as e:
+            print(f"⚠️  Bing 搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        """解析 Bing 搜索结果 HTML"""
+        results = []
+        seen = set()
+
+        # 模式1: <h2> 标签中的链接
+        h2_pattern = r'<h2[^>]*>\s*<a[^>]+href="(https?://[^"]+)"[^>]*>(.*?)</a>'
+        matches = re.findall(h2_pattern, html, re.DOTALL)
+
+        for url, title in matches:
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if (url not in seen and
+                'bing.com' not in url and
+                'microsoft.com' not in url and
+                title and len(title) > 3 and
+                not title.startswith('http')):
+                seen.add(url)
+                results.append({
+                    'title': title,
+                    'url': url,
+                    'content': '',
+                    'score': 0,
+                    'published_date': ''
+                })
+                if len(results) >= max_results:
+                    break
+
+        # 模式2: 备用 — 所有外部链接
+        if not results:
+            link_pattern = r'<a[^>]+href="(https?://(?!www\.bing\.com|go\.microsoft\.com)[^"]+)"[^>]*>(.*?)</a>'
+            matches = re.findall(link_pattern, html, re.DOTALL)
+            for url, title in matches:
+                title = re.sub(r'<[^>]+>', '', title).strip()
+                if (url not in seen and
+                    title and len(title) > 5 and
+                    not title.startswith('http') and
+                    'bing.com' not in url):
+                    seen.add(url)
+                    results.append({
+                        'title': title,
+                        'url': url,
+                        'content': '',
+                        'score': 0,
+                        'published_date': ''
+                    })
+                    if len(results) >= max_results:
+                        break
+
+        return results
+
+
+# ============================================================
+# 百度搜索（免费，国内可用）
+# ============================================================
+
+class BaiduSearch:
+    """百度搜索 — 免费，国内可用"""
+
+    BASE_URL = "https://www.baidu.com/s"
+
+    def __init__(self):
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language': 'zh-CN,zh;q=0.9',
+            'Cookie': 'BAIDUID=random; BIDUPSID=random;',
+        }
+
+    def is_available(self) -> bool:
+        """检查百度是否可访问"""
+        try:
+            req = urllib.request.Request(self.BASE_URL, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=5) as response:
+                return response.status == 200
+        except:
+            return False
+
+    def search(self, query: str, max_results: int = 10) -> Optional[Dict]:
+        """搜索百度"""
+        try:
+            params = {
+                'wd': query,
+                'rn': min(max_results, 50),
+                'ie': 'utf-8'
+            }
+            url = f"{self.BASE_URL}?{urllib.parse.urlencode(params)}"
+
+            req = urllib.request.Request(url, headers=self.headers)
+            with urllib.request.urlopen(req, timeout=15) as response:
+                raw_data = response.read()
+                content_encoding = response.headers.get('Content-Encoding', '')
+                if content_encoding == 'gzip':
+                    html = gzip.decompress(raw_data).decode('utf-8', errors='ignore')
+                else:
+                    html = raw_data.decode('utf-8', errors='ignore')
+
+            results = self._parse_html(html, max_results)
+
+            return {
+                'source': 'baidu',
+                'query': query,
+                'answer': '',
+                'results': results
+            }
+
+        except Exception as e:
+            print(f"⚠️  百度搜索失败: {e}", file=sys.stderr)
+            return None
+
+    def _parse_html(self, html: str, max_results: int) -> List[Dict]:
+        """解析百度搜索结果 HTML"""
+        results = []
+        seen = set()
+
+        # 方法1: h3 标题中的链接
+        h3_pattern = r'<h3[^>]*>\s*<a[^>]+href="([^"]+)"[^>]*>(.*?)</a>'
+        matches = re.findall(h3_pattern, html, re.DOTALL)
+
+        for url, title in matches:
+            title = re.sub(r'<[^>]+>', '', title).strip()
+            if (url not in seen and
+                title and len(title) > 3 and
+                url.startswith('http') and
+                'baidu.com' not in url and
+                'baidustatic.com' not in url):
+                seen.add(url)
+                results.append({
+                    'title': title,
+                    'url': url,
+                    'content': '',
+                    'score': 0,
+                    'published_date': ''
+                })
+                if len(results) >= max_results:
+                    break
+
+        # 方法2: 备用 — 所有外部链接
+        if not results:
+            link_pattern = r'<a[^>]+href="(https?://(?!www\.baidu\.com|baidustatic\.com)[^"]+)"[^>]*>(.*?)</a>'
+            matches = re.findall(link_pattern, html, re.DOTALL)
+            for url, title in matches:
+                title = re.sub(r'<[^>]+>', '', title).strip()
+                if (url not in seen and
+                    title and len(title) > 5 and
+                    not title.startswith('http')):
+                    seen.add(url)
+                    results.append({
+                        'title': title,
+                        'url': url,
+                        'content': '',
+                        'score': 0,
+                        'published_date': ''
+                    })
+                    if len(results) >= max_results:
+                        break
+
+        return results
+
+
+# ============================================================
 # 多源搜索聚合
 # ============================================================
 
@@ -445,7 +663,7 @@ def multi_search(query: str, max_results: int = 10,
     Args:
         query: 搜索关键词
         max_results: 每个源的最大结果数
-        sources: 搜索源列表 (duckduckgo/tavily/jina/searxng)
+        sources: 搜索源列表 (duckduckgo/bing/baidu/tavily/jina/searxng)
         search_depth: Tavily 搜索深度 (basic/advanced)
         auto_detect: 是否自动检测可用数据源
     """
@@ -458,7 +676,9 @@ def multi_search(query: str, max_results: int = 10,
         'duckduckgo': DuckDuckGoSearch(),
         'tavily': TavilySearch(),
         'jina': JinaReader(),
-        'searxng': SearXNGSearch()
+        'searxng': SearXNGSearch(),
+        'bing': BingSearch(),
+        'baidu': BaiduSearch()
     }
 
     # 自动检测可用性
@@ -611,20 +831,22 @@ def main():
         epilog="""
 数据源说明：
   duckduckgo  免费，无需 API Key，国内可用（推荐）
+  bing        免费，国内可用，HTML 解析
+  baidu       免费，国内可用，HTML 解析
   tavily      AI 搜索引擎，需要 API Key，1000次/月免费
   jina        网页内容提取，需要 VPN 或 API Key
   searxng     元搜索引擎，需要自建实例
 
 示例：
   %(prog)s "Python Web 框架对比"                    # 使用默认数据源
-  %(prog)s "AI agent" --sources duckduckgo,tavily   # 指定数据源
+  %(prog)s "AI agent" --sources duckduckgo,bing     # 指定数据源
   %(prog)s --read "https://example.com"             # 读取网页内容
   %(prog)s --check                                  # 检查数据源可用性
         """
     )
     parser.add_argument('query', nargs='?', default='', help='搜索关键词')
     parser.add_argument('--sources', '-s', default='duckduckgo,tavily',
-                        help='搜索源，逗号分隔 (duckduckgo/tavily/jina/searxng)')
+                        help='搜索源，逗号分隔 (duckduckgo/bing/baidu/tavily/jina/searxng)')
     parser.add_argument('--depth', '-d', default='basic',
                         choices=['basic', 'advanced'],
                         help='搜索深度 (Tavily)')
@@ -660,7 +882,9 @@ def main():
             'duckduckgo': DuckDuckGoSearch(),
             'tavily': TavilySearch(),
             'jina': JinaReader(),
-            'searxng': SearXNGSearch()
+            'searxng': SearXNGSearch(),
+            'bing': BingSearch(),
+            'baidu': BaiduSearch()
         }
 
         print("[数据源状态]")

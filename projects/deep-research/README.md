@@ -1,4 +1,4 @@
-# Deep Research — 深度调研工具 v2.0
+# Deep Research — 深度调研工具 v2.2
 
 > 多源并发搜索、子 Agent 并行、生成带引用的研究报告
 
@@ -10,6 +10,8 @@
 ├─────────────────────────────────────────────────────────────┤
 │  免费层（无需配置）                                             │
 │  ├── DuckDuckGo    网页搜索，国内可用                          │
+│  ├── Bing          网页搜索，国内可用                          │
+│  ├── 百度           网页搜索，国内可用                          │
 │  ├── GitHub CLI    开源项目搜索                                │
 │  ├── npm           Node.js 包搜索                             │
 │  └── PyPI          Python 包查询                              │
@@ -82,6 +84,8 @@ python scripts/search.py --read "https://example.com/article"
 | 数据源 | 用途 | 国内可用 | 需要配置 |
 |--------|------|----------|----------|
 | **DuckDuckGo** | 网页搜索 | ✅ | 无需 |
+| **Bing** | 网页搜索 | ✅ | 无需 |
+| **百度** | 网页搜索 | ✅ | 无需 |
 | **GitHub CLI** | 开源项目 | ✅ | 可选 Token |
 | **npm** | Node.js 包 | ✅ | 无需 |
 | **PyPI** | Python 包 | ✅ | 无需 |
@@ -93,6 +97,12 @@ python scripts/search.py --read "https://example.com/article"
 - API 简洁，易于集成
 
 **来源：** [ddgs](https://github.com/deedy5/ddgs) (MIT License)
+
+**Bing/百度优势：**
+- 完全免费，无需 API Key
+- 国内网络可直接访问
+- HTML 解析获取结果
+- 中文搜索结果丰富（百度）
 
 ### 增强层（需要 API Key）
 
@@ -160,13 +170,13 @@ export SEARXNG_URL=http://localhost:8080
 │  自动选择可用数据源                                           │
 │                                                              │
 │  场景 1: 有 VPN + API Key                                     │
-│    → DuckDuckGo + Tavily + Jina + oss-finder                 │
+│    → DuckDuckGo + Bing + 百度 + Tavily + Jina + oss-finder    │
 │                                                              │
 │  场景 2: 有 API Key（无 VPN）                                  │
-│    → DuckDuckGo + Tavily + oss-finder                        │
+│    → DuckDuckGo + Bing + 百度 + Tavily + oss-finder           │
 │                                                              │
 │  场景 3: 无 VPN + 无 API Key                                   │
-│    → DuckDuckGo + oss-finder（降级方案）                       │
+│    → DuckDuckGo + Bing + 百度 + oss-finder（降级方案）          │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -230,6 +240,19 @@ python scripts/search.py --read "https://docs.python.org/3/"
 - **skill-workspace**: Skill 开发工作台
 
 ## 更新日志
+
+### v2.2.0 (2026-06-25)
+
+- ✨ 集成 Bing 搜索引擎（免费，国内可用）
+- ✨ 集成百度搜索引擎（免费，国内可用，支持 gzip）
+- ♻️ 更新架构图，免费层新增 2 个数据源
+- 📝 更新文档和 evals.json
+
+### v2.1.0 (2026-06-25)
+
+- 🐛 修复 DuckDuckGo 搜索超时问题（使用中国区域 cn-zh）
+- ♻️ 禁用新闻搜索（国内访问 Yahoo News 超时）
+- ⚡ 优化去重算法，支持 URL 和标题双重去重
 
 ### v2.0.0 (2026-06-25)
 

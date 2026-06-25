@@ -1,6 +1,6 @@
 ---
 name: deep-research
-version: 2.1.0
+version: 2.2.0
 description: |
   深度调研工具，多源并发搜索、子 Agent 并行、生成带引用的研究报告。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"时调用。
@@ -9,7 +9,7 @@ agent: general-purpose
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ---
 
-# Deep Research — 深度调研工具 v2.0
+# Deep Research — 深度调研工具 v2.2
 
 **三阶段模型：澄清 → 并行执行 → 报告生成。**
 
@@ -25,6 +25,8 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ├─────────────────────────────────────────────────────────────┤
 │  免费层（无需配置）                                             │
 │  ├── DuckDuckGo    网页搜索，国内可用                          │
+│  ├── Bing          网页搜索，国内可用                          │
+│  ├── 百度           网页搜索，国内可用                          │
 │  ├── GitHub CLI    开源项目搜索                                │
 │  ├── npm           Node.js 包搜索                             │
 │  └── PyPI          Python 包查询                              │
@@ -44,6 +46,8 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 | 工具 | 来源 | 用途 | 许可证 | 国内可用 | 需要配置 |
 |------|------|------|--------|----------|----------|
 | **DuckDuckGo** | [ddgs](https://github.com/deedy5/ddgs) | 网页搜索 | MIT | ✅ | 无需 |
+| **Bing** | [bing.com](https://www.bing.com) | 网页搜索 | 免费 | ✅ | 无需 |
+| **百度** | [baidu.com](https://www.baidu.com) | 网页搜索 | 免费 | ✅ | 无需 |
 | **Tavily** | [tavily.com](https://tavily.com) | AI 搜索引擎 | 商业 | ✅ | API Key |
 | **Jina Reader** | [jina.ai](https://jina.ai) | 网页内容提取 | 商业 | ❌ 需VPN | API Key（可选） |
 | **SearXNG** | [github.com/searxng](https://github.com/searxng/searxng) | 元搜索引擎聚合 | AGPL-3.0 | ✅ | 自建实例 |
@@ -52,10 +56,12 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ### 为什么选这些工具
 
 1. **DuckDuckGo** — 免费、无需 API Key、国内可用、支持文本/新闻搜索
-2. **Tavily** — 专为 AI Agent 设计，返回结构化结果，免费额度 1000 次/月
-3. **Jina Reader** — 极简 API，擅长网页转 Markdown，但需要 VPN
-4. **SearXNG** — 完全免费开源，聚合 70+ 搜索引擎，需自建
-5. **oss-finder** — 本项目开发，GitHub/npm/PyPI 项目搜索
+2. **Bing** — 免费、国内可用、HTML 解析获取结果
+3. **百度** — 免费、国内可用、中文搜索结果丰富
+4. **Tavily** — 专为 AI Agent 设计，返回结构化结果，免费额度 1000 次/月
+5. **Jina Reader** — 极简 API，擅长网页转 Markdown，但需要 VPN
+6. **SearXNG** — 完全免费开源，聚合 70+ 搜索引擎，需自建
+7. **oss-finder** — 本项目开发，GitHub/npm/PyPI 项目搜索
 
 ### 降级策略
 
@@ -77,13 +83,13 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 │  自动选择可用数据源                                           │
 │                                                              │
 │  有 VPN + API Key:                                           │
-│    DuckDuckGo + Tavily + Jina + oss-finder                   │
+│    DuckDuckGo + Bing + 百度 + Tavily + Jina + oss-finder     │
 │                                                              │
 │  有 API Key（无 VPN）:                                        │
-│    DuckDuckGo + Tavily + oss-finder                          │
+│    DuckDuckGo + Bing + 百度 + Tavily + oss-finder            │
 │                                                              │
 │  无 VPN + 无 API Key:                                         │
-│    DuckDuckGo + oss-finder（降级方案）                         │
+│    DuckDuckGo + Bing + 百度 + oss-finder（降级方案）           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -106,10 +112,11 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent
 ┌─────────────────────────────────────────────────────────────┐
 │  阶段三：并行执行（子 Agent）                                  │
 │                                                              │
-│  Agent 1: DuckDuckGo 搜索 + Tavily 搜索（如果可用）           │
-│  Agent 2: oss-finder 搜索开源项目                             │
-│  Agent 3: Jina Search 搜索（如果可用，需要 VPN）               │
-│  Agent 4: SearXNG 聚合搜索（如果可用，需要自建）               │
+│  Agent 1: DuckDuckGo + Bing + 百度搜索（免费层）               │
+│  Agent 2: Tavily 搜索（如果可用，需要 API Key）                │
+│  Agent 3: oss-finder 搜索开源项目                             │
+│  Agent 4: Jina Search 搜索（如果可用，需要 VPN）               │
+│  Agent 5: SearXNG 聚合搜索（如果可用，需要自建）               │
 └────────┬────────────────────────────────────────────────────┘
          │
          ▼
@@ -166,9 +173,9 @@ python "${SKILL_DIR}/scripts/search.py" --check
 
 | 场景 | 推荐操作 |
 |------|----------|
-| 无 VPN + 无 API Key | 使用 DuckDuckGo（默认）|
-| 无 VPN + 有 Tavily Key | 使用 DuckDuckGo + Tavily |
-| 有 VPN + 无 API Key | 使用 DuckDuckGo + Jina |
+| 无 VPN + 无 API Key | 使用 DuckDuckGo + Bing + 百度（默认）|
+| 无 VPN + 有 Tavily Key | 使用 DuckDuckGo + Bing + 百度 + Tavily |
+| 有 VPN + 无 API Key | 使用 DuckDuckGo + Bing + 百度 + Jina |
 | 有 VPN + 有 API Key | 使用全部数据源 |
 
 ### 阶段一：澄清问题（Clarify）
@@ -204,10 +211,12 @@ python "${SKILL_DIR}/scripts/search.py" --check
 | 数据类型 | 工具 | 命令 |
 |----------|------|------|
 | 网页/文章 | DuckDuckGo | `python scripts/search.py "query"` |
+| 网页/文章 | Bing | `python scripts/search.py "query" --sources bing` |
+| 网页/文章 | 百度 | `python scripts/search.py "query" --sources baidu` |
 | 网页/文章（AI） | Tavily | `python scripts/search.py "query" --sources tavily` |
 | 网页内容提取 | Jina Reader | `python scripts/search.py --read URL` |
 | 开源项目 | oss-finder | `python ../oss-finder/scripts/search.py "query"` |
-| 多源聚合 | 全部 | `python scripts/search.py "query" --sources duckduckgo,tavily,jina` |
+| 多源聚合 | 全部 | `python scripts/search.py "query" --sources duckduckgo,bing,baidu,tavily` |
 
 #### 子 Agent Prompt
 
@@ -274,6 +283,23 @@ python "${SKILL_DIR}/scripts/search.py" "搜索关键词" --limit 10
 - 支持文本/新闻搜索
 - 无需 API Key
 
+### Bing（免费）
+
+**无需配置，开箱即用。**
+
+- 国内可用
+- HTML 解析获取搜索结果
+- 无需 API Key
+
+### 百度（免费）
+
+**无需配置，开箱即用。**
+
+- 国内可用
+- 中文搜索结果丰富
+- 支持 gzip 压缩响应
+- 无需 API Key
+
 ### Tavily（推荐增强）
 
 1. 注册：https://app.tavily.com
@@ -323,7 +349,7 @@ export SEARXNG_URL=http://localhost:8080
 python scripts/search.py "Python Web 框架对比 2025"
 
 # 指定数据源
-python scripts/search.py "React vs Vue" --sources duckduckgo,tavily
+python scripts/search.py "React vs Vue" --sources duckduckgo,bing,baidu
 
 # 深度搜索（Tavily）
 python scripts/search.py "Kubernetes 最佳实践" --depth advanced
@@ -349,13 +375,15 @@ python scripts/search.py --check
 # 1. 安装 DuckDuckGo（默认）
 pip install ddgs
 
-# 2. 配置 Tavily（可选，推荐）
+# 2. Bing/百度 — 无需配置，开箱即用
+
+# 3. 配置 Tavily（可选，推荐）
 export TAVILY_API_KEY=tvly-xxxxx
 
-# 3. 配置 Jina（可选，需要 VPN）
+# 4. 配置 Jina（可选，需要 VPN）
 export JINA_API_KEY=jina_xxxxx
 
-# 4. 自建 SearXNG（可选）
+# 5. 自建 SearXNG（可选）
 docker run -d -p 8080:8080 searxng/searxng
 export SEARXNG_URL=http://localhost:8080
 ```
@@ -375,6 +403,8 @@ export SEARXNG_URL=http://localhost:8080
 ## 参考资料
 
 - DuckDuckGo: https://github.com/deedy5/ddgs (MIT)
+- Bing: https://www.bing.com (免费，HTML 解析)
+- 百度: https://www.baidu.com (免费，HTML 解析)
 - Tavily API: https://docs.tavily.com
 - Jina Reader: https://jina.ai/reader
 - SearXNG: https://docs.searxng.org
