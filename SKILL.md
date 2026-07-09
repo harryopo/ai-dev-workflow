@@ -226,7 +226,7 @@ CLAIM → EXTRACT → DOUBT → RECONCILE → STOP
 
 ### 按技术栈的目录树
 
-详细模板见 [`references/architecture.md`](references/architecture.md)，快速索引：
+详细模板见 [`references/phase-2-architecture.md`](references/phase-2-architecture.md)，快速索引：
 
 | 项目类型 | 推荐结构 | 关键特征 |
 |---------|---------|---------|

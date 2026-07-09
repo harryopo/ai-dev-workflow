@@ -23,18 +23,18 @@
 
 | 项目类型 | 前端推荐 | 后端推荐 | 数据库 | Monorepo |
 |---------|---------|---------|--------|----------|
-| 全栈 Web 应用 | Next.js 14 + React 18 | FastAPI (Python) 或 NestJS | PostgreSQL | Turborepo |
-| 纯前端 SPA | Vite + React 18 | - | - | pnpm workspace |
-| API 服务 | - | FastAPI 或 Express | PostgreSQL + Redis | - |
-| 小程序 | Taro (React) | FastAPI | PostgreSQL | - |
-| CLI 工具 | - | Python (Click/Typer) 或 Node.js (Commander) | - | - |
-| AI/ML 项目 | Streamlit/Gradio | FastAPI | PostgreSQL + 向量库 | - |
+| 全栈 Web 应用 | Next.js 14 + React 18 + Tailwind + shadcn/ui | FastAPI (Python) 或 NestJS (Node) | PostgreSQL + Redis | Turborepo |
+| 纯前端 SPA | Vite + React 18 | — | — | pnpm workspace |
+| API 服务 | — | FastAPI 或 Express | PostgreSQL + Redis | — |
+| 小程序 | Taro (React) | FastAPI | PostgreSQL | — |
+| CLI 工具 | — | Python (Click/Typer) 或 Node.js (Commander) | — | — |
+| AI/ML 项目 | Streamlit / Gradio | FastAPI | PostgreSQL + pgvector | — |
 
 ### 选型检查清单
 
 - [ ] 技术栈在团队能力范围内？
-- [ ] 社区活跃度和长期维护性？（GitHub Stars、最近更新时间）
-- [ ] 许可协议是否合规？
+- [ ] 社区活跃度和长期维护性？（GitHub Stars、最近更新 < 3 个月）
+- [ ] 许可协议是否合规？（MIT/Apache2 优先，避免 GPL 传染）
 - [ ] 是否与现有基础设施兼容？
 - [ ] AI 友好度如何？（类型注解、约定优于配置、显式依赖）
 
@@ -42,50 +42,72 @@
 
 ## 3. 项目目录结构模板
 
-### 3.1 全栈 Monorepo（Turborepo）— 推荐
+### 3.1 全栈 Monorepo（Turborepo）⭐ 首推
 
 ```
 {project-name}/
 ├── apps/
-│   ├── web/                       # Next.js 前端
+│   ├── web/                          # Next.js 前端
 │   │   ├── src/
-│   │   │   ├── app/              # App Router（文件路由）
-│   │   │   ├── features/         # 功能模块（Feature-First）
+│   │   │   ├── app/                 # App Router
+│   │   │   │   ├── layout.tsx       # 根布局
+│   │   │   │   ├── page.tsx         # 首页
+│   │   │   │   ├── loading.tsx
+│   │   │   │   ├── error.tsx
+│   │   │   │   └── (routes)/        # 路由组
+│   │   │   ├── features/            # 按业务领域组织
 │   │   │   │   ├── auth/
-│   │   │   │   │   ├── components/
-│   │   │   │   │   ├── hooks/
+│   │   │   │   │   ├── components/login-form.tsx
+│   │   │   │   │   ├── hooks/use-auth.ts
 │   │   │   │   │   ├── api.ts
-│   │   │   │   │   └── types.ts
+│   │   │   │   │   ├── types.ts
+│   │   │   │   │   └── __tests__/
 │   │   │   │   └── dashboard/
 │   │   │   ├── components/
-│   │   │   │   ├── ui/           # shadcn/ui 基础组件
-│   │   │   │   └── layouts/
-│   │   │   ├── lib/              # 工具函数
-│   │   │   ├── stores/           # 状态管理
-│   │   │   └── types/            # 全局类型
+│   │   │   │   ├── ui/              # shadcn/ui 原子组件
+│   │   │   │   └── layouts/         # 布局组件
+│   │   │   ├── lib/                 # 工具 + API 客户端
+│   │   │   ├── stores/              # Zustand 状态
+│   │   │   ├── hooks/               # 全局 Hooks
+│   │   │   └── types/               # 全局类型
 │   │   ├── public/
-│   │   ├── tests/
-│   │   └── package.json
-│   └── api/                       # FastAPI / NestJS 后端
+│   │   ├── next.config.ts
+│   │   ├── package.json
+│   │   └── Dockerfile
+│   └── api/                          # FastAPI 后端
 │       ├── app/
-│       │   ├── api/v1/endpoints/
-│       │   ├── core/             # config, security, database
-│       │   ├── models/           # ORM 模型
-│       │   ├── schemas/          # Pydantic 验证
-│       │   ├── services/         # 业务逻辑
+│       │   ├── api/v1/
+│       │   │   ├── router.py        # 路由聚合
+│       │   │   └── endpoints/       # 端点文件
+│       │   │       ├── auth.py
+│       │   │       └── users.py
+│       │   ├── core/                # 基础设施
+│       │   │   ├── config.py        # pydantic-settings
+│       │   │   ├── security.py      # JWT/bcrypt
+│       │   │   ├── database.py      # async engine
+│       │   │   └── exceptions.py
+│       │   ├── models/              # SQLAlchemy ORM
+│       │   ├── schemas/             # Pydantic request/response
+│       │   ├── services/            # 业务逻辑
 │       │   └── main.py
-│       ├── migrations/
-│       └── pyproject.toml
+│       ├── alembic/                 # DB 迁移
+│       ├── tests/
+│       ├── pyproject.toml
+│       └── Dockerfile
 ├── packages/
-│   └── shared/                    # 前后端共享类型
+│   └── shared/                       # 前后端共享类型
 │       └── src/
-│           ├── types.ts
-│           └── validation.ts
-├── turbo.json
+│           ├── types.ts              # User, Product, Order...
+│           └── validation.ts         # zod schemas
+├── tools/                            # 构建/代码生成工具
+├── turbo.json                        # Turborepo 管道
 ├── pnpm-workspace.yaml
+├── docker-compose.yml
+├── docker-compose.dev.yml
 ├── AGENTS.md
 ├── CLAUDE.md
-└── docker-compose.yml
+├── .env.example
+└── .gitignore
 ```
 
 ### 3.2 React 前端（Vite）
@@ -93,8 +115,8 @@
 ```
 {project-name}/
 ├── src/
-│   ├── app/                       # 应用壳（router, providers）
-│   ├── pages/                     # 页面组件
+│   ├── app/                       # App.tsx + router + providers
+│   ├── pages/                     # 路由页面（薄层，只做路由入口）
 │   ├── features/                  # Feature-First 模块
 │   │   └── {feature}/
 │   │       ├── components/
@@ -107,7 +129,7 @@
 │   │   └── layouts/
 │   ├── hooks/                     # 全局 Hooks
 │   ├── lib/                       # 工具/API 客户端
-│   ├── stores/                    # 全局状态
+│   ├── stores/                    # 全局状态 (Zustand)
 │   ├── types/                     # 全局类型
 │   └── styles/
 ├── tests/
@@ -125,19 +147,57 @@
 │   │   └── endpoints/
 │   ├── core/
 │   │   ├── config.py              # pydantic-settings
-│   │   ├── security.py
-│   │   └── database.py
+│   │   ├── security.py            # JWT + password hashing
+│   │   └── database.py            # async SQLAlchemy engine
 │   ├── models/                    # SQLAlchemy ORM
-│   ├── schemas/                   # Pydantic
-│   ├── services/                  # 业务逻辑
-│   └── main.py
-├── alembic/                       # 数据库迁移
+│   ├── schemas/                   # Pydantic request/response
+│   ├── services/                  # 业务逻辑（纯函数/类）
+│   ├── repositories/              # DB 操作（可选，大型项目推荐）
+│   ├── middleware/                 # CORS, auth, logging
+│   └── main.py                    # FastAPI app 工厂
+├── alembic/
+│   ├── versions/
+│   └── env.py
+├── tests/
+├── pyproject.toml                 # uv/poetry 项目定义
+├── Dockerfile
+├── AGENTS.md
+├── CLAUDE.md
+└── .env.example
+```
+
+### 3.4 Express 后端（Node.js/TypeScript）
+
+```
+{project-name}/
+├── src/
+│   ├── api/                          # 路由定义
+│   │   ├── index.ts                  # 路由聚合
+│   │   ├── auth.routes.ts
+│   │   └── user.routes.ts
+│   ├── controllers/                  # 请求处理（薄层）
+│   ├── services/                     # 业务逻辑
+│   ├── repositories/                 # 数据访问
+│   ├── models/                       # Prisma/Drizzle ORM
+│   ├── middleware/
+│   │   ├── auth.middleware.ts
+│   │   ├── error.middleware.ts
+│   │   └── validate.middleware.ts    # zod 验证
+│   ├── config/
+│   │   ├── index.ts
+│   │   ├── database.ts
+│   │   └── env.ts                    # 环境变量类型校验
+│   ├── types/
+│   └── app.ts                        # Express 实例
+├── prisma/
+│   ├── schema.prisma
+│   └── migrations/
 ├── tests/
 ├── AGENTS.md
 └── CLAUDE.md
 ```
 
-### 3.4 Taro 小程序
+### 3.5 Taro 小程序
 
 ```
 {project-name}/
