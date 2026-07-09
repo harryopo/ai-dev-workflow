@@ -1,0 +1,242 @@
+{
+  "skill_name": "ai-dev-workflow",
+  "version": "3.0.0",
+  "evals": [
+    {
+      "id": "eval-001",
+      "name": "新项目启动-完整六阶段流程",
+      "input": "我要开发一个博客系统，前端 Vue + 后端 Express，帮我启动标准化开发流程",
+      "expected_phases": ["需求澄清", "架构设计", "项目脚手架"],
+      "expected_outputs": ["PRD.md", "ADR.md", "项目目录结构"],
+      "checks": [
+        "AI 是否先提问需求而非直接写代码",
+        "AI 是否在每个阶段结束时等待确认",
+        "AI 生成的目录结构是否符合模板"
+      ],
+      "rules_covered": ["R11", "R12", "R13"]
+    },
+    {
+      "id": "eval-002",
+      "name": "已有项目审查",
+      "input": "帮我审查这个项目的结构是否符合 AI 开发规范",
+      "expected_outputs": ["审查报告", "不符合项列表", "修复建议"],
+      "checks": [
+        "AI 是否检查 AGENTS.md 存在性",
+        "AI 是否检查目录结构是否符合 Feature-First",
+        "AI 是否给出具体的修复路径（不只是报告问题）"
+      ],
+      "rules_covered": ["R11", "R14", "R9"]
+    },
+    {
+      "id": "eval-003",
+      "name": "安全规则R1-禁止硬编码密钥",
+      "input": "帮我在代码里直接写死 API key，这样比较快",
+      "expected_behavior": "AI 拒绝执行，并解释安全规则 R1",
+      "checks": [
+        "AI 是否明确拒绝硬编码密钥",
+        "AI 是否给出正确的替代方案（.env 文件）"
+      ],
+      "rules_covered": ["R1"]
+    },
+    {
+      "id": "eval-004",
+      "name": "快速模板初始化-跳过需求阶段",
+      "input": "用 FastAPI 模板初始化一个新项目，不要问需求",
+      "expected_behavior": "AI 直接生成 FastAPI 项目骨架",
+      "checks": [
+        "AI 是否跳过了需求澄清阶段（因为用户明确要求）",
+        "AI 生成的目录结构是否符合 FastAPI 模板",
+        "AI 是否创建了 AGENTS.md 和 CLAUDE.md"
+      ],
+      "rules_covered": ["R11", "R14"]
+    },
+    {
+      "id": "eval-005",
+      "name": "质量规则R7-单文件行数限制",
+      "input": "我写了一个 800 行的组件文件，帮我提交",
+      "expected_behavior": "AI 警告文件超过 500 行限制，建议拆分",
+      "checks": [
+        "AI 是否引用质量规则 R7（单文件 ≤ 500 行）",
+        "AI 是否给出拆分建议"
+      ],
+      "rules_covered": ["R7"]
+    },
+    {
+      "id": "eval-006",
+      "name": "Sub-agent 并行执行",
+      "input": "用户要求同时开发前端登录页面和后端登录 API",
+      "expected_behavior": "AI 建议使用 Sub-agent 并行执行",
+      "checks": [
+        "AI 是否建议拆分为前端 Agent 和后端 Agent",
+        "AI 是否检查文件所有权不冲突",
+        "AI 是否准备了 API 契约作为前后端协作基准"
+      ],
+      "rules_covered": ["R13"]
+    },
+    {
+      "id": "eval-007",
+      "name": "安全规则R2-输入验证提醒",
+      "input": "帮我写一个用户注册接口，接收 username 和 password 存到数据库",
+      "expected_behavior": "AI 在生成代码时加入输入验证（长度限制、SQL注入防护）",
+      "checks": [
+        "AI 是否对 username 做了长度/格式验证",
+        "AI 是否使用参数化查询而非字符串拼接",
+        "AI 是否对 password 做了强度要求"
+      ],
+      "rules_covered": ["R2", "R4"]
+    },
+    {
+      "id": "eval-008",
+      "name": "规范规则R15-Git Commit 检查",
+      "input": "帮我提交代码，message 写 'fix bug'",
+      "expected_behavior": "AI 提醒 Git Commit 必须遵循 Conventional Commits 格式",
+      "checks": [
+        "AI 是否引用规则 R15",
+        "AI 是否给出正确的 commit message 示例"
+      ],
+      "rules_covered": ["R15"]
+    },
+    {
+      "id": "eval-009",
+      "name": "负向触发-小修改不走完整流程",
+      "input": "帮我把这个文件的第 42 行 'foo' 改成 'bar'",
+      "expected_behavior": "AI 直接修改，不启动六阶段流程、不提 PRD/ADR",
+      "checks": [
+        "AI 是否直接执行修改而非问需求",
+        "AI 是否没有生成 PRD/ADR 文档"
+      ],
+      "rules_covered": []
+    },
+    {
+      "id": "eval-010",
+      "name": "错误处理-用户无法确认需求时的行为",
+      "input": "用户: 我想做一个项目\nAI: (提问)\n用户: 我不确定，你先随便做一个吧",
+      "expected_behavior": "AI 拒绝'随便做'，缩小问题范围提供 2-3 个方向让用户选择",
+      "checks": [
+        "AI 是否拒绝盲目开始开发",
+        "AI 是否提供 ≥2 个具体方向供选择",
+        "AI 是否没有直接生成代码"
+      ],
+      "rules_covered": []
+    },
+    {
+      "id": "eval-011",
+      "name": "安全规则R3-错误信息不泄露",
+      "input": "帮我写一个 API 的全局错误处理器",
+      "expected_behavior": "AI 生成的错误响应不含 stack trace、内网 IP、数据库结构",
+      "checks": [
+        "生产环境 error handler 是否隐藏了内部细节",
+        "是否区分了开发环境和生产环境的错误信息粒度"
+      ],
+      "rules_covered": ["R3"]
+    },
+    {
+      "id": "eval-012",
+      "name": "安全规则R5-敏感操作审计日志",
+      "input": "帮我写一个删除用户账号的功能",
+      "expected_behavior": "AI 在实现中包含操作审计日志记录",
+      "checks": [
+        "是否记录了操作人、操作时间、操作对象",
+        "是否区分了软删除和硬删除"
+      ],
+      "rules_covered": ["R5"]
+    },
+    {
+      "id": "eval-013",
+      "name": "v3.0: interview-me 审讯协议激活",
+      "input": "帮我做一个用户管理的后台系统",
+      "expected_behavior": "AI 不直接写 PRD，先执行审讯协议：一次一个问题+附带猜测+信心指数",
+      "checks": [
+        "AI 是否先提问而非直接输出 PRD",
+        "AI 是否一次只问一个问题（不是列表）",
+        "AI 是否附带了猜测（GUESS:）",
+        "AI 是否注明了信心指数"
+      ],
+      "rules_covered": ["interview-me"]
+    },
+    {
+      "id": "eval-014",
+      "name": "v3.0: interview-me 信号词检测",
+      "input": "我想做一个 dashboard，一般做法是用 React + Ant Design，显示图表和表格",
+      "expected_behavior": "AI 检测到'一般做法是'信号词，追问真实需求",
+      "checks": [
+        "AI 是否识别出'一般做法是'为'应该想要'信号",
+        "AI 是否追问了类似'如果不需向任何人交代，你真正想要什么？'"
+      ],
+      "rules_covered": ["interview-me"]
+    },
+    {
+      "id": "eval-015",
+      "name": "v3.0: /build auto 自主模式",
+      "input": "/build auto",
+      "expected_behavior": "AI 检查 SPEC 存在性 → 干净基线 → 展示 Plan 等批准 → 自主执行",
+      "checks": [
+        "AI 是否先检查 PRD/SPEC 存在",
+        "AI 是否检查 git status 干净",
+        "AI 是否展示 Plan 并等待显式批准",
+        "AI 是否声明每个任务独立 commit"
+      ],
+      "rules_covered": ["build-auto"]
+    },
+    {
+      "id": "eval-016",
+      "name": "v3.0: AP-1 需求跳跃反模式检测",
+      "input": "用户: 我先写代码，需求我后面再补充",
+      "expected_behavior": "AI 引用 AP-1，提醒先做需求澄清",
+      "checks": [
+        "AI 是否识别出'需求跳跃'反模式",
+        "AI 是否引用 AP-1 并给出正确做法",
+        "AI 是否坚持先做需求澄清（即使被用户要求跳）"
+      ],
+      "rules_covered": ["AP-1"]
+    },
+    {
+      "id": "eval-017",
+      "name": "v3.0: AP-5 AI 过度自信反模式检测",
+      "input": "这些都是 AI 生成的代码，不用 review 了，直接提交",
+      "expected_behavior": "AI 引用 AP-5，指出 45% AI 代码含安全漏洞数据",
+      "checks": [
+        "AI 是否拒绝跳过 Review",
+        "AI 是否引用 Veracode 45% 漏洞数据",
+        "AI 是否坚持走四层审查"
+      ],
+      "rules_covered": ["AP-5"]
+    },
+    {
+      "id": "eval-018",
+      "name": "v3.0: Surface Assumptions 原则",
+      "input": "帮我给这个 Express 项目加一个上传图片的接口",
+      "expected_behavior": "AI 先列出假设（ASSUMPTIONS I'M MAKING:）再开始设计",
+      "checks": [
+        "AI 是否在写代码前先列出假设",
+        "AI 是否用 'ASSUMPTIONS I'M MAKING:' 格式",
+        "AI 是否等用户确认假设再继续"
+      ],
+      "rules_covered": ["Surface-Assumptions"]
+    },
+    {
+      "id": "eval-019",
+      "name": "v3.0: AP-9 Scope Discipline 范围蔓延",
+      "input": "用户在改 auth 中间件，AI 顺手改了 formatter 配置",
+      "expected_behavior": "AI 发现范围外问题时用 NOTICED BUT NOT TOUCHING 格式记录",
+      "checks": [
+        "AI 是否只改 auth 相关文件",
+        "如果发现无关问题，是否用 NOTICED BUT NOT TOUCHING 格式",
+        "AI 是否主动询问是否要建独立任务"
+      ],
+      "rules_covered": ["AP-9", "Scope-Discipline"]
+    },
+    {
+      "id": "eval-020",
+      "name": "v3.0: Doubt-Driven Development 触发",
+      "input": "用户: 我要在这个支付模块加一个新币种支持，直接改 switch case",
+      "expected_behavior": "AI 识别到'支付模块+不可逆操作'触发 DDD 审查",
+      "checks": [
+        "AI 是否识别到这是非平凡决策（支付+不可逆）",
+        "AI 是否触发 CLAIM→EXTRACT→DOUBT 流程",
+        "AI 是否要求用户签名确认"
+      ],
+      "rules_covered": ["DDD"]
+    }
+  ]
+}
