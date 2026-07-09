@@ -1,0 +1,78 @@
+# 通用开发环境编排
+# 使用: docker compose -f docker-compose.dev.yml up -d
+
+version: "3.9"
+
+services:
+  # ============== 数据库 ==============
+  postgres:
+    image: postgres:16-alpine
+    container_name: ${PROJECT_NAME:-dev}-postgres
+    environment:
+      POSTGRES_USER: ${DB_USER:-dev}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-dev_password}
+      POSTGRES_DB: ${DB_NAME:-dev_db}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-dev}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============== 缓存 ==============
+  redis:
+    image: redis:7-alpine
+    container_name: ${PROJECT_NAME:-dev}-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # ============== 前端开发服务器 ==============
+  # 取消注释以启用:
+  # web:
+  #   build:
+  #     context: ./apps/web
+  #     dockerfile: Dockerfile.dev
+  #   container_name: ${PROJECT_NAME:-dev}-web
+  #   ports:
+  #     - "${WEB_PORT:-3000}:3000"
+  #   volumes:
+  #     - ./apps/web:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - NODE_ENV=development
+  #   depends_on:
+  #     - api
+
+  # ============== 后端开发服务器 ==============
+  # 取消注释以启用:
+  # api:
+  #   build:
+  #     context: ./apps/api
+  #     dockerfile: Dockerfile.dev
+  #   container_name: ${PROJECT_NAME:-dev}-api
+  #   ports:
+  #     - "${API_PORT:-8000}:8000"
+  #   volumes:
+  #     - ./apps/api:/app
+  #   environment:
+  #     - DATABASE_URL=postgresql://${DB_USER:-dev}:${DB_PASSWORD:-dev_password}@postgres:5432/${DB_NAME:-dev_db}
+  #     - REDIS_URL=redis://redis:6379/0
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+  redis_data:

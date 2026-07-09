@@ -1,0 +1,72 @@
+# 文件所有权策略
+# 本文件定义各 Sub-agent 的文件读写域
+# 主编排器根据此文件分配任务和协调冲突
+
+agents:
+  frontend-agent:
+    description: "负责前端页面、组件、Hooks、状态管理"
+    domains:
+      - "src/pages/**"
+      - "src/features/**"
+      - "src/components/**"
+      - "src/hooks/**"
+      - "src/stores/**"
+      - "src/styles/**"
+    forbidden:
+      - "app/**"           # 后端代码
+      - "src/api/**"        # 后端 API
+      - "src/db/**"         # 数据库
+      - "migrations/**"     # 数据库迁移
+
+  backend-agent:
+    description: "负责后端 API、数据模型、业务逻辑、中间件"
+    domains:
+      - "app/api/**"
+      - "app/core/**"
+      - "app/models/**"
+      - "app/schemas/**"
+      - "app/services/**"
+      - "app/middleware/**"
+      - "app/tasks/**"
+    forbidden:
+      - "src/pages/**"      # 前端页面
+      - "src/features/**"   # 前端功能模块
+      - "src/components/**" # 前端组件
+
+  test-agent:
+    description: "负责所有测试文件的编写和维护"
+    domains:
+      - "tests/**"
+      - "**/__tests__/**"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+    forbidden:
+      - "src/**"            # 只读源码
+      - "app/**"            # 只读源码
+      - "packages/**"       # 只读共享包
+
+  doc-agent:
+    description: "负责文档维护"
+    domains:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+
+# 共享文件——需要主编排器锁定协调
+shared_files:
+  - "packages/shared/**"           # 前后端共享类型
+  - "packages/config-eslint/**"    # ESLint 配置
+  - "packages/config-tsconfig/**"  # TypeScript 配置
+  - "package.json"                 # 依赖管理
+  - "pnpm-workspace.yaml"          # Monorepo 配置
+  - "turbo.json"                   # Turborepo 管道
+  - "docker-compose.yml"           # 基础设施
+  - "AGENTS.md"                    # 全局 Agent 规则
+  - "CLAUDE.md"                    # Claude Code 配置
+  - ".gitignore"                   # Git 忽略规则
+
+# 共享文件修改协议：
+# 1. Agent 请求主编排器锁定共享文件
+# 2. 主编排器通知可能受影响的 Agent
+# 3. 相关 Agent 确认无冲突后授予锁定
+# 4. Agent 修改完成后释放锁定

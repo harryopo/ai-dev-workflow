@@ -1,0 +1,96 @@
+# GitHub Actions CI/CD 质量门禁流水线
+# 触发条件: push 到 main/master 或 PR
+name: Quality Gates
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ==================== 前端检查 ====================
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm lint
+      - name: Type Check
+        run: pnpm type-check
+      - name: Unit Tests
+        run: pnpm test --coverage
+      - name: Build
+        run: pnpm build
+
+  # ==================== 后端检查 ====================
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v2
+        with:
+          version: "0.4"
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Lint & Format
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: Type Check
+        run: uv run mypy app/
+      - name: Unit Tests
+        run: uv run pytest --cov --cov-report=xml
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          file: apps/api/coverage.xml
+
+  # ==================== 安全检查 ====================
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Secret Detection
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+      - name: SAST (Semgrep)
+        uses: semgrep/semgrep-action@v1
+        with:
+          config: auto
+      - name: Dependency Audit (npm)
+        run: |
+          cd apps/web && pnpm audit --audit-level=high
+      - name: Dependency Audit (Python)
+        run: |
+          cd apps/api && uv run pip-audit
+
+  # ==================== 门禁汇总 ====================
+  gate-report:
+    needs: [frontend, backend, security]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate Gate Report
+        run: |
+          echo "## Quality Gate Report" >> $GITHUB_STEP_SUMMARY
+          echo "| Job | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-----|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend | ${{ needs.frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Backend | ${{ needs.backend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security | ${{ needs.security.result }} |" >> $GITHUB_STEP_SUMMARY
