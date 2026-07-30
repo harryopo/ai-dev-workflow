@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>每日学习 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">每日学习</h1>
+            <p class="page-subtitle">英文阅读 · 双语对照 · 词汇积累</p>
+          </div>
+          <span class="tag tag-blue">今日已学 15 分钟</span>
+        </div>
+
+        <div class="flex gap-4" style="height:calc(100vh - 180px)">
+          <!-- 左侧文章列表 -->
+          <aside class="bg-white border rounded-xl p-4 fade-in" style="width:220px;flex-shrink:0">
+            <h3 class="text-sm font-semibold mb-4">文章列表</h3>
+            <div class="article-list-item active" data-article="0">Understanding CBT</div>
+            <div class="article-list-item" data-article="1">The Science of Habits</div>
+            <div class="article-list-item" data-article="2">Mindfulness in Daily Life</div>
+            <div class="border-t-light mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:16px">
+              <p class="text-xs text-text-tertiary">已学 3 篇</p>
+              <p class="text-xs text-text-tertiary mt-4">累计 42 分钟</p>
+            </div>
+          </aside>
+
+          <!-- 右侧阅读区 -->
+          <div class="flex-1 bg-white border rounded-xl p-6 overflow-y-auto fade-in" id="reading-area">
+
+            <div class="article-content" data-article="0">
+              <h2 class="text-xl font-serif font-semibold mb-4">Understanding CBT</h2>
+              <p class="text-xs text-text-tertiary mb-6">认知行为疗法入门 · 约 8 分钟</p>
+
+              <div class="reading-grid">
+                <div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9"><span class="keyword" data-tip="认知的：与思维、理解相关的">Cognitive</span> Behavioral Therapy (CBT) is a structured, goal-oriented form of psychotherapy that helps individuals identify and change distorted thought patterns. Developed by Aaron Beck in the 1960s, it has become one of the most widely practiced and empirically supported therapeutic approaches.</p>
+                  </div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9">The core premise of CBT is that our <span class="keyword" data-tip="心理学的">psychology</span> is shaped by the interplay between thoughts, emotions, and behaviors. When someone experiences <span class="keyword" data-tip="反刍思维：反复消极思考">rumination</span> or <span class="keyword" data-tip="认知扭曲：不合理的思维模式">cognitive distortion</span>, these maladaptive patterns can lead to anxiety and depression.</p>
+                  </div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9">Through consistent practice, patients develop <span class="keyword" data-tip="心理韧性：应对压力的能力">resilience</span> and learn to reframe negative automatic thoughts. The brain's <span class="keyword" data-tip="神经可塑性：大脑重塑自身的能力">neuroplasticity</span> allows these new patterns to become habitual over time.</p>
+                  </div>
+                </div>
+                <div>
+                  <div class="reading-para translation" style="background:var(--color-primary-light);border-color:var(--color-primary-light);display:none">
+                    <p class="text-sm text-text-primary" style="line-height:1.9">认知行为疗法（CBT）是一种结构化、目标导向的心理治疗形式，帮助个体识别和改变扭曲的思维模式。由亚伦·贝克于20世纪60年代提出，现已成为最广泛实践且最有实证支持的治疗方法之一。</p>
+                  </div>
+                  <div class="reading-para translation" style="background:var(--color-primary-light);border-color:var(--color-primary-light);display:none">
+                    <p class="text-sm text-text-primary" style="line-height:1.9">CBT的核心前提是，我们的心理由思维、情绪和行为之间的相互作用塑造。当一个人经历反刍思维或认知扭曲时，这些适应不良的模式可能导致焦虑和抑郁。</p>
+                  </div>
+                  <div class="reading-para translation" style="background:var(--color-primary-light);border-color:var(--color-primary-light);display:none">
+                    <p class="text-sm text-text-primary" style="line-height:1.9">通过持续练习，患者发展出心理韧性，并学会重构消极的自动思维。大脑的神经可塑性使这些新模式随时间成为习惯。</p>
+                  </div>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-3 mt-6">
+                <button class="btn btn-outline" id="toggle-translation">显示中文翻译</button>
+                <button class="btn btn-ghost">收藏生词</button>
+              </div>
+            </div>
+
+            <div class="article-content" data-article="1" style="display:none">
+              <h2 class="text-xl font-serif font-semibold mb-4">The Science of Habits</h2>
+              <p class="text-xs text-text-tertiary mb-6">习惯的科学 · 约 6 分钟</p>
+              <div class="reading-grid">
+                <div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9">Habits are the brain's way of saving energy. When a behavior is repeated, the brain releases <span class="keyword" data-tip="多巴胺：奖励相关的神经递质">dopamine</span>, reinforcing the action through a cue-routine-reward loop.</p>
+                  </div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9">Understanding this loop is the first step to changing any habit. By keeping the cue and reward but swapping the routine, we can reshape behavior over time.</p>
+                  </div>
+                </div>
+                <div></div>
+              </div>
+            </div>
+
+            <div class="article-content" data-article="2" style="display:none">
+              <h2 class="text-xl font-serif font-semibold mb-4">Mindfulness in Daily Life</h2>
+              <p class="text-xs text-text-tertiary mb-6">日常生活中的正念 · 约 7 分钟</p>
+              <div class="reading-grid">
+                <div>
+                  <div class="reading-para">
+                    <p class="text-sm" style="line-height:1.9"><span class="keyword" data-tip="正念：有意识的不评判关注当下">Mindfulness</span> is the practice of paying attention to the present moment without judgment. Research shows it can reduce stress and improve focus.</p>
+                  </div>
+                </div>
+                <div></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 文章切换
+    const items = document.querySelectorAll('.article-list-item');
+    const contents = document.querySelectorAll('.article-content');
+    items.forEach(item => {
+      item.addEventListener('click', () => {
+        items.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        const idx = item.getAttribute('data-article');
+        contents.forEach(c => {
+          c.style.display = c.getAttribute('data-article') === idx ? '' : 'none';
+        });
+      });
+    });
+
+    // 显示/隐藏翻译
+    const toggleBtn = document.getElementById('toggle-translation');
+    let shown = false;
+    toggleBtn.addEventListener('click', () => {
+      shown = !shown;
+      document.querySelectorAll('.translation').forEach(t => t.style.display = shown ? '' : 'none');
+      toggleBtn.textContent = shown ? '隐藏中文翻译' : '显示中文翻译';
+    });
+
+    // 关键词 tooltip
+    document.querySelectorAll('.keyword').forEach(kw => {
+      const tip = kw.getAttribute('data-tip');
+      kw.setAttribute('title', tip);
+    });
+  </script>
+</body>
+</html>

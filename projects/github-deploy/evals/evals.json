@@ -1,0 +1,183 @@
+{
+  "version": "2.0.0",
+  "skill": "github-deploy",
+  "changelog": {
+    "2.0.0": "新增 pushurl 注入模式、Pages 路由判定、CDN 缓存、PPT 直入最佳实践 5 大评测场景 (eval-006 ~ eval-010)",
+    "1.0.0": "初版 5 个基础评测场景 (eval-001 ~ eval-005)"
+  },
+  "cases": [
+    {
+      "id": "eval-001",
+      "name": "常规提交 — 无网页内容",
+      "description": "用户修改了 .py 文件，要求提交代码。应走 HTTP+pushurl push，不做网页检测",
+      "input": {
+        "user_message": "我把后端接口改好了，提交代码",
+        "repo_state": {
+          "modified": ["src/api/endpoints/users.py"],
+          "status": "clean except users.py"
+        }
+      },
+      "expected": {
+        "commit_type": "fix",
+        "push_method": "http_pushurl",
+        "web_deploy_prompt": false
+      }
+    },
+    {
+      "id": "eval-002",
+      "name": "网页内容检测 — 触发部署询问",
+      "description": "用户提交了 docs/index.html，应检测到网页内容并询问部署",
+      "input": {
+        "user_message": "提交代码",
+        "repo_state": {
+          "modified": ["docs/index.html", "docs/style.css", "README.md"]
+        }
+      },
+      "expected": {
+        "web_content_detected": true,
+        "ask_deploy": true,
+        "deploy_options": ["部署", "只提交代码", "告诉我怎么做"]
+      }
+    },
+    {
+      "id": "eval-003",
+      "name": "HTTP+pushurl 失败 → 降级 gh CLI",
+      "description": "pushurl push 失败，应自动降级到 gh CLI",
+      "input": {
+        "user_message": "push到github",
+        "push_error": "Connection refused"
+      },
+      "expected": {
+        "first_attempt": "http_pushurl",
+        "fallback": "gh CLI",
+        "mcp_attempt": false
+      }
+    },
+    {
+      "id": "eval-004",
+      "name": "pushurl + gh CLI 双失败 → MCP 兜底",
+      "description": "两层皆失败，应启用 MCP GitHub API 推送",
+      "input": {
+        "user_message": "上传仓库",
+        "pushurl_error": "401 Unauthorized",
+        "gh_error": "API rate limit exceeded"
+      },
+      "expected": {
+        "first_attempt": "http_pushurl",
+        "second_attempt": "gh CLI",
+        "final_attempt": "mcp_push_files",
+        "mcp_args": {
+          "owner": "harryopo",
+          "repo": "string",
+          "branch": "master",
+          "files": "array",
+          "commitMessage": "string"
+        }
+      }
+    },
+    {
+      "id": "eval-005",
+      "name": "敏感文件过滤",
+      "description": "检测到 .env 和 secrets.json，不应提交这些文件",
+      "input": {
+        "user_message": "提交代码",
+        "repo_state": {
+          "modified": ["src/app.ts", ".env", "secrets.json", "config.yml"]
+        }
+      },
+      "expected": {
+        "staged_files": ["src/app.ts", "config.yml"],
+        "excluded_files": [".env", "secrets.json"],
+        "warning_shown": true
+      }
+    },
+    {
+      "id": "eval-006",
+      "name": "v2.0 — pushurl 注入模式推送，无弹窗",
+      "description": "国内网络环境下，.git/config 已配 pushurl + x-access-token，git push 应无弹窗直接成功",
+      "input": {
+        "user_message": "提交代码",
+        "repo_state": {
+          "modified": ["src/feature.ts"]
+        },
+        "git_config": {
+          "remote.origin.url": "https://ghfast.top/https://github.com/harryopo/repo.git",
+          "remote.origin.pushurl": "https://x-access-token:ghp_xxx@ghfast.top/https://github.com/harryopo/repo.git"
+        }
+      },
+      "expected": {
+        "push_method": "http_pushurl",
+        "popup_appears": false,
+        "success_message_contains": "To https://ghfast.top/.../repo.git"
+      }
+    },
+    {
+      "id": "eval-007",
+      "name": "v2.0 — 全局 insteadOf 与 pushurl 冲突，弹窗",
+      "description": "检测到全局 insteadOf 规则 + pushurl 同时存在，应提醒删 insteadOf 规则",
+      "input": {
+        "user_message": "推送代码",
+        "git_config": {
+          "global.url.https://ghfast.top/https://github.com/.insteadof": "https://github.com/",
+          "remote.origin.pushurl": "https://x-access-token:ghp_xxx@ghfast.top/..."
+        }
+      },
+      "expected": {
+        "diagnosis": "insteadOf 会重写 pushurl 里的 token，导致 pushurl 失效",
+        "action": "git config --global --unset url.https://ghfast.top/https://github.com/.insteadof",
+        "verification": "重新 push 无弹窗"
+      }
+    },
+    {
+      "id": "eval-008",
+      "name": "v2.0 — Pages 子路径路由：判定实际服务源",
+      "description": "推送主仓库子目录但页面未更新，应检查是否存在同名独立 Project Pages 仓库",
+      "input": {
+        "user_message": "我把 junlin-tianxia PPT 推到了主仓库子目录，但访问页面还是旧版",
+        "scenario": "推送后 curl .../junlin-tianxia/ 拿到的内容与 raw.githubusercontent 主仓库子目录不一致"
+      },
+      "expected": {
+        "diagnosis_steps": [
+          "curl .../junlin-tianxia/ 拿到实际内容",
+          "curl raw.githubusercontent 主仓库子目录对比",
+          "若不一致 → 存在独立同名 Project Pages 仓库"
+        ],
+        "action": "推独立仓库 harryopo/junlin-tianxia 而非主仓库子目录",
+        "verification": "推送后 1-2 分钟内 .../junlin-tianxia/ 显示新内容"
+      }
+    },
+    {
+      "id": "eval-009",
+      "name": "v2.0 — Pages CDN 缓存：推送后等 + 验证",
+      "description": "git push 成功但访问页面是旧版，等待 1-2 分钟让 Pages 重建 + 用 ?v=N 绕过浏览器缓存",
+      "input": {
+        "user_message": "推上去了但访问还是旧版",
+        "context": "push 已成功，5 分钟内访问页面无变化"
+      },
+      "expected": {
+        "explanation": "GitHub Pages 用 Fastly CDN，HTML meta Cache-Control 只能管浏览器，不能管 CDN",
+        "actions": [
+          "等 1-2 分钟让 Pages 重建",
+          "用 ?v=2 或 ?nocache=1 绕过浏览器缓存",
+          "直接 curl raw 远端仓库对比验证"
+        ]
+      }
+    },
+    {
+      "id": "eval-010",
+      "name": "v2.0 — PPT 类项目禁止中间页",
+      "description": "部署 PPT/单页应用，index.html 必须直接是内容，不许套「进入 →」中间页",
+      "input": {
+        "user_message": "部署菌菇 PPT",
+        "scenario": "检测到独立仓库的 index.html 当前是中间页（有「进入 PPT」按钮）"
+      },
+      "expected": {
+        "action": "覆盖独立仓库 index.html 为 PPT 主体内容",
+        "preserve_old": "把旧版中间页素材移到 archive/ 或子目录",
+        "promote_assets": "images/ 和 assets/ 移到根目录与 index.html 同级",
+        "navigation_card": "主页卡片直接链到 /junlin-tianxia/，无中间层",
+        "cache_control_meta": "在两个 index.html 都加 Cache-Control/Pragma/Expires"
+      }
+    }
+  ]
+}

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>笔记 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">我的笔记</h1>
+            <p class="page-subtitle">共 10 条笔记</p>
+          </div>
+          <div class="flex gap-3">
+            <div class="search-box">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" class="input" placeholder="搜索笔记..." style="width:240px">
+            </div>
+            <select class="select" style="width:180px">
+              <option>全部书籍</option>
+              <option>被讨厌的勇气</option>
+              <option>思考，快与慢</option>
+              <option>心流</option>
+              <option>原则</option>
+              <option>刻意练习</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- 笔记列表 -->
+        <div class="flex flex-col gap-4">
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-blue">被讨厌的勇气</span>
+              <span class="text-xs text-text-tertiary">序章</span>
+              <span class="text-xs text-text-tertiary ml-auto">3天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"一切烦恼都来自人际关系"</p>
+            <div class="mt-4 p-4 bg-primary-light rounded-lg">
+              <p class="text-xs text-primary font-medium mb-2">我的笔记</p>
+              <p class="text-sm text-text-primary">这句话点醒了我不必在意他人评价</p>
+            </div>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-blue">被讨厌的勇气</span>
+              <span class="text-xs text-text-tertiary">第二夜</span>
+              <span class="text-xs text-text-tertiary ml-auto">3天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"课题分离是人际关系的起点"</p>
+            <div class="mt-4 p-4 bg-primary-light rounded-lg">
+              <p class="text-xs text-primary font-medium mb-2">我的笔记</p>
+              <p class="text-sm text-text-primary">区分什么是自己的课题，什么是别人的</p>
+            </div>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-blue">被讨厌的勇气</span>
+              <span class="text-xs text-text-tertiary">第三夜</span>
+              <span class="text-xs text-text-tertiary ml-auto">2天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"自由就是被别人讨厌"</p>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-violet">思考，快与慢</span>
+              <span class="text-xs text-text-tertiary">第一章</span>
+              <span class="text-xs text-text-tertiary ml-auto">5天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"系统1是快速直觉的，系统2是缓慢理性的"</p>
+            <div class="mt-4 p-4 bg-primary-light rounded-lg">
+              <p class="text-xs text-primary font-medium mb-2">我的笔记</p>
+              <p class="text-sm text-text-primary">我们大多数决定由系统1自动完成</p>
+            </div>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-violet">思考，快与慢</span>
+              <span class="text-xs text-text-tertiary">第三章</span>
+              <span class="text-xs text-text-tertiary ml-auto">4天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"锚定效应影响我们的判断"</p>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-amber">心流</span>
+              <span class="text-xs text-text-tertiary">第二章</span>
+              <span class="text-xs text-text-tertiary ml-auto">1周前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"最优体验发生在挑战与技能匹配时"</p>
+            <div class="mt-4 p-4 bg-primary-light rounded-lg">
+              <p class="text-xs text-primary font-medium mb-2">我的笔记</p>
+              <p class="text-sm text-text-primary">心流条件=挑战≈技能</p>
+            </div>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-green">原则</span>
+              <span class="text-xs text-text-tertiary">第一部分</span>
+              <span class="text-xs text-text-tertiary ml-auto">6天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"痛苦+反思=进步"</p>
+            <div class="mt-4 p-4 bg-primary-light rounded-lg">
+              <p class="text-xs text-primary font-medium mb-2">我的笔记</p>
+              <p class="text-sm text-text-primary">痛苦是信号，反思是方法</p>
+            </div>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-red">刻意练习</span>
+              <span class="text-xs text-text-tertiary">第三章</span>
+              <span class="text-xs text-text-tertiary ml-auto">1周前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"刻意练习需要明确的目标和即时反馈"</p>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-blue">被讨厌的勇气</span>
+              <span class="text-xs text-text-tertiary">第五夜</span>
+              <span class="text-xs text-text-tertiary ml-auto">2天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"人生不是与他人的竞争，而是与理想的自己比较"</p>
+          </div>
+
+          <div class="card-border fade-in">
+            <div class="flex items-center gap-3 mb-4">
+              <span class="tag tag-violet">思考，快与慢</span>
+              <span class="text-xs text-text-tertiary">第六章</span>
+              <span class="text-xs text-text-tertiary ml-auto">3天前</span>
+            </div>
+            <p class="text-base text-text-primary" style="line-height:1.8">"可得性启发式让我们高估容易回忆的事件概率"</p>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+</body>
+</html>

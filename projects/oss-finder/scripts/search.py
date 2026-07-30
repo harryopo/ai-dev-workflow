@@ -105,11 +105,34 @@ def _retry(func, max_retries=3, base_delay=1.0):
 class PlatformAPI:
     """平台 API 基类"""
 
+    # 统一的内部结果字段定义
+    COMMON_FIELDS = ['name', 'url', 'stars', 'forks', 'language',
+                     'description', 'topics', 'license', 'created_at',
+                     'updated_at', 'open_issues']
+
     def __init__(self, token: Optional[str] = None):
         self.token = token
 
     def search(self, query: str, **kwargs) -> dict:
         raise NotImplementedError
+
+    @staticmethod
+    def _get_platform_name() -> str:
+        """返回平台名称，子类需要重写"""
+        raise NotImplementedError
+
+    def _build_results_dict(self, results: list, total: int = None, source: str = '') -> dict:
+        """构建统一格式的返回字典（消除各平台类中的重复构建逻辑）"""
+        if total is None:
+            total = len(results)
+        result = {
+            'platform': self._get_platform_name(),
+            'total': total,
+            'results': results
+        }
+        if source:
+            result['source'] = source
+        return result
 
     def _request(self, url: str, headers: dict = None) -> dict:
         """发送 HTTP 请求（带重试）"""
@@ -253,6 +276,10 @@ class GitHubAPI(PlatformAPI):
 
     BASE_URL = "https://api.github.com"
 
+    @staticmethod
+    def _get_platform_name() -> str:
+        return 'github'
+
     def search(self, query: str, **kwargs) -> dict:
         # 优先尝试 gh CLI
         if GitHubCLI.is_available():
@@ -312,18 +339,17 @@ class GitHubAPI(PlatformAPI):
                 'open_issues': item['open_issues_count']
             })
 
-        return {
-            'platform': 'github',
-            'source': 'rest-api',
-            'total': data['total_count'],
-            'results': results
-        }
+        return self._build_results_dict(results, data['total_count'], 'rest-api')
 
 
 class GitLabAPI(PlatformAPI):
     """GitLab API"""
 
     BASE_URL = "https://gitlab.com/api/v4"
+
+    @staticmethod
+    def _get_platform_name() -> str:
+        return 'gitlab'
 
     def search(self, query: str, **kwargs) -> dict:
         # GitLab API 的 order_by 参数映射
@@ -377,17 +403,17 @@ class GitLabAPI(PlatformAPI):
                 'open_issues': 0
             })
 
-        return {
-            'platform': 'gitlab',
-            'total': len(results),
-            'results': results
-        }
+        return self._build_results_dict(results)
 
 
 class GiteeAPI(PlatformAPI):
     """Gitee API"""
 
     BASE_URL = "https://gitee.com/api/v5"
+
+    @staticmethod
+    def _get_platform_name() -> str:
+        return 'gitee'
 
     def search(self, query: str, **kwargs) -> dict:
         # Gitee 搜索需要认证
@@ -435,17 +461,17 @@ class GiteeAPI(PlatformAPI):
                 'open_issues': 0
             })
 
-        return {
-            'platform': 'gitee',
-            'total': len(results),
-            'results': results
-        }
+        return self._build_results_dict(results)
 
 
 class NpmAPI(PlatformAPI):
     """npm Registry API"""
 
     BASE_URL = "https://registry.npmjs.org"
+
+    @staticmethod
+    def _get_platform_name() -> str:
+        return 'npm'
 
     def search(self, query: str, **kwargs) -> dict:
         params = {
@@ -486,11 +512,7 @@ class NpmAPI(PlatformAPI):
                 'updated_at': pkg.get('date', '')
             })
 
-        return {
-            'platform': 'npm',
-            'total': data.get('total', len(results)),
-            'results': results
-        }
+        return self._build_results_dict(results, data.get('total', len(results)))
 
     def _get_downloads(self, package: str) -> int:
         """获取包的最近一周下载量"""
@@ -503,6 +525,10 @@ class PyPIAPI(PlatformAPI):
     """PyPI API — 支持搜索（通过 libraries.io）和按包名查询"""
 
     BASE_URL = "https://pypi.org"
+
+    @staticmethod
+    def _get_platform_name() -> str:
+        return 'pypi'
 
     def search(self, query: str, **kwargs) -> dict:
         libs_key = os.environ.get('LIBRARIES_IO_KEY')
@@ -545,11 +571,8 @@ class PyPIAPI(PlatformAPI):
                 'updated_at': item.get('latest_release_published_at', '')
             })
 
-        return {
-            'platform': 'pypi',
-            'total': len(results),
-            'results': results
-        }
+        return self._build_results_dict(results)
+
 
     def _search_by_name(self, query: str) -> dict:
         """按包名精确查询"""
@@ -578,11 +601,7 @@ class PyPIAPI(PlatformAPI):
             'updated_at': ''
         }]
 
-        return {
-            'platform': 'pypi',
-            'total': 1,
-            'results': results
-        }
+        return self._build_results_dict(results)
 
     def _get_pypi_info(self, package: str) -> dict:
         url = f"{self.BASE_URL}/pypi/{package}/json"

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>智能体管理 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">智能体管理</h1>
+            <p class="page-subtitle">Agent 配置 · 知识库 · 会话历史</p>
+          </div>
+        </div>
+
+        <!-- 4 个 Tab -->
+        <div class="tab-bar mb-6 fade-in">
+          <button class="tab active" data-tab="dashboard">仪表盘</button>
+          <button class="tab" data-tab="agent">Agent 配置</button>
+          <button class="tab" data-tab="knowledge">知识库</button>
+          <button class="tab" data-tab="session">会话历史</button>
+        </div>
+
+        <!-- 仪表盘 -->
+        <div data-panel="dashboard">
+          <div class="grid grid-cols-4 gap-4 mb-6">
+            <div class="stat-card fade-in stagger-1">
+              <p class="stat-label">活跃会话</p>
+              <p class="stat-value text-green">12</p>
+            </div>
+            <div class="stat-card fade-in stagger-2">
+              <p class="stat-label">总会话数</p>
+              <p class="stat-value text-primary">186</p>
+            </div>
+            <div class="stat-card fade-in stagger-3">
+              <p class="stat-label">知识条目</p>
+              <p class="stat-value text-violet">234</p>
+            </div>
+            <div class="stat-card fade-in stagger-4">
+              <p class="stat-label">平均响应</p>
+              <p class="stat-value text-amber">2.3s</p>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+            <div class="p-6 border-b-light" style="border-bottom:1px solid var(--color-border-light)">
+              <h2 class="text-lg font-semibold">上下文构建器状态</h2>
+            </div>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>构建器名称</th>
+                  <th>状态</th>
+                  <th class="text-right">Token 消耗</th>
+                  <th class="text-right">最后调用</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="font-medium">意图分类器</td>
+                  <td><span class="tag tag-green"><span class="badge-dot" style="background:var(--color-green)"></span>运行中</span></td>
+                  <td class="text-right text-primary">24.5k</td>
+                  <td class="text-right text-text-tertiary">2 分钟前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium">笔记检索器</td>
+                  <td><span class="tag tag-green"><span class="badge-dot" style="background:var(--color-green)"></span>运行中</span></td>
+                  <td class="text-right text-primary">18.2k</td>
+                  <td class="text-right text-text-tertiary">5 分钟前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium">方法论注入器</td>
+                  <td><span class="tag tag-green"><span class="badge-dot" style="background:var(--color-green)"></span>运行中</span></td>
+                  <td class="text-right text-primary">12.8k</td>
+                  <td class="text-right text-text-tertiary">8 分钟前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium">向量检索器</td>
+                  <td><span class="tag tag-amber"><span class="badge-dot" style="background:var(--color-amber)"></span>降级</span></td>
+                  <td class="text-right text-primary">9.3k</td>
+                  <td class="text-right text-text-tertiary">15 分钟前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium">摘要生成器</td>
+                  <td><span class="tag tag-gray"><span class="badge-dot" style="background:var(--color-text-tertiary)"></span>空闲</span></td>
+                  <td class="text-right text-primary">6.1k</td>
+                  <td class="text-right text-text-tertiary">1 小时前</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Agent 配置 -->
+        <div data-panel="agent" style="display:none">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="card-border fade-in">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">意图分类器</h3>
+                <span class="tag tag-green">启用</span>
+              </div>
+              <div class="flex flex-col gap-3">
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">模型</span><span class="font-medium">deepseek-chat</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">温度</span><span class="font-medium">0.3</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">最大 Token</span><span class="font-medium">256</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">调用次数</span><span class="font-medium text-primary">186</span></div>
+              </div>
+            </div>
+            <div class="card-border fade-in">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">编排器</h3>
+                <span class="tag tag-green">启用</span>
+              </div>
+              <div class="flex flex-col gap-3">
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">模型</span><span class="font-medium">deepseek-chat</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">温度</span><span class="font-medium">0.7</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">最大 Token</span><span class="font-medium">2048</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">调用次数</span><span class="font-medium text-primary">142</span></div>
+              </div>
+            </div>
+            <div class="card-border fade-in">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">笔记检索</h3>
+                <span class="tag tag-green">启用</span>
+              </div>
+              <div class="flex flex-col gap-3">
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">模型</span><span class="font-medium">embedding-3</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">向量维度</span><span class="font-medium">1536</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">Top-K</span><span class="font-medium">5</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">调用次数</span><span class="font-medium text-primary">98</span></div>
+              </div>
+            </div>
+            <div class="card-border fade-in">
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">策略引擎</h3>
+                <span class="tag tag-gray">禁用</span>
+              </div>
+              <div class="flex flex-col gap-3">
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">模型</span><span class="font-medium">deepseek-chat</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">温度</span><span class="font-medium">0.5</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">最大 Token</span><span class="font-medium">512</span></div>
+                <div class="flex justify-between text-sm"><span class="text-text-tertiary">调用次数</span><span class="font-medium text-primary">0</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 知识库 -->
+        <div data-panel="knowledge" style="display:none">
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>书籍</th>
+                  <th>类型</th>
+                  <th>内容摘要</th>
+                  <th class="text-right">创建时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="text-text-tertiary">K001</td><td>被讨厌的勇气</td><td><span class="tag tag-blue">概念</span></td><td>课题分离的核心定义与应用场景</td><td class="text-right text-text-tertiary">07-12</td></tr>
+                <tr><td class="text-text-tertiary">K002</td><td>被讨厌的勇气</td><td><span class="tag tag-violet">方法论</span></td><td>目的论思维 vs 原因论</td><td class="text-right text-text-tertiary">07-12</td></tr>
+                <tr><td class="text-text-tertiary">K003</td><td>被讨厌的勇气</td><td><span class="tag tag-amber">金句</span></td><td>一切烦恼都来自人际关系</td><td class="text-right text-text-tertiary">07-11</td></tr>
+                <tr><td class="text-text-tertiary">K004</td><td>思考，快与慢</td><td><span class="tag tag-blue">概念</span></td><td>系统1与系统2的特征对比</td><td class="text-right text-text-tertiary">07-10</td></tr>
+                <tr><td class="text-text-tertiary">K005</td><td>思考，快与慢</td><td><span class="tag tag-violet">方法论</span></td><td>识别并克服锚定效应</td><td class="text-right text-text-tertiary">07-09</td></tr>
+                <tr><td class="text-text-tertiary">K006</td><td>心流</td><td><span class="tag tag-blue">概念</span></td><td>心流状态的触发条件</td><td class="text-right text-text-tertiary">07-08</td></tr>
+                <tr><td class="text-text-tertiary">K007</td><td>原则</td><td><span class="tag tag-violet">方法论</span></td><td>痛苦+反思=进步的实践路径</td><td class="text-right text-text-tertiary">07-07</td></tr>
+                <tr><td class="text-text-tertiary">K008</td><td>刻意练习</td><td><span class="tag tag-violet">方法论</span></td><td>刻意练习四要素</td><td class="text-right text-text-tertiary">07-06</td></tr>
+                <tr><td class="text-text-tertiary">K009</td><td>被讨厌的勇气</td><td><span class="tag tag-amber">金句</span></td><td>自由就是被别人讨厌</td><td class="text-right text-text-tertiary">07-05</td></tr>
+                <tr><td class="text-text-tertiary">K010</td><td>思考，快与慢</td><td><span class="tag tag-blue">概念</span></td><td>可得性启发式的运作机制</td><td class="text-right text-text-tertiary">07-04</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 会话历史 -->
+        <div data-panel="session" style="display:none">
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>会话 ID</th>
+                  <th>用户消息</th>
+                  <th>AI 回复摘要</th>
+                  <th class="text-right">Token</th>
+                  <th class="text-right">时间</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td class="text-text-tertiary">S186</td><td class="truncate" style="max-width:200px">如何理解阿德勒的课题分离？</td><td class="truncate text-text-secondary" style="max-width:260px">课题分离是区分这是谁的课题，判断标准是结果由谁承担...</td><td class="text-right font-medium">3.2k</td><td class="text-right text-text-tertiary">2 分钟前</td></tr>
+                <tr><td class="text-text-tertiary">S185</td><td class="truncate" style="max-width:200px">系统1和系统2有什么区别？</td><td class="truncate text-text-secondary" style="max-width:260px">系统1是快速直觉的，系统2是缓慢理性的...</td><td class="text-right font-medium">2.8k</td><td class="text-right text-text-tertiary">15 分钟前</td></tr>
+                <tr><td class="text-text-tertiary">S184</td><td class="truncate" style="max-width:200px">心流状态如何达成？</td><td class="truncate text-text-secondary" style="max-width:260px">通过匹配挑战与技能、设定明确目标...</td><td class="text-right font-medium">4.1k</td><td class="text-right text-text-tertiary">1 小时前</td></tr>
+                <tr><td class="text-text-tertiary">S183</td><td class="truncate" style="max-width:200px">帮我总结《被讨厌的勇气》核心观点</td><td class="truncate text-text-secondary" style="max-width:260px">本书核心是阿德勒心理学，关键概念包括...</td><td class="text-right font-medium">5.6k</td><td class="text-right text-text-tertiary">2 小时前</td></tr>
+                <tr><td class="text-text-tertiary">S182</td><td class="truncate" style="max-width:200px">锚定效应如何影响判断？</td><td class="truncate text-text-secondary" style="max-width:260px">锚定效应是指人们在做判断时过度依赖初始信息...</td><td class="text-right font-medium">2.5k</td><td class="text-right text-text-tertiary">3 小时前</td></tr>
+                <tr><td class="text-text-tertiary">S181</td><td class="truncate" style="max-width:200px">生成一张关于课题分离的知识卡片</td><td class="truncate text-text-secondary" style="max-width:260px">已生成概念卡片：课题分离...</td><td class="text-right font-medium">8.3k</td><td class="text-right text-text-tertiary">5 小时前</td></tr>
+                <tr><td class="text-text-tertiary">S180</td><td class="truncate" style="max-width:200px">解释一下目的论思维</td><td class="truncate text-text-secondary" style="max-width:260px">目的论关注行为的目的而非原因...</td><td class="text-right font-medium">3.4k</td><td class="text-right text-text-tertiary">昨天</td></tr>
+                <tr><td class="text-text-tertiary">S179</td><td class="truncate" style="max-width:200px">痛苦+反思=进步怎么应用？</td><td class="truncate text-text-secondary" style="max-width:260px">痛苦是信号，反思是方法，具体步骤...</td><td class="text-right font-medium">2.9k</td><td class="text-right text-text-tertiary">昨天</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // Tab 切换
+    const tabs = document.querySelectorAll('.tab-bar .tab');
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const target = tab.getAttribute('data-tab');
+        document.querySelectorAll('[data-panel]').forEach(p => {
+          p.style.display = p.getAttribute('data-panel') === target ? '' : 'none';
+        });
+      });
+    });
+  </script>
+</body>
+</html>

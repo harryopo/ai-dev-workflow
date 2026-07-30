@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>方法论 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">方法论</h1>
+            <p class="page-subtitle">从书籍中提炼的可复用思维模型</p>
+          </div>
+          <div class="flex gap-3 flex-wrap">
+            <div class="search-box">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+              <input type="text" class="input" placeholder="搜索方法论..." style="width:220px">
+            </div>
+            <select class="select" style="width:160px">
+              <option>全部书籍</option>
+              <option>被讨厌的勇气</option>
+              <option>思考，快与慢</option>
+              <option>原则</option>
+              <option>心流</option>
+              <option>刻意练习</option>
+            </select>
+            <button class="btn btn-primary">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+              提取方法论
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+
+          <!-- 1. 课题分离 -->
+          <div class="card-border fade-in stagger-1 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">课题分离</h3>
+                <p class="text-xs text-text-tertiary">Separation of Tasks</p>
+              </div>
+              <span class="tag tag-blue">《被讨厌的勇气》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">80%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:80%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：人际关系困扰</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">区分自己的课题和他人的课题，不干涉他人，也不让他人干涉自己。判断标准是结果由谁承担。</p>
+            <div class="flex items-center justify-between mt-4 pt-4 border-t-light" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">人际关系</span>
+                <span class="tag tag-gray">阿德勒</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 8 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>识别这是谁的课题（看结果由谁承担）</li>
+                <li>不干涉他人的课题</li>
+                <li>守护自己的课题不被干涉</li>
+                <li>在尊重边界的前提下提供支持</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 2. 目的论思维 -->
+          <div class="card-border fade-in stagger-2 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">目的论思维</h3>
+                <p class="text-xs text-text-tertiary">Teleology</p>
+              </div>
+              <span class="tag tag-blue">《被讨厌的勇气》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">60%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:60%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：行为动机分析</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">关注行为的目的而非原因。人不是被过去决定，而是被自己赋予未来的意义所驱动。</p>
+            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">动机</span>
+                <span class="tag tag-gray">认知</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 5 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>觉察当前行为</li>
+                <li>追问"这个行为是为了达成什么目的？"</li>
+                <li>识别隐藏的目的（如逃避、寻求关注）</li>
+                <li>重新选择服务于成长的目的</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 3. 刻意练习 -->
+          <div class="card-border fade-in stagger-3 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">刻意练习</h3>
+                <p class="text-xs text-text-tertiary">Deliberate Practice</p>
+              </div>
+              <span class="tag tag-red">《刻意练习》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">45%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:45%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：技能提升</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">通过明确目标、专注投入、即时反馈和持续突破舒适区来高效提升任何技能。</p>
+            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">学习</span>
+                <span class="tag tag-gray">技能</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 3 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>设定明确的、可衡量的小目标</li>
+                <li>全神贯注地投入练习</li>
+                <li>获取即时反馈（教练/数据）</li>
+                <li>针对弱点反复突破</li>
+                <li>逐步走出舒适区</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 4. 系统思考 -->
+          <div class="card-border fade-in stagger-1 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">系统思考</h3>
+                <p class="text-xs text-text-tertiary">System 1 / System 2</p>
+              </div>
+              <span class="tag tag-violet">《思考，快与慢》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">70%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:70%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：决策分析</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">识别决策是由快速直觉的系统1还是缓慢理性的系统2做出，在重要决策时主动唤醒系统2。</p>
+            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">决策</span>
+                <span class="tag tag-gray">认知偏差</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 6 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>觉察当前是直觉反应还是理性分析</li>
+                <li>重要决策时主动暂停，启动系统2</li>
+                <li>识别可能的认知偏差（锚定、可得性）</li>
+                <li>用数据和逻辑验证直觉判断</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 5. 原则清单 -->
+          <div class="card-border fade-in stagger-2 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">原则清单</h3>
+                <p class="text-xs text-text-tertiary">Principles</p>
+              </div>
+              <span class="tag tag-green">《原则》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">30%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:30%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：决策制定</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">将反复出现的决策场景抽象为可复用的原则，形成个人决策算法，减少每次从零思考的成本。</p>
+            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">决策</span>
+                <span class="tag tag-gray">系统化</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 2 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>记录每次重要决策的情境与选择</li>
+                <li>反思结果，提炼可复用的规则</li>
+                <li>将规则写成清晰的原则清单</li>
+                <li>在类似情境中应用并迭代</li>
+              </ol>
+            </div>
+          </div>
+
+          <!-- 6. 心流触发 -->
+          <div class="card-border fade-in stagger-3 methodology-card">
+            <div class="flex items-start justify-between mb-2">
+              <div>
+                <h3 class="font-semibold">心流触发</h3>
+                <p class="text-xs text-text-tertiary">Flow Triggers</p>
+              </div>
+              <span class="tag tag-amber">《心流》</span>
+            </div>
+            <div class="mb-4">
+              <div class="flex items-center justify-between mb-2">
+                <span class="text-xs text-text-tertiary">掌握度</span>
+                <span class="text-xs font-medium text-primary">55%</span>
+              </div>
+              <div class="progress"><div class="progress-bar" style="width:55%"></div></div>
+            </div>
+            <div class="mb-4">
+              <span class="tag tag-amber">触发：专注力提升</span>
+            </div>
+            <p class="text-sm text-text-secondary" style="line-height:1.7">通过匹配挑战与技能、设定明确目标、消除干扰来主动进入心流状态，获得最优体验。</p>
+            <div class="flex items-center justify-between mt-4 pt-4" style="border-top:1px solid var(--color-border-light);padding-top:12px">
+              <div class="flex gap-3">
+                <span class="tag tag-gray">专注</span>
+                <span class="tag tag-gray">效率</span>
+              </div>
+              <span class="text-xs text-text-tertiary">已练习 4 次</span>
+            </div>
+            <div class="method-detail" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--color-border-light)">
+              <p class="text-xs font-medium text-text-primary mb-2">详细步骤：</p>
+              <ol class="text-xs text-text-secondary" style="line-height:1.8;padding-left:16px;list-style:decimal">
+                <li>设定清晰的具体目标</li>
+                <li>调整任务难度匹配当前技能</li>
+                <li>消除环境干扰（手机、通知）</li>
+                <li>建立即时反馈机制</li>
+                <li>持续专注 25-90 分钟</li>
+              </ol>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 点击卡片展开/收起详细步骤
+    document.querySelectorAll('.methodology-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const detail = card.querySelector('.method-detail');
+        detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>

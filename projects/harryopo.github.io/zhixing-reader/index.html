@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>首页 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <!-- 欢迎区 -->
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">欢迎回来</h1>
+            <p class="page-subtitle">今天也要好好读书哦</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm text-text-tertiary" id="today-date">2026年7月14日星期二</p>
+          </div>
+        </div>
+
+        <!-- 4 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="stat-card fade-in stagger-1">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="stat-label">已同步书籍</p>
+                <p class="stat-value text-primary">5</p>
+              </div>
+              <div class="stat-icon bg-primary-light text-primary">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card fade-in stagger-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="stat-label">总卡片</p>
+                <p class="stat-value text-primary">23</p>
+              </div>
+              <div class="stat-icon bg-primary-light text-primary">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card fade-in stagger-3">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="stat-label">待复习</p>
+                <p class="stat-value text-accent">8</p>
+              </div>
+              <div class="stat-icon bg-accent-light text-accent">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+            </div>
+          </div>
+          <div class="stat-card fade-in stagger-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="stat-label">今日复习</p>
+                <p class="stat-value text-primary">3</p>
+              </div>
+              <div class="stat-icon bg-primary-light text-primary">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 快速操作 -->
+        <div class="mb-6">
+          <h2 class="text-lg font-semibold mb-4">快速操作</h2>
+          <div class="grid grid-cols-4 gap-4">
+            <a href="bookshelf.html" class="quick-action fade-in">
+              <div class="icon-box">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" /></svg>
+              </div>
+              <h3 class="font-medium">书架</h3>
+              <p class="text-sm text-text-secondary mt-4">浏览我的书籍</p>
+            </a>
+            <a href="notes.html" class="quick-action fade-in stagger-1">
+              <div class="icon-box">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+              </div>
+              <h3 class="font-medium">笔记</h3>
+              <p class="text-sm text-text-secondary mt-4">查看读书笔记</p>
+            </a>
+            <a href="stats.html" class="quick-action fade-in stagger-2">
+              <div class="icon-box">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+              </div>
+              <h3 class="font-medium">数据</h3>
+              <p class="text-sm text-text-secondary mt-4">阅读数据统计</p>
+            </a>
+            <a href="knowledge-cards.html" class="quick-action fade-in stagger-3">
+              <div class="icon-box">
+                <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+              </div>
+              <h3 class="font-medium">复习</h3>
+              <p class="text-sm text-text-secondary mt-4">间隔复习卡片</p>
+            </a>
+          </div>
+        </div>
+
+        <!-- 最近同步书籍 -->
+        <div>
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">最近同步书籍</h2>
+            <a href="bookshelf.html" class="text-sm text-primary">查看全部</a>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div class="book-row">
+              <div class="book-cover">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="flex-1 min-width-0">
+                <h3 class="font-medium font-serif truncate">被讨厌的勇气</h3>
+                <p class="text-sm text-text-secondary">岸见一郎</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="progress" style="width:64px"><div class="progress-bar progress-bar-green" style="width:100%"></div></div>
+                <span class="text-sm text-text-secondary" style="width:40px;text-align:right">100%</span>
+              </div>
+            </div>
+            <div class="book-row">
+              <div class="book-cover">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="flex-1 min-width-0">
+                <h3 class="font-medium font-serif truncate">思考，快与慢</h3>
+                <p class="text-sm text-text-secondary">丹尼尔·卡尼曼</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="progress" style="width:64px"><div class="progress-bar" style="width:65%"></div></div>
+                <span class="text-sm text-text-secondary" style="width:40px;text-align:right">65%</span>
+              </div>
+            </div>
+            <div class="book-row">
+              <div class="book-cover">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="flex-1 min-width-0">
+                <h3 class="font-medium font-serif truncate">原则</h3>
+                <p class="text-sm text-text-secondary">瑞·达利欧</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="progress" style="width:64px"><div class="progress-bar" style="width:30%"></div></div>
+                <span class="text-sm text-text-secondary" style="width:40px;text-align:right">30%</span>
+              </div>
+            </div>
+            <div class="book-row">
+              <div class="book-cover">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="flex-1 min-width-0">
+                <h3 class="font-medium font-serif truncate">心流</h3>
+                <p class="text-sm text-text-secondary">米哈里·契克森米哈赖</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="progress" style="width:64px"><div class="progress-bar progress-bar-green" style="width:100%"></div></div>
+                <span class="text-sm text-text-secondary" style="width:40px;text-align:right">100%</span>
+              </div>
+            </div>
+            <div class="book-row">
+              <div class="book-cover">
+                <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="flex-1 min-width-0">
+                <h3 class="font-medium font-serif truncate">刻意练习</h3>
+                <p class="text-sm text-text-secondary">安德斯·艾利克森</p>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="progress" style="width:64px"><div class="progress-bar" style="width:15%"></div></div>
+                <span class="text-sm text-text-secondary" style="width:40px;text-align:right">15%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 显示当天日期
+    document.getElementById('today-date').textContent = Utils.formatDate(new Date());
+  </script>
+</body>
+</html>

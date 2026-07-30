@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>知识卡片 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">知识卡片</h1>
+            <p class="page-subtitle">点击卡片翻转查看解读 · 共 6 张</p>
+          </div>
+        </div>
+
+        <!-- Tab 切换 -->
+        <div class="tab-bar mb-6 fade-in">
+          <button class="tab active" data-tab="list">卡片列表</button>
+          <button class="tab" data-tab="distill">蒸馏卡片</button>
+        </div>
+
+        <!-- 筛选栏 -->
+        <div class="flex gap-3 mb-6 flex-wrap fade-in">
+          <div class="search-box">
+            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+            <input type="text" class="input" placeholder="搜索卡片..." style="width:220px">
+          </div>
+          <select class="select" style="width:160px">
+            <option>全部书籍</option>
+            <option>被讨厌的勇气</option>
+            <option>思考，快与慢</option>
+          </select>
+          <select class="select" style="width:160px">
+            <option>全部类型</option>
+            <option>概念</option>
+            <option>方法论</option>
+            <option>金句</option>
+          </select>
+        </div>
+
+        <!-- 卡片网格 -->
+        <div class="grid grid-cols-3 gap-4" id="card-list">
+
+          <!-- 1. 概念:课题分离 -->
+          <div class="flip-card fade-in stagger-1">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-blue mb-4">概念</span>
+                <h3 class="font-semibold font-serif text-lg mt-4">课题分离</h3>
+                <p class="text-sm text-text-secondary mt-4" style="line-height:1.7">区分自己的课题和他人的课题，判断标准是某种选择的结果由谁承担。</p>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">人际烦恼多源于干涉他人课题或被他人干涉。应用：当感到焦虑时，问自己"这是谁的课题？"。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">人际关系</span>
+                  <span class="tag tag-violet">边界</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. 方法论:目的论 -->
+          <div class="flip-card fade-in stagger-2">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-violet mb-4">方法论</span>
+                <h3 class="font-semibold font-serif text-lg mt-4">目的论</h3>
+                <p class="text-sm text-text-secondary mt-4" style="line-height:1.7">关注目的而非原因，人不是被过去决定，而是被自己赋予未来的意义驱动。</p>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">与其追溯"为什么会这样"，不如追问"现在这样做是为了什么"。应用：分析拖延行为背后的真实目的。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">动机</span>
+                  <span class="tag tag-violet">认知重构</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. 金句 -->
+          <div class="flip-card fade-in stagger-3">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-amber mb-4">金句</span>
+                <h3 class="font-serif text-lg mt-4" style="font-weight:600;line-height:1.6">"一切烦恼都来自人际关系"</h3>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》· 序章</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">阿德勒认为烦恼源于对他人的在意与干涉。应用：觉察烦恼背后是否涉及他人评价，回归自我课题。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">阿德勒</span>
+                  <span class="tag tag-violet">自我</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. 概念:共同体感觉 -->
+          <div class="flip-card fade-in stagger-1">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-blue mb-4">概念</span>
+                <h3 class="font-semibold font-serif text-lg mt-4">共同体感觉</h3>
+                <p class="text-sm text-text-secondary mt-4" style="line-height:1.7">归属感的本质不是来自他人的认可，而是来自对共同体的贡献和他人的关心。</p>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">真正的归属感来自主动贡献而非索取认可。应用：在团队中主动付出，而非寻求表扬。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">归属感</span>
+                  <span class="tag tag-violet">贡献</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. 方法论:鼓励而非表扬 -->
+          <div class="flip-card fade-in stagger-2">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-violet mb-4">方法论</span>
+                <h3 class="font-semibold font-serif text-lg mt-4">鼓励而非表扬</h3>
+                <p class="text-sm text-text-secondary mt-4" style="line-height:1.7">表扬是基于纵向关系的评价，鼓励是基于横向关系的尊重，会培养内在动力。</p>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">"你做得很好"(表扬)制造依赖，"我看到你的努力"(鼓励)培养自主。应用：反馈时描述而非评价。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">反馈</span>
+                  <span class="tag tag-violet">动机</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 6. 金句 -->
+          <div class="flip-card fade-in stagger-3">
+            <div class="flip-card-inner">
+              <div class="flip-card-front">
+                <span class="tag tag-amber mb-4">金句</span>
+                <h3 class="font-serif text-lg mt-4" style="font-weight:600;line-height:1.6">"人生不是与他人的竞争，而是与理想的自己比较"</h3>
+                <p class="text-xs text-text-tertiary mt-auto" style="margin-top:auto">《被讨厌的勇气》· 第五夜</p>
+              </div>
+              <div class="flip-card-back">
+                <h3 class="font-semibold text-primary mb-4">解读与应用</h3>
+                <p class="text-sm" style="line-height:1.7;color:var(--color-text-primary)">健康的成长是超越昨天的自己，而非胜过他人。应用：用"我比上周进步了吗"替代"我比他强吗"。</p>
+                <div class="flex flex-wrap gap-3 mt-4" style="margin-top:auto">
+                  <span class="tag tag-violet">自我成长</span>
+                  <span class="tag tag-violet">比较</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 点击翻转
+    document.querySelectorAll('.flip-card').forEach(card => {
+      card.addEventListener('click', () => card.classList.toggle('flipped'));
+    });
+  </script>
+</body>
+</html>

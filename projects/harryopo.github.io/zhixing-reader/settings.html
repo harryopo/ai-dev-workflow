@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>设置 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">设置</h1>
+            <p class="page-subtitle">配置 AI、微信读书与通用偏好</p>
+          </div>
+        </div>
+
+        <div class="flex gap-6" style="min-height:520px">
+          <!-- 左侧 Tab -->
+          <aside class="bg-white border rounded-xl p-4 fade-in" style="width:200px;flex-shrink:0;height:fit-content">
+            <div class="setting-tab active" data-tab="ai" style="padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--color-text-secondary);transition:all 200ms;margin-bottom:4px">AI 配置</div>
+            <div class="setting-tab" data-tab="weread" style="padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--color-text-secondary);transition:all 200ms;margin-bottom:4px">微信读书</div>
+            <div class="setting-tab" data-tab="general" style="padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--color-text-secondary);transition:all 200ms;margin-bottom:4px">通用</div>
+            <div class="setting-tab" data-tab="about" style="padding:10px 16px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--color-text-secondary);transition:all 200ms">关于</div>
+          </aside>
+
+          <!-- 右侧内容 -->
+          <div class="flex-1">
+
+            <!-- AI 配置 -->
+            <div data-panel="ai" class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+              <h2 class="text-lg font-semibold mb-6">AI 配置</h2>
+              <div class="flex flex-col gap-6" style="max-width:560px">
+                <div>
+                  <label class="text-sm font-medium mb-4 block">API Key</label>
+                  <input type="password" class="input" value="sk-••••••••••••••••••••" readonly>
+                  <p class="text-xs text-text-tertiary mt-4">已配置</p>
+                </div>
+                <div>
+                  <label class="text-sm font-medium mb-4 block">模型</label>
+                  <select class="select">
+                    <option selected>deepseek-chat</option>
+                    <option>gpt-4o-mini</option>
+                    <option>gpt-4o</option>
+                    <option>claude-3-haiku</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="text-sm font-medium mb-4 block">Base URL</label>
+                  <input type="text" class="input" value="https://api.deepseek.com/v1">
+                </div>
+                <div>
+                  <label class="text-sm font-medium mb-4 block">温度 <span class="text-primary font-semibold" id="temp-val">0.7</span></label>
+                  <input type="range" min="0" max="1" step="0.1" value="0.7" id="temp-slider">
+                  <div class="flex justify-between text-xs text-text-tertiary mt-4"><span>精确</span><span>平衡</span><span>创意</span></div>
+                </div>
+                <div class="flex gap-3 mt-4">
+                  <button class="btn btn-outline">测试连接</button>
+                  <button class="btn btn-primary">保存</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 微信读书 -->
+            <div data-panel="weread" style="display:none" class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+              <h2 class="text-lg font-semibold mb-6">微信读书</h2>
+              <div class="flex flex-col gap-6" style="max-width:560px">
+                <div>
+                  <label class="text-sm font-medium mb-4 block">Cookie</label>
+                  <textarea class="textarea" rows="5" placeholder="粘贴微信读书网页版 Cookie...">wr_vid=••••••; wr_skey=••••••; wr_rt=••••••</textarea>
+                  <p class="text-xs text-text-tertiary mt-4">从 weread.qq.com 浏览器开发者工具中获取</p>
+                </div>
+                <button class="btn btn-outline" style="width:fit-content">测试连接</button>
+              </div>
+            </div>
+
+            <!-- 通用 -->
+            <div data-panel="general" style="display:none" class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+              <h2 class="text-lg font-semibold mb-6">通用</h2>
+              <div class="flex flex-col gap-6" style="max-width:560px">
+                <div>
+                  <label class="text-sm font-medium mb-4 block">主题</label>
+                  <div class="flex gap-3">
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="theme" checked> <span class="text-sm">浅色</span></label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="theme"> <span class="text-sm">深色</span></label>
+                    <label class="flex items-center gap-3 cursor-pointer"><input type="radio" name="theme"> <span class="text-sm">跟随系统</span></label>
+                  </div>
+                </div>
+                <div>
+                  <label class="text-sm font-medium mb-4 block">字体大小 <span class="text-primary font-semibold" id="font-val">14px</span></label>
+                  <input type="range" min="12" max="18" step="1" value="14" id="font-slider">
+                </div>
+                <div class="flex items-center justify-between py-2" style="border-top:1px solid var(--color-border-light);border-bottom:1px solid var(--color-border-light);padding:16px 0">
+                  <div>
+                    <p class="text-sm font-medium">自动同步</p>
+                    <p class="text-xs text-text-tertiary mt-4">启动时自动同步微信读书书架</p>
+                  </div>
+                  <div class="switch on"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 关于 -->
+            <div data-panel="about" style="display:none" class="bg-white rounded-2xl shadow-sm p-6 fade-in">
+              <h2 class="text-lg font-semibold mb-6">关于</h2>
+              <div class="flex flex-col gap-4" style="max-width:560px">
+                <div class="flex justify-between py-2" style="border-bottom:1px solid var(--color-border-light);padding:12px 0">
+                  <span class="text-text-secondary">应用</span>
+                  <span class="font-medium">知行读书</span>
+                </div>
+                <div class="flex justify-between py-2" style="border-bottom:1px solid var(--color-border-light);padding:12px 0">
+                  <span class="text-text-secondary">版本</span>
+                  <span class="font-medium">v1.0.0</span>
+                </div>
+                <div class="flex justify-between py-2" style="border-bottom:1px solid var(--color-border-light);padding:12px 0">
+                  <span class="text-text-secondary">技术栈</span>
+                  <span class="font-medium">Electron 35 + React 19 + TypeScript 5.6</span>
+                </div>
+                <div class="flex justify-between py-2" style="border-bottom:1px solid var(--color-border-light);padding:12px 0">
+                  <span class="text-text-secondary">数据库</span>
+                  <span class="font-medium">sql.js (SQLite WASM)</span>
+                </div>
+                <div class="flex justify-between py-2" style="border-bottom:1px solid var(--color-border-light);padding:12px 0">
+                  <span class="text-text-secondary">复习算法</span>
+                  <span class="font-medium">FSRS (Free Spaced Repetition Scheduler)</span>
+                </div>
+                <div class="flex justify-between py-2" style="padding:12px 0">
+                  <span class="text-text-secondary">开发者</span>
+                  <span class="font-medium">知行读书团队</span>
+                </div>
+                <p class="text-xs text-text-tertiary mt-6" style="margin-top:24px">© 2026 知行读书 · 让阅读成为成长的阶梯</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 设置 Tab 切换
+    const settingTabs = document.querySelectorAll('.setting-tab');
+    settingTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        settingTabs.forEach(t => {
+          t.classList.remove('active');
+          t.style.background = '';
+          t.style.color = 'var(--color-text-secondary)';
+        });
+        tab.classList.add('active');
+        tab.style.background = 'var(--color-primary-light)';
+        tab.style.color = 'var(--color-primary)';
+        tab.style.fontWeight = '500';
+        const target = tab.getAttribute('data-tab');
+        document.querySelectorAll('[data-panel]').forEach(p => {
+          p.style.display = p.getAttribute('data-panel') === target ? '' : 'none';
+        });
+      });
+    });
+    // 初始化第一个 active 样式
+    const first = document.querySelector('.setting-tab.active');
+    if (first) {
+      first.style.background = 'var(--color-primary-light)';
+      first.style.color = 'var(--color-primary)';
+      first.style.fontWeight = '500';
+    }
+
+    // 温度滑块
+    const tempSlider = document.getElementById('temp-slider');
+    tempSlider.addEventListener('input', e => {
+      document.getElementById('temp-val').textContent = parseFloat(e.target.value).toFixed(1);
+    });
+    // 字体滑块
+    const fontSlider = document.getElementById('font-slider');
+    fontSlider.addEventListener('input', e => {
+      document.getElementById('font-val').textContent = e.target.value + 'px';
+    });
+  </script>
+</body>
+</html>

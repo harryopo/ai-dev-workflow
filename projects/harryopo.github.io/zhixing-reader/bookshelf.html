@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>书架 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">我的书架</h1>
+            <p class="page-subtitle">共 5 本书籍 · 按最近阅读排序</p>
+          </div>
+          <button class="btn btn-primary" id="sync-btn">
+            <svg id="sync-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+            同步微信读书书架
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-4">
+
+          <!-- 被讨厌的勇气 -->
+          <div class="card-border fade-in stagger-1">
+            <div class="book-card">
+              <div class="book-cover book-cover-lg">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="book-info">
+                <h3 class="font-semibold font-serif">被讨厌的勇气</h3>
+                <div class="mt-4 mb-2"><span class="tag tag-green"><span class="status-dot" style="background:var(--color-green)"></span>已读完</span></div>
+                <p class="text-sm text-text-secondary">岸见一郎</p>
+                <p class="text-xs text-text-tertiary mt-4">笔记 18 · 卡片 8</p>
+                <div class="flex items-center gap-3 mt-4">
+                  <div class="progress flex-1"><div class="progress-bar progress-bar-green" style="width:100%"></div></div>
+                  <span class="text-xs text-text-secondary">100%</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm mt-6" style="width:100%">导入微信读书笔记</button>
+          </div>
+
+          <!-- 思考，快与慢 -->
+          <div class="card-border fade-in stagger-2">
+            <div class="book-card">
+              <div class="book-cover book-cover-lg">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="book-info">
+                <h3 class="font-semibold font-serif">思考，快与慢</h3>
+                <div class="mt-4 mb-2"><span class="tag tag-blue"><span class="status-dot" style="background:var(--color-primary)"></span>阅读中</span></div>
+                <p class="text-sm text-text-secondary">丹尼尔·卡尼曼</p>
+                <p class="text-xs text-text-tertiary mt-4">笔记 12 · 卡片 6</p>
+                <div class="flex items-center gap-3 mt-4">
+                  <div class="progress flex-1"><div class="progress-bar" style="width:65%"></div></div>
+                  <span class="text-xs text-text-secondary">65%</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm mt-6" style="width:100%">导入微信读书笔记</button>
+          </div>
+
+          <!-- 原则 -->
+          <div class="card-border fade-in stagger-3">
+            <div class="book-card">
+              <div class="book-cover book-cover-lg">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="book-info">
+                <h3 class="font-semibold font-serif">原则</h3>
+                <div class="mt-4 mb-2"><span class="tag tag-blue"><span class="status-dot" style="background:var(--color-primary)"></span>阅读中</span></div>
+                <p class="text-sm text-text-secondary">瑞·达利欧</p>
+                <p class="text-xs text-text-tertiary mt-4">笔记 7 · 卡片 4</p>
+                <div class="flex items-center gap-3 mt-4">
+                  <div class="progress flex-1"><div class="progress-bar" style="width:30%"></div></div>
+                  <span class="text-xs text-text-secondary">30%</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm mt-6" style="width:100%">导入微信读书笔记</button>
+          </div>
+
+          <!-- 心流 -->
+          <div class="card-border fade-in stagger-1">
+            <div class="book-card">
+              <div class="book-cover book-cover-lg">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="book-info">
+                <h3 class="font-semibold font-serif">心流</h3>
+                <div class="mt-4 mb-2"><span class="tag tag-green"><span class="status-dot" style="background:var(--color-green)"></span>已读完</span></div>
+                <p class="text-sm text-text-secondary">米哈里·契克森米哈赖</p>
+                <p class="text-xs text-text-tertiary mt-4">笔记 4 · 卡片 3</p>
+                <div class="flex items-center gap-3 mt-4">
+                  <div class="progress flex-1"><div class="progress-bar progress-bar-green" style="width:100%"></div></div>
+                  <span class="text-xs text-text-secondary">100%</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm mt-6" style="width:100%">导入微信读书笔记</button>
+          </div>
+
+          <!-- 刻意练习 -->
+          <div class="card-border fade-in stagger-2">
+            <div class="book-card">
+              <div class="book-cover book-cover-lg">
+                <svg width="28" height="28" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+              </div>
+              <div class="book-info">
+                <h3 class="font-semibold font-serif">刻意练习</h3>
+                <div class="mt-4 mb-2"><span class="tag tag-gray"><span class="status-dot" style="background:var(--color-text-tertiary)"></span>未读</span></div>
+                <p class="text-sm text-text-secondary">安德斯·艾利克森</p>
+                <p class="text-xs text-text-tertiary mt-4">笔记 2 · 卡片 2</p>
+                <div class="flex items-center gap-3 mt-4">
+                  <div class="progress flex-1"><div class="progress-bar" style="width:15%"></div></div>
+                  <span class="text-xs text-text-secondary">15%</span>
+                </div>
+              </div>
+            </div>
+            <button class="btn btn-outline btn-sm mt-6" style="width:100%">导入微信读书笔记</button>
+          </div>
+
+        </div>
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+  <script>
+    // 同步按钮旋转动画
+    const btn = document.getElementById('sync-btn');
+    const icon = document.getElementById('sync-icon');
+    btn.addEventListener('click', () => {
+      icon.classList.add('spinning');
+      btn.disabled = true;
+      setTimeout(() => {
+        icon.classList.remove('spinning');
+        btn.disabled = false;
+      }, 1500);
+    });
+  </script>
+</body>
+</html>

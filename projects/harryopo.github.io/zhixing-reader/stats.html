@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=1280, initial-scale=1.0">
+  <title>数据统计 — 知行读书</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="app-container">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main-content">
+      <div class="page-wrap">
+
+        <div class="page-header fade-in">
+          <div>
+            <h1 class="page-title">数据统计</h1>
+            <p class="page-subtitle">阅读成长全景 · 近 7 天</p>
+          </div>
+        </div>
+
+        <!-- 4 统计卡片 -->
+        <div class="grid grid-cols-4 gap-4 mb-6">
+          <div class="stat-card fade-in stagger-1">
+            <p class="stat-label">书籍数</p>
+            <p class="stat-value text-primary">5</p>
+          </div>
+          <div class="stat-card fade-in stagger-2">
+            <p class="stat-label">笔记数</p>
+            <p class="stat-value text-primary">43</p>
+          </div>
+          <div class="stat-card fade-in stagger-3">
+            <p class="stat-label">卡片数</p>
+            <p class="stat-value text-primary">23</p>
+          </div>
+          <div class="stat-card fade-in stagger-4">
+            <p class="stat-label">复习次数</p>
+            <p class="stat-value text-accent">67</p>
+          </div>
+        </div>
+
+        <!-- 本周阅读时长柱状图 -->
+        <div class="bg-white rounded-2xl shadow-sm p-6 mb-6 fade-in">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-lg font-semibold">本周阅读时长</h2>
+            <span class="text-sm text-text-tertiary">总计 475 分钟 · 日均 68 分钟</span>
+          </div>
+          <div class="bar-chart">
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">45分</span>
+              <div class="bar" style="height:37.5%"></div>
+              <span class="bar-label">周一</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">60分</span>
+              <div class="bar" style="height:50%"></div>
+              <span class="bar-label">周二</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">30分</span>
+              <div class="bar" style="height:25%"></div>
+              <span class="bar-label">周三</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">90分</span>
+              <div class="bar" style="height:75%"></div>
+              <span class="bar-label">周四</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">75分</span>
+              <div class="bar" style="height:62.5%"></div>
+              <span class="bar-label">周五</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">120分</span>
+              <div class="bar" style="height:100%;background:linear-gradient(to top,var(--color-amber),#FCD34D)"></div>
+              <span class="bar-label">周六</span>
+            </div>
+            <div class="bar-col">
+              <span class="text-xs text-text-secondary">55分</span>
+              <div class="bar" style="height:45.8%"></div>
+              <span class="bar-label">周日</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 书籍统计表格 -->
+        <div class="bg-white rounded-2xl shadow-sm overflow-hidden fade-in">
+          <div class="p-6 border-b-light" style="border-bottom:1px solid var(--color-border-light)">
+            <h2 class="text-lg font-semibold">书籍统计</h2>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>书名</th>
+                  <th>笔记数</th>
+                  <th>卡片数</th>
+                  <th>阅读进度</th>
+                  <th>最后阅读</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td class="font-medium font-serif">被讨厌的勇气</td>
+                  <td>18</td>
+                  <td>8</td>
+                  <td><div class="flex items-center gap-3"><div class="progress" style="width:100px"><div class="progress-bar progress-bar-green" style="width:100%"></div></div><span class="text-xs">100%</span></div></td>
+                  <td class="text-text-tertiary">2 小时前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium font-serif">思考，快与慢</td>
+                  <td>12</td>
+                  <td>6</td>
+                  <td><div class="flex items-center gap-3"><div class="progress" style="width:100px"><div class="progress-bar" style="width:65%"></div></div><span class="text-xs">65%</span></div></td>
+                  <td class="text-text-tertiary">昨天</td>
+                </tr>
+                <tr>
+                  <td class="font-medium font-serif">原则</td>
+                  <td>7</td>
+                  <td>4</td>
+                  <td><div class="flex items-center gap-3"><div class="progress" style="width:100px"><div class="progress-bar" style="width:30%"></div></div><span class="text-xs">30%</span></div></td>
+                  <td class="text-text-tertiary">3 天前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium font-serif">心流</td>
+                  <td>4</td>
+                  <td>3</td>
+                  <td><div class="flex items-center gap-3"><div class="progress" style="width:100px"><div class="progress-bar progress-bar-green" style="width:100%"></div></div><span class="text-xs">100%</span></div></td>
+                  <td class="text-text-tertiary">1 周前</td>
+                </tr>
+                <tr>
+                  <td class="font-medium font-serif">刻意练习</td>
+                  <td>2</td>
+                  <td>2</td>
+                  <td><div class="flex items-center gap-3"><div class="progress" style="width:100px"><div class="progress-bar" style="width:15%"></div></div><span class="text-xs">15%</span></div></td>
+                  <td class="text-text-tertiary">5 天前</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+  <script src="js/common.js"></script>
+</body>
+</html>
