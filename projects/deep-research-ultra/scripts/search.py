@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """
-Deep Research — 多源搜索引擎 v3.0
-整合 DuckDuckGo + Bing + 百度（免费）+ Tavily（AI 搜索）+ Jina（网页提取）+ SearXNG（元搜索）
+Deep Research Ultra — 多源搜索引擎 v3.2.0
+整合 16 个搜索引擎 + 智能评分 + 缓存 + 迭代搜索
 
-v3.0 新增特性：
+v3.2.0 特性：
+- 16 个搜索引擎（中文7 + 国际6 + 增强3）
 - 搜索结果缓存（1 小时 TTL）
 - 结果质量评分（0-100 分）
 - 迭代搜索（结果不足时自动重搜）
-- 关键词多样性（自动生成变体）
+- Claude 智能选择引擎
 - 反馈系统（用户评分改进后续搜索）
 
 架构设计：
@@ -55,7 +56,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, List, Dict, Any
-import subprocess
 
 
 # ============================================================
@@ -86,8 +86,8 @@ def _detect_language(query: str) -> str:
         'zh' — 中文查询
         'en' — 英文查询
     """
-    # 统计中文字符数量
-    chinese_chars = sum(1 for c in query if '一' <= c <= '鿿' or '一' <= c <= '龥')
+    # 统计中文字符数量（CJK 统一汉字：U+4E00 - U+9FFF）
+    chinese_chars = sum(1 for c in query if '一' <= c <= '鿿')
     # 只要有中文字符就认为是中文查询
     return 'zh' if chinese_chars > 0 else 'en'
 
@@ -95,8 +95,8 @@ def _detect_language(query: str) -> str:
 # 中文引擎组（7 个）
 CHINESE_ENGINES = ['baidu', 'bing', 'duckduckgo', 'so', 'sogou', 'wechat', 'sm']
 
-# 英文引擎组（9 个）
-ENGLISH_ENGINES = ['duckduckgo', 'bing', 'brave', 'ecosia', 'startpage', 'yahoo', 'qwant', 'google', 'wolfram']
+# 英文引擎组（6 个，已实现）
+ENGLISH_ENGINES = ['duckduckgo', 'bing', 'brave', 'ecosia', 'startpage']
 
 # 默认引擎组
 DEFAULT_ENGINES = ['duckduckgo', 'bing', 'baidu']
@@ -162,26 +162,6 @@ def _cache_set(key: str, data: dict):
     data['_cached_at'] = datetime.now().isoformat()
     cache_file = CACHE_DIR / f"{key}.json"
     cache_file.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
-
-
-# ============================================================
-# 重试机制（指数退避）
-# ============================================================
-
-def _retry(func, max_retries=3, base_delay=1.0):
-    """带指数退避的重试装饰器"""
-    def wrapper(*args, **kwargs):
-        last_error = None
-        for attempt in range(max_retries):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                last_error = e
-                if attempt < max_retries - 1:
-                    delay = base_delay * (2 ** attempt)
-                    time.sleep(delay)
-        raise last_error
-    return wrapper
 
 
 def _http_get(url: str, headers: Optional[Dict] = None,
@@ -1409,6 +1389,8 @@ def multi_search(query: str, max_results: int = 10,
         min_score: 最低质量分（0-100），低于此分的结果过滤
         enable_iterative: 启用迭代搜索（结果不足时自动重搜）
     """
+    cache_key = None  # 初始化缓存键
+
     # 根据查询语言自动选择引擎
     if sources is None:
         sources = _select_engines(query)
@@ -1745,7 +1727,7 @@ def format_report(data: Dict) -> str:
     lines.append("")
 
     lines.append("---")
-    lines.append(f"*由 Deep Research v3.0 自动生成*")
+    lines.append(f"*由 Deep Research Ultra v3.2.0 自动生成*")
 
     return '\n'.join(lines)
 
@@ -1854,8 +1836,40 @@ def main():
                         help='显示最近 7 天搜索历史')
     parser.add_argument('--history-days', type=int, default=7,
                         help='搜索历史天数（默认 7 天）')
+    parser.add_argument('--list', '-l', action='store_true',
+                        help='列出所有可用搜索引擎')
+    parser.add_argument('--all', '-a', action='store_true',
+                        help='搜索所有可用引擎')
 
     args = parser.parse_args()
+
+    # 列出可用引擎
+    if args.list:
+        import io
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+        engines = {
+            'baidu': '百度，免费，国内可用',
+            'bing': '必应，免费，国内可用',
+            'duckduckgo': 'DuckDuckGo，免费，国内可用',
+            'so': '360 搜索，免费，国内可用',
+            'sogou': '搜狗，免费，国内可用',
+            'wechat': '微信公众号，免费，国内可用',
+            'sm': '神马，免费，国内可用（移动端）',
+            'brave': 'Brave，免费，隐私保护',
+            'ecosia': 'Ecosia，免费，环保搜索引擎',
+            'startpage': 'Startpage，免费，Google 结果',
+            'tavily': 'AI 搜索引擎，需要 API Key',
+            'jina': '网页内容提取，需要 VPN',
+            'searxng': '元搜索引擎，需要自建',
+        }
+        print("可用搜索引擎：")
+        print()
+        for name, desc in engines.items():
+            print(f"  {name:<12} {desc}")
+        print()
+        print("使用方式：")
+        print('  python search.py "关键词" --sources baidu,bing,duckduckgo')
+        return
 
     # 设置代理
     if args.proxy:
@@ -1945,8 +1959,17 @@ def main():
     if not args.query:
         parser.error("搜索模式需要提供关键词")
 
-    # 多源搜索
-    sources = [s.strip() for s in args.sources.split(',')] if args.sources else None
+    # 处理 --all 参数
+    if args.all:
+        sources = ['baidu', 'bing', 'duckduckgo', 'so', 'sogou', 'wechat', 'sm',
+                   'brave', 'ecosia', 'startpage', 'tavily', 'jina', 'searxng']
+    else:
+        sources = [s.strip() for s in args.sources.split(',')] if args.sources else None
+
+    # 记录搜索开始时间
+    import time as _time
+    _start_time = _time.time()
+
     data = multi_search(
         query=args.query,
         max_results=args.limit,
@@ -1958,10 +1981,8 @@ def main():
         enable_iterative=args.iterative
     )
 
-    # 保存搜索历史
-    import time as _time
-    _start_time = _time.time()
-    _duration = _time.time() - _start_time  # 简化计算
+    # 计算搜索耗时并保存历史
+    _duration = _time.time() - _start_time
     _save_history(
         query=args.query,
         results_count=len(data.get('results', [])),

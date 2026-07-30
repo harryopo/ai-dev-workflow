@@ -1,0 +1,19 @@
+# Deep Research Ultra v4.0 — Python 依赖
+# 核心模块仅使用 Python 标准库（urllib/json/subprocess），无需第三方依赖即可运行
+
+# Layer 4 降级引擎依赖（必需，用于 DuckDuckGo 搜索）
+ddgs>=6.0.0
+
+# ============================================================
+# 以下为可选依赖（按需安装）
+# ============================================================
+
+# MCP 服务器（通过 npx/uvx 启动，无需 Python 安装）
+# 如需独立调用 MCP（不通过 Claude），可安装 mcp 库：
+# mcp>=1.0.0
+
+# 中文分词（可选，提升中文查询的相关性评分）
+# jieba>=0.42.1
+
+# SearXNG 自建实例（可选，通过 Docker 部署，无需 Python 安装）
+# 参考: https://github.com/searxng/searxng
