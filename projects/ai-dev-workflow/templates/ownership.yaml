@@ -1,0 +1,241 @@
+# 文件所有权策略（v3.2 · 减法重构 + 并发控制）
+#
+# 本文件定义各 Sub-agent 的文件读写域
+# 主编排器根据此文件分配任务和协调冲突
+#
+# v3.2 变化：
+# - 新增并发控制字段（file_ownership / hotspot_files）
+# - 文件长度限制全部软化为推荐值
+
+version: "3.2"
+last_updated: "2026-07-22"
+
+agents:
+  # ===== 业务核心层（v3.1 新增）=====
+  core-agent:
+    description: "负责业务逻辑（解析/验证/转换/计算）"
+    domains:
+      - "core/**"
+      - "packages/core/**"
+      - "src/core/**"
+      - "app/core/**"
+      - "src/domain/**"
+    forbidden:
+      - "cli/**"            # 薄表现层
+      - "mcp/**"            # 薄表现层
+      - "ui/**"             # 薄表现层
+      - "src/pages/**"      # 前端页面
+      - "src/api/**"        # API 路由
+    rules:
+      - "所有业务判断必须在此层"
+      - "Domain Objects 暴露 Facade API"
+      - "测试覆盖率推荐 100%（关键路径）"
+
+  # ===== 前端 =====
+  frontend-agent:
+    description: "负责前端页面、组件、Hooks、状态管理"
+    domains:
+      - "src/pages/**"
+      - "src/features/**"
+      - "src/components/**"
+      - "src/hooks/**"
+      - "src/stores/**"
+      - "src/styles/**"
+      - "ui/**"             # 薄表现层
+    forbidden:
+      - "app/**"            # 后端代码
+      - "src/api/**"        # 后端 API
+      - "src/db/**"         # 数据库
+      - "migrations/**"     # 数据库迁移
+      - "core/**"           # 业务核心
+      - "cli/**"            # 薄表现层
+    rules:
+      - "禁止在此层写业务逻辑"
+
+  # ===== 后端 =====
+  backend-agent:
+    description: "负责后端 API（薄）、数据模型、依赖注入"
+    domains:
+      - "app/api/**"        # 薄路由
+      - "app/models/**"     # ORM 模型
+      - "app/schemas/**"    # Pydantic schema
+      - "app/middleware/**" # 中间件
+      - "app/tasks/**"      # 后台任务
+      - "src/api/**"        # Express 路由
+    forbidden:
+      - "src/pages/**"      # 前端页面
+      - "src/features/**"   # 前端功能模块
+      - "src/components/**" # 前端组件
+      - "core/**"           # 业务核心（应委派 core-agent）
+    rules:
+      - "API 层是薄路由，业务逻辑委派给 core-agent"
+
+  # ===== CLI / MCP（v3.2 软化为建议）=====
+  cli-agent:
+    description: "负责 CLI 入口（薄表现层，无业务逻辑）"
+    domains:
+      - "cli/**"
+      - "bin/**"
+    forbidden:
+      - "core/**"           # 业务逻辑必须委派
+      - "src/**"
+      - "app/**"
+    rules:
+      - "CLI 文件 ≤ 500 行（推荐，单文件可执行可豁免）"
+      - "禁止任何业务判断、解析、验证"
+      - "所有 IO 委派 core-agent"
+
+  mcp-agent:
+    description: "负责 MCP Server（薄表现层）"
+    domains:
+      - "mcp/**"
+      - "mcp-server/**"
+    forbidden:
+      - "core/**"
+      - "src/**"
+      - "app/**"
+    rules:
+      - "MCP handler ≤ 100 行（推荐）"
+      - "禁止业务逻辑"
+
+  # ===== 测试 =====
+  test-agent:
+    description: "负责测试文件（增量覆盖率补齐）"
+    domains:
+      - "tests/**"
+      - "**/__tests__/**"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+    forbidden:
+      - "src/**"            # 只读源码
+      - "app/**"            # 只读源码
+      - "packages/**"       # 只读共享包
+      - "core/**"           # 只读业务核心
+    rules:
+      - "AAA 结构：Arrange / Act / Assert"
+      - "FIRST 原则"
+      - "Mock 外部 I/O，不 mock 内部"
+      - "3+ mocks 触发红旗警告"
+
+  test-writer:
+    description: "测试补全（增量覆盖率）"
+    domains:
+      - "**/*.spec.ts"
+      - "**/*.test.ts"
+      - "**/*.test.py"
+    forbidden:
+      - "src/**"
+      - "app/**"
+    rules:
+      - "只补测试，不改实现"
+      - "目标覆盖率关键路径 ≥ 70%（推荐）"
+
+  # ===== 审查（只读）=====
+  reviewer-agent:
+    description: "代码审查（只读）"
+    domains: []              # 不写任何文件
+    forbidden:
+      - "*"                 # 禁止修改
+    rules:
+      - "AI Code Review 四层体系"
+      - "每轮 review 必带 Assisted-by 披露"
+
+  security-reviewer:
+    description: "安全审查（7 检查）"
+    domains: []
+    forbidden:
+      - "*"
+    rules:
+      - "R1-R5 必查"
+      - "提示词防御基线"
+      - "OWASP Top 10"
+
+  # ===== 文档 =====
+  doc-agent:
+    description: "负责文档维护"
+    domains:
+      - "docs/**"
+      - "README.md"
+      - "CHANGELOG.md"
+      - ".learnings/**"
+    forbidden:
+      - "src/**"
+      - "app/**"
+
+  # ===== 数据库 =====
+  database-reviewer:
+    description: "数据库变更审查（migration + 回滚）"
+    domains:
+      - "migrations/**"
+      - "alembic/**"
+      - "prisma/**"
+    forbidden:
+      - "src/**"
+      - "app/**"
+    rules:
+      - "每个 migration 必须有 down 版本"
+      - "数据迁移前必须备份"
+
+# 共享文件——需要主编排器锁定协调
+shared_files:
+  # 类型与配置
+  - "packages/shared/**"
+  - "packages/config-eslint/**"
+  - "packages/config-tsconfig/**"
+  - "package.json"
+  - "pnpm-workspace.yaml"
+  - "turbo.json"
+  - "tsconfig.json"
+  - "pyproject.toml"
+  # 基础设施
+  - "docker-compose.yml"
+  - "docker-compose.dev.yml"
+  - ".github/workflows/**"
+  - ".github/CODEOWNERS"
+  - ".github/PULL_REQUEST_TEMPLATE.md"
+  - ".pre-commit-config.yaml"
+  # AI 配置
+  - "AGENTS.md"
+  - "CLAUDE.md"
+  - "GEMINI.md"
+  - ".claude/**"
+  - ".specify/memory/constitution.md"
+  - ".claude/ownership.yaml"
+  # 项目根
+  - ".gitignore"
+  - "README.md"
+  - "CHANGELOG.md"
+  - ".env.example"
+
+# 高并发冲突热点文件（v3.2 新增 · 修改前必须申请主编排器全局锁）
+hotspot_files:
+  - "package.json"
+  - "pnpm-workspace.yaml"
+  - "turbo.json"
+  - "tsconfig.json"
+  - "pyproject.toml"
+  - "AGENTS.md"
+  - ".github/CODEOWNERS"
+  - "CLAUDE.md"
+  - ".claude/ownership.yaml"
+  - "migrations/**"
+
+# 共享文件修改协议（v3.2 软化为推荐）：
+# 1. Agent 请求主编排器锁定共享文件
+# 2. 主编排器通知可能受影响的 Agent
+# 3. 相关 Agent 确认无冲突后授予锁定
+# 4. Agent 修改完成后释放锁定
+# 5. 修改建议在 commit message 带 Assisted-by trailer（推荐）
+
+# 业务逻辑分层铁律（v3.1 新增）：
+# - core/  : 100% 业务逻辑（解析/验证/转换/计算）
+# - cli/   : 薄表现层（IO 转发）
+# - mcp/   : 薄表现层（IO 转发）
+# - ui/    : 薄表现层（IO 转发）
+# - api/   : 薄路由（参数解析 + 委派给 core/）
+
+# 文件长度限制（v3.2 软化为推荐值）：
+# - 函数 ≤ 50 行（推荐）
+# - 文件 ≤ 2000 行（推荐，桌面 GUI / 生成代码 / 单文件可执行可豁免）
+# - AGENTS.md ≤ 200 行（推荐，详细项目可保留更完整内容）
+# - cli/mcp/ui/ 文件 ≤ 500 行（推荐，CLI 工具可豁免）

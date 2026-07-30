@@ -7,7 +7,7 @@
 | Skill | 定位 | 特性 |
 |-------|------|------|
 | **[oss-finder](projects/oss-finder/)** | 开源项目搜索 | gh CLI 优先、并发搜索、本地缓存、自动重试 |
-| **[deep-research](projects/deep-research/)** | 深度调研 | Kimi 三阶段模型、子 Agent 并行、多源交叉验证 |
+| **[deep-research](projects/deep-research/)** | 深度调研 | 16 引擎并发搜索、智能评分、迭代搜索 |
 
 ## 📦 安装
 
@@ -71,7 +71,7 @@ rm -rf /tmp/sw
 ```
 
 **特性：**
-- ✅ Kimi 三阶段模型（澄清 → 并行执行 → 报告）
+- ✅ 16 引擎并发搜索（中文 7 + 国际 6 + 增强 3）
 - ✅ 子 Agent 并行（3-5 个维度同时调研）
 - ✅ 多源交叉验证（每个结论 2+ 来源支持）
 - ✅ 带引用的结构化报告

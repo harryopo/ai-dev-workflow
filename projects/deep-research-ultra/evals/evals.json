@@ -1,12 +1,13 @@
 {
   "skill": "deep-research-ultra",
-  "version": "3.1.0",
-  "description": "超级深度调研工具测试集（v3.1 架构，含缓存/评分/迭代/报告/CSV/代理/历史）",
+  "version": "3.2.0",
+  "description": "超级深度调研工具测试集（v3.2 架构，16 个引擎 + 中英文自动切换）",
   "last_updated": "2026-06-25",
   "architecture": {
-    "free_tier": ["duckduckgo", "bing", "baidu", "github-cli", "npm", "pypi"],
-    "enhanced_tier": ["tavily", "jina", "gitee"],
-    "self_hosted_tier": ["searxng"]
+    "chinese_engines": ["baidu", "bing", "duckduckgo", "so", "sogou", "wechat", "sm"],
+    "english_engines": ["duckduckgo", "bing", "brave", "ecosia", "startpage", "yahoo", "qwant", "google", "wolfram"],
+    "enhanced_tier": ["tavily", "jina", "searxng"],
+    "project_search": ["github-cli", "npm", "pypi"]
   },
   "features": {
     "cache": "搜索结果缓存（1小时 TTL，~/.cache/deep-research/）",

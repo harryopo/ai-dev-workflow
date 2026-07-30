@@ -1,0 +1,384 @@
+# GitHub Actions CI/CD 质量门禁流水线（v3.2 · 减法重构版）
+# v3.2 关键变化（基于用户反馈 2026-07-22）：
+#   - ❌ 删除 mypy --strict 硬卡 → 🟡 软性
+#   - ❌ 删除 ESLint max-warnings=0 → 🟡 软性（允许 warning）
+#   - ❌ 删除 --cov-fail-under=85 硬卡 → 🟡 软性（仅报告覆盖率）
+#   - ❌ 删除 Assisted-by trailer 强制 → 🟡 commitlint warning
+#   - ❌ 删除 PR 模板 Assisted-by 必填 → 🟡 推荐
+#   - ❌ 删除 AGENTS.md ≤ 150 行硬卡 → 🟡 warning（推荐 ≤ 200）
+#   - ✅ 保留 4 门禁作为"检查报告"而非"阻塞门"
+#   - ✅ 保留 Security 7 检查（🔴 R1-R5 红线）
+#   - ✅ 保留核心 Lint/Test/Build（🔴 关键质量门）
+# v3.2 哲学：安全红线绝不妥协，规范建议不阻塞
+#
+# v3.1 → v3.2 升级说明：原"4 大门禁阻塞"改为"安全门阻塞 + 规范门报告"。
+# 阻塞的只有 ① Security（密钥/SQL注入/敏感信息泄露）+ ② Build（编译失败）。
+# 其他（Lint/Test/Commit/PR Template/AGENTS.md）只生成报告，不阻塞合并。
+# 触发条件: push 到 main/master/dev 或 PR
+
+name: Quality Gates v3.2 (Security + Build · Rest as Report)
+
+on:
+  push:
+    branches: [main, master, dev]
+  pull_request:
+    branches: [main, master, dev]
+
+# ============================================================
+# 取消旧运行 + 权限
+# ============================================================
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "20"
+
+# ============================================================
+# Jobs
+# ============================================================
+jobs:
+  # ============================================================
+  # Job 1: Lint + Type Check + Format（快速失败，5min 内）
+  # ============================================================
+  lint:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      # ----- Node 端 -----
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: ESLint (v3.2: 允许 warning)
+        run: pnpm lint
+      - name: Prettier Check
+        run: pnpm format:check
+      - name: TypeScript Type Check
+        run: pnpm typecheck
+
+      # ----- Python 端 -----
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.4"
+      - name: Install Python deps
+        run: uv sync --frozen
+      - name: Ruff Check & Format
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+      - name: MyPy (v3.2: 不再 strict)
+        run: uv run mypy .
+
+  # ============================================================
+  # Job 2: Unit + Integration Tests（必过）
+  # ============================================================
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      # ----- 前端测试 -----
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Frontend Tests
+        run: pnpm test --coverage --coverageReporters=lcov
+
+      # ----- 后端测试 -----
+      - uses: astral-sh/setup-uv@v4
+        with:
+          version: "0.4"
+      - run: uv sync --frozen
+      - name: Backend Tests (v3.2: 不再硬卡覆盖率)
+        run: uv run pytest --cov --cov-report=lcov
+      - name: Coverage Report（v3.2 仅报告，不阻塞）
+        run: |
+          if [ -f coverage.xml ]; then
+            echo "📊 Coverage report (v3.2: 仅报告，建议金融/医疗/支付 ≥ 70%):"
+            uv run coverage report
+          fi
+
+      # ----- 上传 codecov -----
+      - name: Upload coverage
+        if: always()
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml,./apps/web/coverage/lcov.info
+          fail_ci_if_error: false
+
+  # ============================================================
+  # Job 3: Security 7 Checks（OWASP + secrets + 依赖）
+  # ============================================================
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ① Secret Detection (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: ② Secret Detection (trufflehog backup)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          extra_args: --only-verified
+        continue-on-error: true
+
+      - name: ③ SAST (Semgrep)
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/owasp-top-ten
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: ④ Dependency Audit (pnpm)
+        run: pnpm audit --audit-level=high
+
+      - name: ⑤ Dependency Audit (Python)
+        uses: pip-audit-action@v1.0.0
+        with:
+          requirements-file: requirements.txt
+
+      - name: ⑥ CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: typescript, python, javascript
+      - uses: github/codeql-action/analyze@v3
+
+      - name: ⑦ Prompt Defense Check（v3.1 新增）
+        run: |
+          echo "🛡️  Checking for prompt injection patterns in code/comments..."
+          # 检测 README、issue 模板、注释中的可疑注入
+          if grep -rE '(ignore previous|disregard prior|forget your instructions|system prompt)' --include="*.md" --include="*.txt" . 2>/dev/null; then
+            echo "⚠️  Suspicious prompt injection patterns found. Review required."
+            exit 1
+          fi
+          echo "✅ No suspicious patterns detected"
+
+  # ============================================================
+  # Job 4: Build（v3.1 必须通过）
+  # ============================================================
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [test, security]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - run: pnpm install --frozen-lockfile
+      - name: Build All
+        run: pnpm build
+
+  # ============================================================
+  # Job 5: Commit Convention（v3.2 软化 · Assisted-by 不再强制）
+  # ============================================================
+  commitlint:
+    name: Commit Convention Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    continue-on-error: true  # v3.2 软化：commitlint 不阻塞
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install commitlint
+        run: |
+          npm install -g @commitlint/cli@19 @commitlint/config-conventional@19
+      - name: Run commitlint on all PR commits (v3.2: warning only)
+        run: |
+          npx commitlint --from=${{ github.event.pull_request.base.sha }} --to=${{ github.event.pull_request.head.sha }} --verbose
+        env:
+          # v3.2 软化：Assisted-by trailer 不再强制（warn 而非 error）
+          COMMITLINT_CONFIG_JS: |
+            module.exports = {
+              extends: ['@commitlint/config-conventional'],
+              rules: {
+                'header-max-length': [2, 'always', 100],
+                'type-enum': [2, 'always', ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert']],
+                // v3.2 软化：Assisted-by 改为 warning
+                'assisted-by-present': [1, 'warn'],  // 1 = warning
+              },
+              plugins: [{
+                rules: {
+                  'assisted-by-present': (parsed) => {
+                    const body = parsed.body || '';
+                    return [/Assisted-by:/i.test(body) || /Assisted-by:/i.test(parsed.header)];
+                  }
+                }
+              }],
+            };
+
+  # ============================================================
+  # Job 6: PR Template 完整性（v3.2 软化 · Assisted-by 改为推荐）
+  # ============================================================
+  pr-template:
+    name: PR Template Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    continue-on-error: true  # v3.2 软化：PR 模板不阻塞
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify PR Template Exists
+        run: |
+          if [ ! -f .github/PULL_REQUEST_TEMPLATE.md ]; then
+            echo "⚠️  WARNING: .github/PULL_REQUEST_TEMPLATE.md not found (v3.2: 不阻塞)"
+            exit 0
+          fi
+          echo "✅ PR template found"
+      - name: Check Required Sections (v3.2: Assisted-by 改为推荐)
+        run: |
+          TEMPLATE=$(cat .github/PULL_REQUEST_TEMPLATE.md)
+          # v3.2 软化：Assisted-by 从必填改为推荐
+          REQUIRED=("Summary" "Test" "Issue")
+          RECOMMENDED=("Assisted-by")
+          for section in "${REQUIRED[@]}"; do
+            if ! echo "$TEMPLATE" | grep -qi "$section"; then
+              echo "❌ Missing required section: $section"
+              exit 1
+            fi
+          done
+          for section in "${RECOMMENDED[@]}"; do
+            if echo "$TEMPLATE" | grep -qi "$section"; then
+              echo "✅ Recommended section present: $section"
+            else
+              echo "💡 Recommended (but not required): $section"
+            fi
+          done
+          echo "✅ All required sections present"
+
+  # ============================================================
+  # Job 7: AGENTS.md 长度（v3.2 软化为 warning · 推荐 ≤ 200）
+  # ============================================================
+  agents-md-check:
+    name: AGENTS.md Length (v3.2: warning only)
+    runs-on: ubuntu-latest
+    continue-on-error: true  # v3.2 软化：AGENTS.md 长度不阻塞
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check AGENTS.md length (v3.2: 仅警告)
+        run: |
+          if [ -f AGENTS.md ]; then
+            LINES=$(wc -l < AGENTS.md)
+            if [ "$LINES" -gt 200 ]; then
+              echo "⚠️  WARNING: AGENTS.md is $LINES lines (v3.2 soft cap: 200)"
+              echo "   v3.2 哲学：内容质量 > 字数控制"
+              echo "   如需拆分可参考 docs/agent-handbook.md（但不强求）"
+              echo "   (Not blocking - merge allowed)"
+            else
+              echo "✅ AGENTS.md is $LINES lines (within v3.2 soft cap: 200)"
+            fi
+          else
+            echo "💡 No AGENTS.md found (consider adding one for AI context)"
+          fi
+
+  # ============================================================
+  # Job 8: 质量门禁汇总（v3.2 · 安全 + 构建阻塞，其余报告）
+  # ============================================================
+  gate-report:
+    name: Quality Gate Report (v3.2)
+    runs-on: ubuntu-latest
+    needs: [lint, test, security, build, commitlint, pr-template, agents-md-check]
+    if: always()
+    steps:
+      - name: Generate Gate Report
+        run: |
+          echo "## 🚦 Quality Gate Report (v3.2 · 减法重构版)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚦 阻塞门（v3.2：仅 Security + Build 阻塞）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 阻塞门 | 状态 | 阻塞条件 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 **security** Security 7 检查 | ${{ needs.security.result }} | R1-R5 红线 + 漏洞高危 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 **build** 编译构建 | ${{ needs.build.result }} | 编译失败 |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 报告门（v3.2：仅报告，不阻塞）" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 报告门 | 状态 | v3.2 处理 |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|------|----------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **validate** Lint & Type | ${{ needs.lint.result }} | warning only（允许 max-warnings=0 关闭） |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **test** 测试 & 覆盖率 | ${{ needs.test.result }} | warning only（不再硬卡 85%） |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **commitlint** Commit 规范 | ${{ needs.commitlint.result }} | warning only（Assisted-by 改为推荐） |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **pr-template** PR 模板 | ${{ needs.pr-template.result }} | warning only（Assisted-by 改为推荐） |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 **garden** AGENTS.md 长度 | ${{ needs.agents-md-check.result }} | warning only（≤ 200 推荐，不再 150 硬卡） |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🎯 v3.2 核心原则" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 🔴 **安全红线绝不妥协**：R1-R5 安全规则是法律和信任底线" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟡 **规范建议不阻塞**：文件行数/覆盖率/AGENTS.md 长度等改为建议" >> $GITHUB_STEP_SUMMARY
+          echo "- 🟢 **场景化分级**：Web/桌面/Mobile/API/CLI 规范应用强度不同" >> $GITHUB_STEP_SUMMARY
+          echo "- 💡 **功能 > 合规**：不为了通过门禁而牺牲功能" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 v3.1 → v3.2 变化对照" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 维度 | v3.1 | v3.2 |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 阻塞门数量 | 7 个 | **2 个**（security + build） |" >> $GITHUB_STEP_SUMMARY
+          echo "| 报告门数量 | 0 个 | 5 个 |" >> $GITHUB_STEP_SUMMARY
+          echo "| AGENTS.md 长度 | ≤ 150 硬卡 | 🟡 ≤ 200 推荐 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 覆盖率 | ≥ 85% 硬卡 | 🟡 推荐（金融/医疗 ≥ 70%） |" >> $GITHUB_STEP_SUMMARY
+          echo "| Assisted-by | 必填 | 🟡 推荐 |" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint | max-warnings=0 | 🟡 允许 warning |" >> $GITHUB_STEP_SUMMARY
+          echo "| MyPy | --strict | 🟡 默认配置 |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+      - name: Fail if any blocking gate failed (v3.2: 仅 Security + Build)
+        if: |
+          needs.security.result == 'failure' ||
+          needs.build.result == 'failure'
+        run: |
+          echo "❌ Blocking gate failed (v3.2: 仅 security + build 阻塞)"
+          exit 1
+
+# ============================================================
+# 跳过方式
+# ============================================================
+# PR 标题加 [skip ci] 跳过全部
+# PR 标题加 [skip lint] 跳过 lint
+# ============================================================
+
+# ============================================================
+# v3.2 vs v3.1 变化对照
+# ============================================================
+# v3.1: 7 个阻塞门（lint/test/security/build/commitlint/pr-template/agents-md-check）
+# v3.2: 2 个阻塞门（security + build） + 5 个报告门
+# v3.2 哲学：安全红线绝不妥协，规范建议不阻塞；功能 > 合规
