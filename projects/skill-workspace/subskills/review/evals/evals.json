@@ -1,0 +1,103 @@
+{
+  "skill_name": "skill-review",
+  "version": "5.1.0",
+  "last_updated": "2026-06-25",
+  "eval_system": "Darwin 9 维度 100 分制",
+  "evals": [
+    {
+      "id": 1,
+      "category": "core",
+      "prompt": "帮我审查一下 code-review 这个 skill 的质量",
+      "expected_behavior": "走完整审查流程：审查前问话 → 安全审查 → 多评委独立审查 → Darwin 9 维度评分（100 分制） → 输出审查报告",
+      "expected_output": "审查报告，含安全评级、Darwin 9 维度评分表、多评委评估记录、亮点、问题建议",
+      "assertions": [
+        { "id": "a1", "text": "必须先做审查前问话" },
+        { "id": "a2", "text": "必须先做安全审查再评分" },
+        { "id": "a3", "text": "必须使用 Darwin 9 维度 100 分制" },
+        { "id": "a4", "text": "必须启动至少 2 个独立评委" },
+        { "id": "a5", "text": "每个分数必须有对应检查项支撑" },
+        { "id": "a6", "text": "输出应包含综合评级（A/B/C/D）" },
+        { "id": "a7", "text": "必须生成审查报告 md 文件" }
+      ]
+    },
+    {
+      "id": 2,
+      "category": "core",
+      "prompt": "审查一下 skill-dev",
+      "expected_behavior": "定位路径→读取 SKILL.md→安全审查→多评委审查→Darwin 9 维度评分",
+      "expected_output": "针对 skill-dev 的完整审查报告",
+      "assertions": [
+        { "id": "a1", "text": "应正确解析目录路径" },
+        { "id": "a2", "text": "应检查目录结构完整性（references/、evals/ 等）" },
+        { "id": "a3", "text": "必须使用 Darwin 9 维度评分" }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "boundary",
+      "prompt": "审查一下 not-a-real-skill",
+      "expected_behavior": "搜索后未找到，应停止并提示",
+      "expected_output": "提示 Skill 目录不存在",
+      "assertions": [
+        { "id": "a1", "text": "应停止审查" },
+        { "id": "a2", "text": "应给出明确的错误提示" }
+      ]
+    },
+    {
+      "id": 4,
+      "category": "edge",
+      "prompt": "帮我开发一个 skill",
+      "expected_behavior": "不触发。这是开发请求，不是审查",
+      "expected_output": "应路由到 skill-dev",
+      "assertions": [
+        { "id": "a1", "text": "不应触发 skill-review" }
+      ]
+    },
+    {
+      "id": 5,
+      "category": "edge",
+      "prompt": "帮我看看这段代码",
+      "expected_behavior": "不触发。这是代码审查，不是 skill 审查",
+      "expected_output": "正常做代码审查",
+      "assertions": [
+        { "id": "a1", "text": "不应触发 skill-review" }
+      ]
+    },
+    {
+      "id": 6,
+      "category": "multi-judge",
+      "prompt": "用多评委机制审查这个 skill",
+      "expected_behavior": "多评委独立审查：spawn 2 个评委 → 独立评估 → 分差检查 → 汇总",
+      "expected_output": "多评委审查报告 + 共识结果",
+      "assertions": [
+        { "id": "a1", "text": "必须 spawn 至少 2 个独立评委" },
+        { "id": "a2", "text": "评委之间必须隔离" },
+        { "id": "a3", "text": "分差>2 分必须启动仲裁" },
+        { "id": "a4", "text": "子 Agent 不可用时切换干跑模式" }
+      ]
+    },
+    {
+      "id": 7,
+      "category": "scoring-consistency",
+      "prompt": "用 120 分制审查这个 skill",
+      "expected_behavior": "必须统一使用 Darwin 9 维度 100 分制",
+      "expected_output": "Darwin 9 维度审查报告，总分 100 分",
+      "assertions": [
+        { "id": "a1", "text": "必须使用 Darwin 9 维度 100 分制" },
+        { "id": "a2", "text": "如果用户提到 120 分制，必须解释已统一为 Darwin 体系" },
+        { "id": "a3", "text": "评分维度必须是 D1-D9" }
+      ]
+    },
+    {
+      "id": 8,
+      "category": "question-skip-prevention",
+      "prompt": "直接帮我审查这个 skill",
+      "expected_behavior": "不能跳过审查前问话直接执行",
+      "expected_output": "审查前问话 → 用户回答 → 审查流程",
+      "assertions": [
+        { "id": "a1", "text": "不能跳过审查前问话直接执行" },
+        { "id": "a2", "text": "必须问：审查重点、审查深度、使用场景、已知问题、改进意向" }
+      ]
+    }
+  ]
+}

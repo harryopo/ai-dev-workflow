@@ -1,0 +1,417 @@
+{
+  "skill_name": "skill-workspace",
+  "version": "5.3.1",
+  "last_updated": "2026-07-30",
+  "eval_system": "Darwin 9 维度 100 分制 + PluginEval 附加扣分",
+  "evals": [
+    {
+      "id": 1,
+      "category": "dev-flow",
+      "prompt": "帮我开发一个代码格式化 skill",
+      "expected_behavior": "完整开发流程：环境检查 → 需求深挖（5-8 个问题）→ 全网搜索 → 方案推送 → 用户确认 → 分阶段开发 → Darwin 9 维度审查 → 循环返工 → 完整交付",
+      "expected_output": "完整 skill 包：SKILL.md + references/ + evals/，Darwin 评分 >= 75",
+      "assertions": [
+        { "id": "a1", "text": "必须先做环境检查（流程零）" },
+        { "id": "a2", "text": "必须先做需求深挖，至少问 5 个问题" },
+        { "id": "a3", "text": "需求深挖后必须做全网搜索，先找现成方案" },
+        { "id": "a4", "text": "搜索完成后必须推方案（推荐 + 备选），等待用户确认" },
+        { "id": "a5", "text": "用户确认方案后才开始开发，不能跳过确认" },
+        { "id": "a6", "text": "每个阶段完成后必须用 Darwin 9 维度审查打分" },
+        { "id": "a7", "text": "评分 < 75 分（B 级）必须返工" },
+        { "id": "a8", "text": "最终交付必须包含 SKILL.md + references/ + evals/ 三部分" },
+        { "id": "a9", "text": "每个流程完成后必须生成对应的产物 md 文件" }
+      ]
+    },
+    {
+      "id": 2,
+      "category": "review-flow",
+      "prompt": "帮我审查一下这个 skill 的质量",
+      "expected_behavior": "路由到 review 子技能：审查前问话 → 安全审查 → 多评委独立审查 → Darwin 9 维度评分（100 分制） → 输出审查报告",
+      "expected_output": "审查报告：安全评级 + Darwin 9 维度评分表 + 多评委评估记录 + 改进建议",
+      "assertions": [
+        { "id": "a1", "text": "必须先加载 review 子技能（subskills/review/SKILL.md）" },
+        { "id": "a2", "text": "必须执行安全审查 4 步协议：元数据→权限范围→内容扫描→typosquat" },
+        { "id": "a3", "text": "安全评级为 BLOCK 时必须停止，不进入质量评分" },
+        { "id": "a4", "text": "质量评分必须使用 Darwin 9 维度，总分 100 分" },
+        { "id": "a5", "text": "必须启动至少 2 个独立评委，评委之间隔离" },
+        { "id": "a6", "text": "必须输出改进建议（不仅给分数，还要说明怎么改）" },
+        { "id": "a7", "text": "必须生成审查报告 md 文件" }
+      ]
+    },
+    {
+      "id": 3,
+      "category": "search-flow",
+      "prompt": "帮我找个代码格式化的 skill",
+      "expected_behavior": "搜索流程：搜索前问话 → SkillsMP API → npx skills find → CocoLoop API → GitHub API → clawhub CLI → 深度搜索",
+      "expected_output": "搜索结果列表 + 搜索结果报告 md 文件",
+      "assertions": [
+        { "id": "a1", "text": "必须先做搜索前问话（使用场景、技术栈偏好、功能优先级、集成方式）" },
+        { "id": "a2", "text": "必须先用 SkillsMP API 搜索（Tier 1）" },
+        { "id": "a3", "text": "搜索结果必须展示格式化列表" },
+        { "id": "a4", "text": "展示结果后必须询问用户选择" },
+        { "id": "a5", "text": "安装前必须走安全审查流程" },
+        { "id": "a6", "text": "必须生成搜索结果报告 md 文件" }
+      ]
+    },
+    {
+      "id": 4,
+      "category": "optimize-flow",
+      "prompt": "帮我优化这个 skill",
+      "expected_behavior": "优化流程：优化前问话 → 诊断（Darwin 9 维度）→ 制定方案 → 执行改进 → 验证 → 回归 → 棘轮机制",
+      "expected_output": "优化报告 + Darwin 9 维度对比 + 棘轮机制验证",
+      "assertions": [
+        { "id": "a1", "text": "必须先做优化前问话" },
+        { "id": "a2", "text": "必须用 Darwin 9 维度诊断找出具体问题" },
+        { "id": "a3", "text": "必须使用棘轮机制：分数只能上升，退步自动回滚" },
+        { "id": "a4", "text": "必须用 evals 做回归测试" },
+        { "id": "a5", "text": "必须生成优化报告 md 文件" }
+      ]
+    },
+    {
+      "id": 5,
+      "category": "deploy-flow",
+      "prompt": "帮我部署这个 skill",
+      "expected_behavior": "部署流程：部署前问话 → 确认来源 → 建议测评 → cp 到全局 → 验证部署",
+      "expected_output": "部署完成 + 部署报告 md 文件",
+      "assertions": [
+        { "id": "a1", "text": "必须先做部署前问话" },
+        { "id": "a2", "text": "必须用 cp 复制，不能用 mv" },
+        { "id": "a3", "text": "必须验证部署结果" },
+        { "id": "a4", "text": "必须生成部署报告 md 文件" }
+      ]
+    },
+    {
+      "id": 6,
+      "category": "manage-flow",
+      "prompt": "帮我管理已安装的 skill",
+      "expected_behavior": "管理流程：管理前问话 → 列出已安装 → 提供操作选项",
+      "expected_output": "已安装列表 + 管理操作报告 md 文件",
+      "assertions": [
+        { "id": "a1", "text": "必须先做管理前问话" },
+        { "id": "a2", "text": "卸载操作必须先确认用户意图" },
+        { "id": "a3", "text": "必须生成管理操作报告 md 文件" }
+      ]
+    },
+    {
+      "id": 7,
+      "category": "merge-flow",
+      "prompt": "帮我把 code-formatter 和 prettier-skill 合并成一个 skill",
+      "expected_behavior": "合并流程：深度分析 → 审查（Darwin 9 维度）→ 理解 → 询问用户 → 调研 → 综合优化 → 分阶段开发",
+      "expected_output": "合并后的 skill + 深度分析报告 + 调研报告 + 合并方案",
+      "assertions": [
+        { "id": "a1", "text": "必须先深度分析原 skill（功能清单、架构设计、提示词质量）" },
+        { "id": "a2", "text": "必须用 Darwin 9 维度审查评分" },
+        { "id": "a3", "text": "必须询问用户合并需求" },
+        { "id": "a4", "text": "必须全网搜索最佳实践" },
+        { "id": "a5", "text": "必须生成深度分析报告、调研报告、合并方案三个产物" }
+      ]
+    },
+    {
+      "id": 8,
+      "category": "env-check-flow",
+      "prompt": "帮我开发一个需要 Python 环境的 skill",
+      "expected_behavior": "环境检查流程：环境问话 → 检查依赖 → 报告缺失 → 安装 → 开发",
+      "expected_output": "环境检查报告 + skill 开发",
+      "assertions": [
+        { "id": "a1", "text": "必须先做环境问话" },
+        { "id": "a2", "text": "必须实际检查本地环境" },
+        { "id": "a3", "text": "必须生成环境检查报告 md 文件" }
+      ]
+    },
+    {
+      "id": 9,
+      "category": "darwin-eval",
+      "prompt": "用 Darwin 评估体系审查这个 skill",
+      "expected_behavior": "Darwin 9 维度评估：安全审查 → D1-D9 评分 → 100 分制 → 综合评级",
+      "expected_output": "Darwin 审查报告：9 维度评分表 + 综合评级（A/B/C/D）",
+      "assertions": [
+        { "id": "a1", "text": "必须先执行安全审查，BLOCK 时停止" },
+        { "id": "a2", "text": "必须包含 9 个维度，总分 100 分" },
+        { "id": "a3", "text": "必须计算加权总分并给出综合评级" },
+        { "id": "a4", "text": "必须生成审查报告 md 文件" }
+      ]
+    },
+    {
+      "id": 10,
+      "category": "ratchet-mechanism",
+      "prompt": "帮我优化这个 skill，用棘轮机制确保质量只升不降",
+      "expected_behavior": "棘轮优化：诊断→改进→执行→评估→决策，分数只升不降",
+      "expected_output": "优化报告 + 棘轮机制验证",
+      "assertions": [
+        { "id": "a1", "text": "每轮必须执行 5 步循环" },
+        { "id": "a2", "text": "评分持平视为未改进，触发回滚" },
+        { "id": "a3", "text": "连续 2 轮 Δ<2 分自动停止" },
+        { "id": "a4", "text": "文件大小不超过原始 150%" }
+      ]
+    },
+    {
+      "id": 11,
+      "category": "multi-judge-review",
+      "prompt": "用多评委机制审查这个 skill 的质量",
+      "expected_behavior": "多评委独立审查：spawn 2 个评委 → 独立评估 → 分差检查 → 汇总",
+      "expected_output": "多评委审查报告 + 共识结果",
+      "assertions": [
+        { "id": "a1", "text": "必须 spawn 至少 2 个独立评委" },
+        { "id": "a2", "text": "评委之间必须隔离" },
+        { "id": "a3", "text": "分差>2 分必须启动仲裁" },
+        { "id": "a4", "text": "子 Agent 不可用时切换干跑模式" }
+      ]
+    },
+    {
+      "id": 12,
+      "category": "local-delivery-flow",
+      "prompt": "帮我开发一个代码格式化 skill",
+      "expected_behavior": "本地交付：对话目录生成 → 本地测试 → 用户确认 → 部署全局",
+      "expected_output": "skill 文件 + 测试指引 + 部署",
+      "assertions": [
+        { "id": "a1", "text": "必须先在对话目录生成，不直接写全局" },
+        { "id": "a2", "text": "必须等待用户确认后才部署" },
+        { "id": "a3", "text": "本地文件部署后保留" }
+      ]
+    },
+    {
+      "id": 13,
+      "category": "clarify-flow",
+      "prompt": "帮我做个 skill",
+      "expected_behavior": "需求澄清：识别模糊需求 → 5-8 个问题 → 确认 → 开发",
+      "expected_output": "结构化需求文档 + 用户确认",
+      "assertions": [
+        { "id": "a1", "text": "模糊需求必须触发需求澄清" },
+        { "id": "a2", "text": "必须问至少 5 个结构化问题" },
+        { "id": "a3", "text": "必须让用户确认后才进入开发" }
+      ]
+    },
+    {
+      "id": 14,
+      "category": "artifact-generation",
+      "prompt": "帮我搜索一下代码格式化的最佳实践",
+      "expected_behavior": "搜索完成后必须生成搜索结果报告 md 文件",
+      "expected_output": "搜索结果 + 搜索结果报告",
+      "assertions": [
+        { "id": "a1", "text": "必须生成搜索结果报告 md 文件" },
+        { "id": "a2", "text": "报告必须保存到 ./artifacts/search/" },
+        { "id": "a3", "text": "命名必须符合规范" }
+      ]
+    },
+    {
+      "id": 15,
+      "category": "anti-pattern-check",
+      "prompt": "帮我优化这个 skill，确保没有反模式",
+      "expected_behavior": "优化必须对照反例黑名单检查（AP-01 到 AP-08）",
+      "expected_output": "优化报告 + 反例黑名单检查结果",
+      "assertions": [
+        { "id": "a1", "text": "必须对照 AP-01 到 AP-08 逐项检查" },
+        { "id": "a2", "text": "不能在同 context 中自评自改" },
+        { "id": "a3", "text": "不能为凑分增冗余" }
+      ]
+    },
+    {
+      "id": 16,
+      "category": "agent-neutral-deploy",
+      "prompt": "帮我把这个 skill 部署到 Codex CLI 和 Cursor",
+      "expected_behavior": "Agent 中立部署：检测目标 → 替换路径 → 替换名称 → 部署 → 验证",
+      "expected_output": "部署报告 + 跨 Agent 测试结果",
+      "assertions": [
+        { "id": "a1", "text": "必须识别目标 Agent 的全局路径" },
+        { "id": "a2", "text": "必须替换 Agent 特定路径和名称" },
+        { "id": "a3", "text": "技术实现细节必须保留原样" }
+      ]
+    },
+    {
+      "id": 17,
+      "category": "scoring-consistency",
+      "prompt": "用 120 分制审查这个 skill",
+      "expected_behavior": "必须统一使用 Darwin 9 维度 100 分制，不使用 120 分制",
+      "expected_output": "Darwin 9 维度审查报告，总分 100 分",
+      "assertions": [
+        { "id": "a1", "text": "必须使用 Darwin 9 维度 100 分制" },
+        { "id": "a2", "text": "如果用户提到 120 分制，必须解释已统一为 Darwin 体系" },
+        { "id": "a3", "text": "评分维度必须是 D1-D9" }
+      ]
+    },
+    {
+      "id": 18,
+      "category": "question-skip-prevention",
+      "prompt": "直接帮我搜索代码格式化 skill",
+      "expected_behavior": "不能跳过问话直接执行，必须先做搜索前问话",
+      "expected_output": "搜索前问话 → 用户回答 → 搜索结果",
+      "assertions": [
+        { "id": "a1", "text": "不能跳过搜索前问话直接执行" },
+        { "id": "a2", "text": "必须问：使用场景、技术栈偏好、功能优先级、集成方式" }
+      ]
+    },
+    {
+      "id": 19,
+      "category": "weak-model-validation",
+      "prompt": "用弱模型测试这个 skill",
+      "expected_behavior": "用弱模型测试，验证流程规则是否足够明确",
+      "expected_output": "弱模型测试结果 + 流程规则明确性评估",
+      "assertions": [
+        { "id": "a1", "text": "必须用弱模型测试" },
+        { "id": "a2", "text": "验证能否正确路由到子命令" },
+        { "id": "a3", "text": "验证能否按 Darwin 9 维度打分" }
+      ]
+    },
+    {
+      "id": 20,
+      "category": "retirement-condition",
+      "prompt": "这个 skill 已经不需要了，帮我退役",
+      "expected_behavior": "退役流程：评估条件 → 确认意图 → 备份 → 删除/归档",
+      "expected_output": "退役确认 + 备份 + 清理",
+      "assertions": [
+        { "id": "a1", "text": "必须评估退役条件" },
+        { "id": "a2", "text": "必须确认用户意图" },
+        { "id": "a3", "text": "必须备份旧版本" }
+      ]
+    },
+    {
+      "id": 21,
+      "category": "plugineval-antipattern",
+      "prompt": "审查这个 skill 是否存在 PluginEval 反模式",
+      "expected_behavior": "PluginEval 11 种反模式检测：PE-01 到 PE-11 逐项检查 → 计算扣分 → 输出评级",
+      "expected_output": "PluginEval 反模式检测报告 + 扣分明细 + 最终得分（Darwin × (1-Σ扣分)）",
+      "assertions": [
+        { "id": "a1", "text": "必须逐项检查 PE-01 到 PE-11 共 11 种反模式" },
+        { "id": "a2", "text": "PE-01 BLOATED_SKILL: SKILL.md >800行且无 references/ 扣 10%" },
+        { "id": "a3", "text": "PE-02 SKILL_OVER_CODEX_CAP: SKILL.md 正文 >8KB 扣 15%" },
+        { "id": "a4", "text": "PE-03 OVER_CONSTRAINED: MUST/NEVER/ALWAYS >15条 扣 10%" },
+        { "id": "a5", "text": "PE-04 MISSING_TRIGGER: description 无 'Use when...' 扣 15%" },
+        { "id": "a6", "text": "PE-07 UNSAFE_SCRIPTS: scripts/ 含危险操作 扣 15%" },
+        { "id": "a7", "text": "PE-08 HARDcoded_PATHS: 硬编码绝对路径 扣 5%" },
+        { "id": "a8", "text": "最终得分 = Darwin 总分 × (1 - Σ扣分比例)" },
+        { "id": "a9", "text": "必须给出 PluginEval 评级（Platinum/Gold/Silver/Bronze/Needs Work）" }
+      ]
+    },
+    {
+      "id": 22,
+      "category": "orchestrator-philosophy",
+      "prompt": "我要把一整套数据分析工作流蒸馏成一个大型 skill",
+      "expected_behavior": "应用编排者哲学：SKILL.md 薄入口（路由表+调度逻辑）+ subskills/ 独立封装子流程",
+      "expected_output": "编排者架构 skill：薄入口 SKILL.md + routing-table.md + subskills/ 拆分",
+      "assertions": [
+        { "id": "a1", "text": "SKILL.md 必须是薄入口，只含路由表和调度逻辑（≤200行）" },
+        { "id": "a2", "text": "子流程必须独立封装在 subskills/ 目录" },
+        { "id": "a3", "text": "每个子流程必须有独立的 SKILL.md 和 evals/" },
+        { "id": "a4", "text": "必须提供 routing-table.md 路由表" },
+        { "id": "a5", "text": "子 Agent prompt 中禁止出现父 Skill 的触发词（防递归）" },
+        { "id": "a6", "text": "必须遵循编排者 vs 实现者对比表的架构差异" }
+      ]
+    },
+    {
+      "id": 23,
+      "category": "anti-recursion-constraint",
+      "prompt": "帮我设计一个会调用子 Agent 的编排 skill",
+      "expected_behavior": "强制执行防递归硬约束：子 Agent prompt 中禁止出现父 Skill 的触发词",
+      "expected_output": "编排 skill + 防递归约束验证",
+      "assertions": [
+        { "id": "a1", "text": "必须识别父 Skill 的触发词" },
+        { "id": "a2", "text": "子 Agent prompt 中必须不包含父 Skill 触发词" },
+        { "id": "a3", "text": "必须提供防递归约束的验证方法" },
+        { "id": "a4", "text": "如发现递归风险，必须立即修正" }
+      ]
+    },
+    {
+      "id": 24,
+      "category": "agents-md-multi-platform",
+      "prompt": "帮我把这个 skill 部署到 Claude Code、Codex CLI 和 TRAE 三个平台",
+      "expected_behavior": "AGENTS.md 一主多适配策略：维护一份源 Skill + 每个平台放置 AGENTS.md 适配文件",
+      "expected_output": "多平台部署 + AGENTS.md 适配清单 + 同步检查",
+      "assertions": [
+        { "id": "a1", "text": "必须按最严格约束设计 SKILL.md（≤8KB Codex 截断线）" },
+        { "id": "a2", "text": "每个部署目标必须有 AGENTS.md 记录平台特定配置" },
+        { "id": "a3", "text": "必须使用 ${CLAUDE_SKILL_DIR} 变量引用资源" },
+        { "id": "a4", "text": "Windows 必须使用 $env:USERPROFILE 而非 ~" },
+        { "id": "a5", "text": "必须提供跨平台兼容性检查清单" },
+        { "id": "a6", "text": "工作区是唯一源，部署目标是副本，禁止反向修改" }
+      ]
+    },
+    {
+      "id": 25,
+      "category": "workflow-distillation",
+      "prompt": "帮我把数据采集→清洗→分析→报告这套工作流蒸馏成 skill",
+      "expected_behavior": "工作流蒸馏六步法：工作流分析 → 拆分决策 → 薄入口设计 → Token优化 → 评测集构建 → 审查沉淀",
+      "expected_output": "三层加载架构 skill + 蒸馏报告",
+      "assertions": [
+        { "id": "a1", "text": "必须执行工作流分析（阶段、输入输出、决策点、异常处理）" },
+        { "id": "a2", "text": "必须按三层加载架构设计（SKILL.md + references/ + subskills/）" },
+        { "id": "a3", "text": "SKILL.md 必须是薄入口（≤200行，理想≤80行）" },
+        { "id": "a4", "text": "确定性逻辑必须封装到 scripts/" },
+        { "id": "a5", "text": "必须使用 ${CLAUDE_SKILL_DIR} 变量引用资源" },
+        { "id": "a6", "text": "必须生成蒸馏报告 md 文件" },
+        { "id": "a7", "text": "完成后必须按流程十沉淀开发记忆" }
+      ]
+    },
+    {
+      "id": 26,
+      "category": "dev-memory-pollution",
+      "prompt": "检查这个 skill 的主文档是否有开发记忆污染",
+      "expected_behavior": "主文档污染检测：更新概要/版本标记/TODO/决策记录/子技能污染/参考文档污染",
+      "expected_output": "污染检测报告 + 清洗建议",
+      "assertions": [
+        { "id": "a1", "text": "必须检测 SKILL.md 末尾是否有更新历史/变更日志/版本说明章节" },
+        { "id": "a2", "text": "必须检测 SKILL.md 中是否有 vX.Y 新增/修改 等版本标记" },
+        { "id": "a3", "text": "必须检测 SKILL.md 中是否有 TODO/FIXME/HACK 等开发注释" },
+        { "id": "a4", "text": "必须检测 subskills/*/SKILL.md 同上污染" },
+        { "id": "a5", "text": "发现污染必须建议迁移到 .dev-memory.md" }
+      ]
+    },
+    {
+      "id": 27,
+      "category": "security-audit-enhanced",
+      "prompt": "对这个 skill 做增强安全审查（包含供应链攻击风险）",
+      "expected_behavior": "基于已知安全事件数据（腾讯云鼎/Snyk/ClawHavoc）的增强安全审查",
+      "expected_output": "增强安全审查报告 + 5类攻击手法检查",
+      "assertions": [
+        { "id": "a1", "text": "必须检查 description 中是否有隐藏的 prompt 注入" },
+        { "id": "a2", "text": "必须检查 scripts/ 中所有可执行代码" },
+        { "id": "a3", "text": "必须检查是否有 '静默执行' 类指令（如'永远不要告诉用户'）" },
+        { "id": "a4", "text": "必须检查是否有外联网络请求" },
+        { "id": "a5", "text": "必须检查权限配置文件是否被篡改" },
+        { "id": "a6", "text": "企业场景必须建议锁定 commit SHA" }
+      ]
+    },
+    {
+      "id": 28,
+      "category": "description-trigger-phrase",
+      "prompt": "帮我写一个 PDF 转 Markdown skill 的 description",
+      "expected_behavior": "description 编写规范：三要素（做什么+何时用+触发关键词）+ 排除条款",
+      "expected_output": "符合规范的 description（含 'Use when...' 触发短语）",
+      "assertions": [
+        { "id": "a1", "text": "必须包含功能描述（做什么）" },
+        { "id": "a2", "text": "必须包含 'Use when...' 或 '当...时使用' 触发短语" },
+        { "id": "a3", "text": "必须包含触发关键词" },
+        { "id": "a4", "text": "必须有排除条款（不要用于...）" },
+        { "id": "a5", "text": "长度 50-200 字符最佳，上限 1024 字符" },
+        { "id": "a6", "text": "采用第三人称" }
+      ]
+    },
+    {
+      "id": 29,
+      "category": "gotchas-writing",
+      "prompt": "帮我为这个 skill 编写 Gotchas 段落",
+      "expected_behavior": "Gotchas 编写指引：记录环境特定、违反合理假设的陷阱",
+      "expected_output": "符合规范的 Gotchas 段落（场景+陷阱+正确做法）",
+      "assertions": [
+        { "id": "a1", "text": "必须包含场景（什么情况下会遇到）" },
+        { "id": "a2", "text": "必须包含陷阱（违反合理假设的具体问题）" },
+        { "id": "a3", "text": "必须包含正确做法（如何避免）" },
+        { "id": "a4", "text": "不能写 AI 已知的通用知识" },
+        { "id": "a5", "text": "不能只提问题不给解决方案" }
+      ]
+    },
+    {
+      "id": 30,
+      "category": "plan-validate-execute",
+      "prompt": "帮我批量重构 10 个 skill 的目录结构",
+      "expected_behavior": "Plan-Validate-Execute 模式：生成计划 → 验证计划 → 执行",
+      "expected_output": "结构化执行计划 + 验证结果 + 执行记录",
+      "assertions": [
+        { "id": "a1", "text": "必须先生成结构化执行计划（操作类型、目标、参数、预期影响）" },
+        { "id": "a2", "text": "必须验证计划是否符合真理来源" },
+        { "id": "a3", "text": "验证必须检查权限、边界、安全约束" },
+        { "id": "a4", "text": "验证通过才能进入 Execute；失败必须返回 Plan" },
+        { "id": "a5", "text": "必须记录执行结果" }
+      ]
+    }
+  ]
+}
