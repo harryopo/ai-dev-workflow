@@ -8,6 +8,8 @@ tools: [RunCommand, run_mcp, Read, Write, Glob]
 
 # GitHub Deploy — 智能提交与网页部署
 
+> **当前版本 v2.3（2026-08-31）**：重装系统后链路已重新打通，推送方案切换为 **SSH 优先**（实测认证成功）。ghfast+pushurl 降级为备选方案。详见文末 v2.3 章节。
+
 ## 触发条件
 
 当用户提到以下任一意图时激活：
@@ -74,22 +76,37 @@ scope 选当前仓库名或受影响模块名。
 
 ---
 
-## 阶段二：推送（v2.1 MCP 集成版）
+## 阶段二：推送（v2.3 SSH 优先版）
 
-**v2.0 单一 HTTP+pushurl 方案** 仍是日常首选（无弹窗、最稳）。**v2.1 新增 MCP 工具集成**，用于批量文件操作、大文件分块、原子更新等 pushurl 无法覆盖的场景。
+**v2.3 变更**：重装系统后 SSH key 已重新配置并认证成功（`ssh -T git@github.com` → `Hi harryopo!`），日常推送改回 **SSH 直连优先**。v2.0/v2.1 的 HTTP+pushurl 与 MCP 方案保留为备选/降级。
 
 ### 推送方案选择矩阵
 
 | 场景 | 首选方案 | 备选方案 |
 |------|----------|----------|
-| 日常代码提交（< 50 文件） | `git push`（pushurl） | — |
+| 日常代码提交 | `git push`（SSH 直连） | ghfast+pushurl / MCP `push_files` |
+| SSH 网络不稳（国内偶发） | ghfast+pushurl | MCP `push_files` |
 | 批量文件推送（50+ 文件） | MCP `push_files` | `git push` |
 | 大文件（> 100MB） | Git LFS | MCP `push_files` 分块 |
 | 单文件原子更新 | MCP `create_or_update_file` | `git push` |
-| pushurl 失败（网络问题） | MCP `push_files` | gh CLI |
 | GitHub Releases 附件 | `gh release upload` | 网页手动上传 |
 
-### 方案 A：HTTP + pushurl（日常首选）
+### 方案 A：SSH 直连（v2.3 日常首选）
+
+```bash
+git push origin <branch>
+```
+
+**前提**：SSH key 已生成并添加到 GitHub。健康检查：
+
+```bash
+ssh -T git@github.com -o ConnectTimeout=10
+# 成功输出：Hi harryopo! You've successfully authenticated...
+```
+
+当前环境已配置全局 `insteadOf`（`https://github.com/` → `git@github.com:`），HTTPS 地址克隆的仓库 push 时也会自动走 SSH。
+
+### 方案 A2：HTTP + ghfast + pushurl（备选，SSH 不稳时用）
 
 ```bash
 git push origin <branch>
@@ -175,13 +192,14 @@ def chunk_and_push(file_path, repo, branch, chunk_size=50*1024*1024):
 
 ### 异常处理
 
-如果 push 仍弹窗或失败：
+如果 push 失败（SSH 断连或弹窗）：
 
-1. **检查 pushurl 是否生效**：`git config --get-regexp '^remote\.origin\..*url$'`
-2. **检查全局 insteadOf**：`git config --global --get-regexp 'url\..*\.insteadof'`，有则删
-3. **降级 MCP**：用 `push_files` 绕过网络问题
-4. **运行判定脚本**：`python scripts/check_pages_source.py`（用于页面访问问题）
-5. **完整排查流程**：见 [references/git-popup-troubleshooting.md](references/git-popup-troubleshooting.md)
+1. **检查 SSH 认证**：`ssh -T git@github.com -o ConnectTimeout=10`
+2. **检查 remote 配置**：`git remote -v` 和 `git config --get-regexp '^remote\.origin\..*url$'`
+3. **降级 ghfast+pushurl**：参照下方配置模板改 `.git/config`
+4. **再降级 MCP**：用 `push_files` 绕过网络问题
+5. **运行判定脚本**：`python scripts/check_pages_source.py`（用于页面访问问题）
+6. **完整排查流程**：见 [references/git-popup-troubleshooting.md](references/git-popup-troubleshooting.md)
 
 ---
 
@@ -254,20 +272,19 @@ def chunk_and_push(file_path, repo, branch, chunk_size=50*1024*1024):
 
 ### 强制约束
 
-1. **首选 HTTP + pushurl**：日常推送必须用 ghfast 镜像 + pushurl 注入 token，无弹窗、最稳
-2. **MCP 工具用于特定场景**：批量文件（50+）、原子更新、pushurl 失败降级时使用 MCP `push_files` / `create_or_update_file`
+1. **日常推送走 SSH 直连**（v2.3）：SSH key 已认证，`git push` 直接可用；SSH 不稳时降级 ghfast+pushurl 或 MCP
+2. **MCP 工具用于特定场景**：批量文件（50+）、原子更新、SSH/pushurl 均失败时使用 MCP `push_files` / `create_or_update_file`
 3. **大文件用 Git LFS**：> 100MB 文件必须用 `git lfs track`，MCP 分块仅作降级
-4. **VPN 全局模式**：用户 VPN 常开，网络通常无障碍
-5. **不提交敏感文件**：`.env`、`credentials.*`、`secrets.*`、`*.pem` 直接跳过
-6. **一次一仓库**：不同仓库的变更分开提交，不混在一起
-7. **提交前确认**：向用户展示 commit message 和文件列表，获确认后再 push
+4. **不提交敏感文件**：`.env`、`credentials.*`、`secrets.*`、`*.pem` 直接跳过
+5. **一次一仓库**：不同仓库的变更分开提交，不混在一起
+6. **提交前确认**：向用户展示 commit message 和文件列表，获确认后再 push
 
-### 兜底优先级（v2.1 更新）
+### 兜底优先级（v2.3 更新）
 
 ```
-HTTP + pushurl (git push) → MCP push_files → gh CLI → 告知原因
-    ↓ 失败                    ↓ 失败           ↓ 失败
-  检查 pushurl             检查 MCP 配置    建议手动操作
+SSH git push → ghfast+pushurl → MCP push_files → gh CLI → 告知原因
+    ↓ 失败              ↓ 失败         ↓ 失败        ↓ 失败
+  检查 ssh -T       检查 pushurl    检查 MCP 配置   建议手动操作
 ```
 
 ### 网页部署规则
@@ -1072,3 +1089,56 @@ def log_mcp_usage(tool_name, input_tokens, output_tokens):
 - [Token 效率优化指南](https://github.blog/ai-and-ml/improving-token-efficiency-in-github-agentic-workflows/)
 - [Git LFS 官方文档](https://git-lfs.github.com/)
 - [供应链安全最佳实践](https://openssf.org/)
+
+---
+
+# v2.3 重装系统/换机链路恢复清单（2026-08-31）
+
+> 2026-08-31 重装系统（Lenovo → Administrator）后实测体检结论。**下次重装系统或换机时，照本清单逐项恢复并验证即可。**
+
+## 体检结论快照（2026-08-31 实测）
+
+| 环节 | 状态 | 验证命令 |
+|------|------|----------|
+| Git / gh CLI / Git LFS | ✅ 2.55 / 2.98 / 3.7.1 | `git --version; gh --version; git lfs version` |
+| Git 全局身份 | ✅ harryopo / 2239868923@qq.com | `git config --global user.name` |
+| SSH key + GitHub 认证 | ✅ 已恢复 | `ssh -T git@github.com -o ConnectTimeout=10` |
+| 全局 insteadOf（https→ssh 重写） | ✅ 已配置 | `git config --global --get-regexp 'insteadof'` |
+| MCP GitHub PAT | ✅ 有效 | `run_mcp("mcp_GitHub", "search_repositories", ...)` |
+| Pages 线上 | ✅ 200 OK | `curl -sIL https://harryopo.github.io/` |
+| 本地 Pages 仓库克隆 | ✅ `d:\ai\claude code\skill开发\harryopo.github.io` | `Test-Path` |
+| ghfast+pushurl | ❌ 未配置（降级备选，需 PAT） | — |
+
+## 恢复清单（按顺序执行）
+
+```bash
+# 1. 基础工具
+winget install Git.Git GitHub.cli GitHub.git-lfs
+
+# 2. Git 身份
+git config --global user.name "harryopo"
+git config --global user.email "2239868923@qq.com"
+
+# 3. SSH key（重装后必须重新生成 + 添加到 GitHub）
+ssh-keygen -t ed25519 -C "2239868923@qq.com"
+# 公钥内容加到 https://github.com/settings/keys
+ssh -T git@github.com   # 验证：Hi harryopo!
+
+# 4. HTTPS → SSH 重写（可选，HTTPS 克隆的仓库自动走 SSH push）
+git config --global url."git@github.com:".insteadOf "https://github.com/"
+
+# 5. gh CLI 认证（可选，Releases 上传等场景用）
+gh auth login
+
+# 6. MCP GitHub PAT → 重新配置到各 Agent 的 MCP 设置（GITHUB_PERSONAL_ACCESS_TOKEN）
+
+# 7. Pages 仓库重新克隆
+git clone https://github.com/harryopo/harryopo.github.io.git
+```
+
+## v2.3 方案变更说明
+
+- **SSH 直连恢复为日常首选**：重装后实测 SSH 认证成功，国内网络当前可达；无需维护 PAT 于 URL 中
+- **ghfast+pushurl 降级为备选**：保留 v2.0 配置模板（见上文方案 A2），SSH 断连时切换
+- **MCP PAT 仍有效**：批量/原子操作、CI 场景继续用 MCP 工具
+- **历史教训仍有效**：Pages 子路径独立仓库规则、CDN 缓存规则、PPT 直入规则均不变

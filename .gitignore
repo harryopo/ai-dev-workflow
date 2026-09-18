@@ -56,3 +56,20 @@ projects/节省token_skill/
 20.205.243.166
 npm
 skills-lock.json
+
+# 工具缓存
+.mimosa/
+
+# 嵌套 git 仓库（独立管理，不入父仓库）
+harryopo.github.io/
+opensource-reference/architecture-diagram-generator/
+opensource-reference/fireworks-tech-graph/
+opensource-reference/bmad-method/
+opensource-reference/superpowers/
+opensource-reference/wshobson-agents/
+agents-md-spec/
+anthropics-skills/
+antigravity-awesome-skills/
+claude-task-master/
+everything-claude-code/
+spec-kit/
