@@ -43,6 +43,20 @@ DEFAULT_USER_AGENT = (
     "Chrome/120.0.0.0 Safari/537.36"
 )
 
+# 最近一次 HTTP 失败原因。引擎契约只返回 None，调用方无法区分
+# "406/429 限流"「404 端点变更」「DNS 挂了」——探针与自检报告需要这个信息。
+LAST_HTTP_ERROR: str = ''
+
+
+def _note_http_error(detail: str) -> None:
+    global LAST_HTTP_ERROR
+    LAST_HTTP_ERROR = detail
+
+
+def _clear_http_error() -> None:
+    global LAST_HTTP_ERROR
+    LAST_HTTP_ERROR = ''
+
 
 def _http_get(
     url: str,
@@ -71,6 +85,7 @@ def _http_get(
     headers.setdefault('User-Agent', DEFAULT_USER_AGENT)
     headers.setdefault('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
     headers.setdefault('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
+    _clear_http_error()
 
     # 优先使用 curl_cffi（TLS 指纹伪装）
     try:
@@ -86,17 +101,21 @@ def _http_get(
                     impersonate=impersonate,
                 )
                 if r.status_code == 200:
+                    _clear_http_error()
                     return r.content
                 elif r.status_code == 429:
                     # 限流，等待更长时间
                     time.sleep(2.0 * (2 ** attempt))
                     last_error = f"HTTP 429 rate limited"
+                    _note_http_error(last_error)
                 else:
                     last_error = f"HTTP {r.status_code}"
+                    _note_http_error(last_error)
                     if attempt < max_retries - 1:
                         time.sleep(1.0 * (2 ** attempt))
             except Exception as e:
                 last_error = e
+                _note_http_error(f'{type(e).__name__}: {e}')
                 if attempt < max_retries - 1:
                     time.sleep(1.0 * (2 ** attempt))
         # curl_cffi 全部重试失败，降级到 urllib
@@ -116,12 +135,20 @@ def _http_get(
             req = urllib.request.Request(url, headers=headers)
             with opener.open(req, timeout=timeout) as response:
                 raw_data = response.read()
+                _clear_http_error()
                 content_encoding = response.headers.get('Content-Encoding', '')
                 if content_encoding == 'gzip':
                     return gzip.decompress(raw_data)
                 return raw_data
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ConnectionError) as e:
+        except urllib.error.HTTPError as e:
             last_error = e
+            _note_http_error(f'HTTP {e.code}')
+            if attempt < max_retries - 1:
+                delay = 1.0 * (2 ** attempt)
+                time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as e:
+            last_error = e
+            _note_http_error(f'{type(e).__name__}: {e}')
             if attempt < max_retries - 1:
                 delay = 1.0 * (2 ** attempt)
                 time.sleep(delay)

@@ -1,18 +1,21 @@
 """
 platform_engines.py — 国内开源平台引擎（Gitee / ModelScope）  [v6.1 新增]
 
-- GiteeEngine：Gitee 仓库搜索（免费公开 API `gitee.com/api/v5/search/repositories`，无需 token）
-- ModelScopeEngine：魔搭社区模型/项目搜索（免费公开 API，无需 token）
+- GiteeEngine：Gitee 仓库搜索（`gitee.com/api/v5/search/repositories`，v5 搜索端点需 access_token，
+  匿名请求实测静默返回 []，故 requires_config=True / 需 GITEE_TOKEN）
+- ModelScopeEngine：魔搭模型卡详情查询（`/api/v1/models/{Path}/{Name}`；公开关键词搜索端点
+  实测已 404，故不声明 search 能力）
 
 设计约束：
 - 纯 JSON API 直连（不解析 HTML，避免反爬脆弱性），失败返回 None / 空列表
-- 解析多字段容错（Gitee 兼容 items[] 与 rows[]；ModelScope 兼容多级嵌套结构）
+- 解析多字段容错（Gitee 兼容裸数组与 items[]/rows[] 包装）
 - 与 SearchEngine 基类契约一致，注册进 Layer 2（Skill+平台层）
 """
 
 from __future__ import annotations
 
 import json
+import os
 import socket
 import urllib.request
 import urllib.parse
@@ -62,21 +65,27 @@ class GiteeEngine(SearchEngine):
         return EngineMetadata(
             name='gitee',
             layer=2,
-            description='Gitee 仓库搜索（免费公开 API，国内代码托管平台）',
-            requires_config=False,
+            description='Gitee 仓库搜索（v5 搜索端点需 access_token）',
+            requires_config=True,
+            config_keys=['GITEE_TOKEN'],
             is_china_friendly=True,
             priority=70,
             capabilities=['search', 'opensource'],
         )
 
     def is_available(self) -> bool:
-        return _host_reachable('gitee.com')
+        """无 token 时 Gitee 搜索端点静默返回 []（实测），等于拿不到数据 —— 如实标为不可用。"""
+        return bool(os.environ.get('GITEE_TOKEN')) and _host_reachable('gitee.com')
 
     def search(self, query: str, max_results: int = 10, **kwargs) -> Optional[List[SearchResult]]:
+        token = os.environ.get('GITEE_TOKEN', '')
+        if not token:
+            return None
         q = urllib.parse.quote(query)
-        url = f'https://gitee.com/api/v5/search/repositories?q={q}&per_page={max_results}&sort=best_match'
+        url = (f'https://gitee.com/api/v5/search/repositories?q={q}'
+               f'&per_page={max_results}&sort=best_match&access_token={urllib.parse.quote(token)}')
         data = _http_get_json(url)
-        if not data:
+        if data is None:
             return None
         # v6.3 修复：Gitee v5 实测返回裸数组（无 items/rows 包装）；
         # 兼容 dict（items/rows）与 list 两种契约
@@ -100,80 +109,56 @@ class GiteeEngine(SearchEngine):
                      'language': it.get('language'),
                      'forks': it.get('forks_count')},
             ))
-        return _dedupe(out) or None
+        return _dedupe(out)
 
 
 class ModelScopeEngine(SearchEngine):
-    """魔搭社区（ModelScope）模型/项目搜索（免费公开 API，国内模型集市）。"""
+    """魔搭社区（ModelScope）模型卡详情查询。
+
+    v6.5 能力收缩：公开 API 只有模型详情端点（GET /api/v1/models/{Path}/{Name}，
+    实测 200），v6.1 依赖的 dolphin 列表/搜索端点已 404（实测），因此不再声明
+    search 能力，只按精确 model id 取模型卡，供开源六维质量门的「合规安全」取证。
+    """
 
     @property
     def metadata(self) -> EngineMetadata:
         return EngineMetadata(
             name='modelscope',
             layer=2,
-            description='魔搭社区模型/项目搜索（免费公开 API，国内模型集市）',
+            description='魔搭模型卡详情（精确 model id → 许可证/下载量/任务）',
             requires_config=False,
             is_china_friendly=True,
             priority=72,
-            capabilities=['search', 'opensource', 'model'],
+            capabilities=['lookup', 'opensource', 'model'],
         )
 
     def is_available(self) -> bool:
         return _host_reachable('modelscope.cn')
 
     def search(self, query: str, max_results: int = 10, **kwargs) -> Optional[List[SearchResult]]:
-        q = urllib.parse.quote(query)
-        # 候选端点：官方 API 可能随版本更名，逐一尝试，全部失败返回 None（降级链接管）
-        candidates = [
-            f'https://modelscope.cn/api/v1/dolphin/models'
-            f'?PageSize={max_results}&PageNumber=1&SingleCriterion={q}',
-        ]
-        data = None
-        for url in candidates:
-            data = _http_get_json(url)
-            if data is not None:
-                break
-        if not data:
+        model_id = (query or '').strip()
+        if '/' not in model_id:
+            return []          # 无关键词搜索端点：如实返回空，不编造结果
+        data = _http_get_json(
+            f'https://modelscope.cn/api/v1/models/{urllib.parse.quote(model_id)}')
+        if data is None:
             return None
-
-        # 兼容多级嵌套结构：Data.Model.Models / Model / items / rows
-        items: List[dict] = []
-        d = data.get('Data') or data
-        m = d.get('Model') or d
-        for key in ('Models', 'Model', 'models', 'items', 'rows', 'list', 'List'):
-            v = m.get(key)
-            if isinstance(v, list):
-                items = v
-                break
-            if isinstance(v, dict):
-                nested = v.get('Models') or v.get('models')
-                if isinstance(nested, list):
-                    items = nested
-                    break
-
-        out: List[SearchResult] = []
-        for it in items:
-            if not isinstance(it, dict):
-                continue
-            path = it.get('Path') or it.get('path') or ''
-            # v6.3 修复运算符优先级：旧写法 `A or B or C if path else ''`
-            # 在 path 为空时把 Name 侧整组丢弃；改为显式分支
-            name = (it.get('ChineseName') or it.get('Name')
-                    or it.get('name') or '')
-            if not name and path:
-                name = path.split('/')[-1]
-            if isinstance(name, list):
-                name = name[0] if name else ''
-            desc = it.get('Description') or it.get('description') or ''
-            if isinstance(desc, list):
-                desc = ' '.join(str(x) for x in desc)
-            out.append(SearchResult(
-                title=str(name),
-                url=f'https://modelscope.cn/models/{path}' if path else 'https://modelscope.cn',
-                content=str(desc)[:300],
-                source='modelscope',
-                published_date=it.get('LastUpdatedTime') or it.get('updated_at') or '',
-                engine='modelscope',
-                raw={'task': it.get('Task'), 'downloads': it.get('Downloads') or it.get('downloads')},
-            ))
-        return _dedupe(out) or None
+        item = data.get('Data') if isinstance(data, dict) else None
+        if not isinstance(item, dict) or not (item.get('Name') or item.get('Path')):
+            return []          # 200 但查无此模型
+        path = str(item.get('Path') or '')
+        full = f"{path}/{item.get('Name')}" if path else str(item.get('Name'))
+        name = str(item.get('ChineseName') or item.get('Name') or '')
+        license_ = str(item.get('License') or item.get('license') or '')
+        desc = str(item.get('Description') or item.get('description') or '')
+        return _dedupe([SearchResult(
+            title=name or full,
+            url=f'https://modelscope.cn/models/{full}',
+            content=(f'许可证: {license_}；' if license_ else '') + desc[:300],
+            source='modelscope',
+            published_date=str(item.get('LastUpdatedTime') or ''),
+            author=path,
+            engine='modelscope',
+            raw={'downloads': item.get('Downloads'), 'license': license_,
+                 'tasks': item.get('Tasks')},
+        )])

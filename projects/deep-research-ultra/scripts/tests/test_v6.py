@@ -387,40 +387,72 @@ class TestEnvCheck:
 # ============================================================
 
 class TestPlatformEngines:
-    """Gitee / ModelScope 引擎（mock 网络，不依赖外网）"""
+    """Gitee / ModelScope 引擎（mock 网络，不依赖外网）
+
+    真实性契约（v6.5）：实测 Gitee v5 搜索端点匿名返回 `[]`、带无效 token 返回 401，
+    ModelScope 的 dolphin 列表端点已 404 —— 引擎必须如实上报"拿不到数据"，
+    不能伪装成可用（旧实现把空结果当 None、把域名可达当可用，导致 --list 全绿）。
+    """
 
     def _mock_get_json(self, monkeypatch, payload):
         import engines.platform_engines as pe
         monkeypatch.setattr(pe, '_http_get_json', lambda url: payload)
         monkeypatch.setattr(pe, '_host_reachable', lambda host, port=443, timeout=3.0: True)
 
-    def test_gitee_parse(self, monkeypatch):
+    def test_gitee_without_token_is_unavailable(self, monkeypatch):
         from engines.platform_engines import GiteeEngine
-        self._mock_get_json(monkeypatch, {
-            'items': [{
-                'full_name': 'oschina/gitee-test', 'html_url': 'https://gitee.com/oschina/x',
-                'description': '测试仓库', 'pushed_at': '2026-09-01',
-                'owner': {'login': 'oschina'}, 'stargazers_count': 123,
-            }]})
-        engine = GiteeEngine()
-        results = engine.search('测试', max_results=3)
-        assert results and results[0].source == 'gitee'
-        assert results[0].title == 'oschina/gitee-test'
-        assert results[0].url.startswith('https://gitee.com')
-        assert engine.is_available() is True
+        self._mock_get_json(monkeypatch, {'items': []})
+        monkeypatch.delenv('GITEE_TOKEN', raising=False)
+        assert GiteeEngine().is_available() is False
 
-    def test_modelscope_parse(self, monkeypatch):
+    def test_gitee_with_token_sends_access_token(self, monkeypatch):
+        from engines.platform_engines import GiteeEngine
+        import engines.platform_engines as pe
+        seen = {}
+
+        def fake_get(url):
+            seen['url'] = url
+            return [{'full_name': 'oschina/x', 'html_url': 'https://gitee.com/oschina/x'}]
+
+        monkeypatch.setattr(pe, '_http_get_json', fake_get)
+        monkeypatch.setattr(pe, '_host_reachable', lambda host, port=443, timeout=3.0: True)
+        monkeypatch.setenv('GITEE_TOKEN', 'tok123')
+        engine = GiteeEngine()
+        assert engine.is_available() is True
+        results = engine.search('向量数据库', max_results=3)
+        assert 'access_token=tok123' in seen['url']
+        assert results and results[0].source == 'gitee'
+        assert results[0].title == 'oschina/x'
+
+    def test_gitee_empty_array_means_zero_results(self, monkeypatch):
+        """裸数组空响应 ≠ 引擎不可用：必须返回 []（空结果），不得折叠成 None"""
+        from engines.platform_engines import GiteeEngine
+        self._mock_get_json(monkeypatch, [])
+        monkeypatch.setenv('GITEE_TOKEN', 'tok123')
+        assert GiteeEngine().search('x') == []
+
+    def test_modelscope_has_no_keyword_search(self, monkeypatch):
+        """无关键词搜索端点 → 不声明 search 能力，关键词查询返回空而非假结果"""
+        from engines.platform_engines import ModelScopeEngine
+        self._mock_get_json(monkeypatch, {'Code': 200, 'Data': {}})
+        engine = ModelScopeEngine()
+        assert engine.has_capability('search') is False
+        assert engine.search('Qwen') == []
+
+    def test_modelscope_exact_model_id_lookup(self, monkeypatch):
         from engines.platform_engines import ModelScopeEngine
         self._mock_get_json(monkeypatch, {
-            'Data': {'Model': {'Models': [{
-                'Path': 'Qwen/Qwen2.5-7B', 'ChineseName': '通义千问',
-                'Description': '测试模型', 'Task': 'text-generation',
-            }]}}})
+            'Code': 200,
+            'Data': {'Path': 'Qwen', 'Name': 'Qwen2.5-7B',
+                     'ChineseName': '通义千问2.5-7B',
+                     'Description': '测试模型', 'License': 'Apache License 2.0',
+                     'Downloads': 42},
+        })
         engine = ModelScopeEngine()
-        results = engine.search('Qwen', max_results=3)
+        results = engine.search('Qwen/Qwen2.5-7B')
         assert results and results[0].source == 'modelscope'
-        assert 'modelscope.cn/models/Qwen/Qwen2.5-7B' in results[0].url
-        assert engine.is_available() is True
+        assert results[0].url == 'https://modelscope.cn/models/Qwen/Qwen2.5-7B'
+        assert 'Apache' in results[0].content
 
     def test_network_failure_returns_none(self, monkeypatch):
         from engines.platform_engines import GiteeEngine
@@ -430,6 +462,155 @@ class TestPlatformEngines:
         engine = GiteeEngine()
         assert engine.search('x') is None
         assert engine.is_available() is False
+
+
+# ============================================================
+# engines/academic_fulltext.py（arXiv 查询契约）
+# ============================================================
+
+class TestArxivFulltextQuery:
+    """arXiv 直连的端点与参数约定（防回退）。
+
+    实测事实：SEARCH_URL 必须是 https（http 每次多吃一个 301 跳转）；
+    服务端还会对部分查询返回 HTTP 406（宽查询、累计请求量下更易触发，规则未见文档
+    说明），因此引擎失败时把原因写进 engines.fallback.LAST_HTTP_ERROR，由 --probe 透出。
+    """
+
+    def _capture_url(self, monkeypatch):
+        import engines.academic_fulltext as af
+        seen = {}
+
+        def fake_get(url, **kwargs):
+            seen['url'] = url
+            return b'<feed xmlns="http://www.w3.org/2005/Atom"></feed>'
+
+        monkeypatch.setattr(af, '_http_get', fake_get)
+        return af, af.ArxivFulltextEngine(), seen
+
+    def test_endpoint_is_https(self):
+        import engines.academic_fulltext as af
+        assert af.ArxivFulltextEngine.SEARCH_URL.startswith('https://')
+
+    def test_search_query_precedes_max_results(self, monkeypatch):
+        _, engine, seen = self._capture_url(monkeypatch)
+        engine.search('transformer', max_results=3)
+        query_string = seen['url'].split('?', 1)[1]
+        assert query_string.index('search_query=') < query_string.index('max_results=')
+
+    def test_search_failure_exposes_http_reason_for_probe(self, monkeypatch):
+        """引擎返回 None 时，--probe 必须能说出为什么（而不是"所有引擎都不可用"）。"""
+        import engines.academic_fulltext as af
+        import engines.fallback as fb
+
+        def fake_get(url, **kwargs):
+            fb.LAST_HTTP_ERROR = 'HTTP 406'
+            return None
+
+        monkeypatch.setattr(af, '_http_get', fake_get)
+        assert af.ArxivFulltextEngine().search('transformer', max_results=3) is None
+        assert fb.LAST_HTTP_ERROR == 'HTTP 406'
+
+
+# ============================================================
+# plan.py 维度兜底 + research.py 相关性过滤（v6.5）
+# ============================================================
+
+class TestPlanDimensionFallback:
+    """未命中主题模板时必须回退到通用 MECE 骨架。
+
+    旧实现回退 ['综合'] → 即使 --effort deep 也只生成 1 个子问题，
+    breadth=8 的并行子 Agent 编排整体落空（实测）。
+    """
+
+    def test_unmatched_topic_still_yields_multiple_subquestions(self):
+        from plan import PlanGenerator
+        plan = PlanGenerator().generate_plan(
+            '大模型微调的成本与效率', depth='deep')
+        assert len(plan.dimensions) >= 4
+        assert len(plan.issue_tree) >= 4
+        assert plan.dimensions != ['综合']
+
+    def test_quick_depth_truncates_to_preset_size(self):
+        from plan import PlanGenerator
+        gen = PlanGenerator()
+        quick = gen.generate_plan('随便一个主题', depth='quick')
+        cap = gen.DEPTH_PRESETS['quick']['max_sub_questions']
+        assert len(quick.issue_tree) <= cap
+
+    def test_matched_template_still_wins_over_generic(self):
+        from plan import PlanGenerator
+        plan = PlanGenerator().generate_plan('LangChain vs LlamaIndex 对比', depth='standard')
+        assert '特性对比' in plan.dimensions
+
+
+class TestRelevanceFilter:
+    """低相关结果过滤：够用才丢，不够用就保留并告警（避免误杀整份报告）。
+
+    返回 (保留列表, 实际丢弃数, 低相关条数)。跨语言查询（中文主题 + 英文源）
+    相关性天然偏低，无脑过滤会把报告清空，所以只在高相关结果够数时才丢弃。
+    """
+
+    def _mk(self, relevance, title='t'):
+        return type('R', (), {'craap_score': {'relevance': relevance},
+                              'title': title})()
+
+    def test_drops_low_relevance_when_enough_strong_results(self):
+        from research import filter_by_relevance
+        results = [self._mk(80), self._mk(60), self._mk(50),
+                   self._mk(45), self._mk(40), self._mk(10), self._mk(5)]
+        kept, dropped, weak = filter_by_relevance(results, 30, 5)
+        assert (dropped, weak) == (2, 2)
+        assert len(kept) == 5
+        assert all(r.craap_score['relevance'] >= 30 for r in kept)
+
+    def test_keeps_everything_when_strong_results_insufficient(self):
+        from research import filter_by_relevance
+        results = [self._mk(12), self._mk(8), self._mk(5)]
+        kept, dropped, weak = filter_by_relevance(results, 30, 5)
+        assert dropped == 0 and weak == 3 and len(kept) == 3
+
+    def test_missing_score_counts_as_low_relevance(self):
+        from research import filter_by_relevance
+        results = [type('R', (), {'craap_score': None})(), self._mk(90)]
+        _, _, weak = filter_by_relevance(results, 30, 1)
+        assert weak == 1
+
+    def test_disabled_when_floor_zero(self):
+        from research import filter_by_relevance
+        results = [self._mk(1)]
+        assert filter_by_relevance(results, 0, 5) == (results, 0, 0)
+
+
+# ============================================================
+# 文档一致性与执行模型（防再次漂移）
+# ============================================================
+
+class TestDocConsistency:
+    ROOT = Path(__file__).resolve().parents[2]
+
+    def _skill_md(self):
+        return (self.ROOT / 'SKILL.md').read_text(encoding='utf-8')
+
+    def test_skill_does_not_run_forked(self):
+        """context: fork 会让 skill 在 10 turn 预算里被掐死（实测 reason=max_turns），
+        四阶段工作流跑不完 → 调研失败。这条断言守住执行模型不回退。"""
+        head = self._skill_md().split('---')[1]
+        assert 'context: fork' not in head
+        assert 'agent:' not in head
+
+    def test_reference_links_exist(self):
+        """SKILL.md 引用的 references/*.md 必须真实存在（曾有 14 份只在安装目录、未进版本库）。"""
+        import re
+        links = set(re.findall(r'references/([^\s)\]|]+\.md)', self._skill_md()))
+        missing = [l for l in sorted(links) if not (self.ROOT / 'references' / l).exists()]
+        assert not missing, f'SKILL.md 引用了不存在的参考文档: {missing}'
+
+    def test_skill_version_is_single_source(self):
+        """CLI banner 的版本号取自 SKILL.md frontmatter，不得再各写各的。"""
+        import re
+        from research import skill_version
+        m = re.search(r'^version:\s*(\S+)', self._skill_md(), re.M)
+        assert m and skill_version() == m.group(1)
 
 
 # ============================================================

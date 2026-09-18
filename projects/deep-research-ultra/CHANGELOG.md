@@ -5,6 +5,104 @@
 
 ---
 
+## v6.5.0（2026-09-18）— 执行模型纠偏 + 引擎真实性自检（实跑失败驱动修复）
+
+### 背景（真实故障现场）
+用户实跑"logo/品牌 VIS 开源方案调研"时 skill 报"调用失败、结果只剩开头一句"。取会话日志
+（`~/.qoder/logs/.../segments/*.jsonl`）定位到：
+
+```
+turn.finished turn_id=skill-deep-research-ultra data={"reason":"max_turns","num_turns":10}
+```
+
+**根因是架构级不匹配，不是网络或prompt问题**：
+
+1. `context: fork` 下 skill 作为子 Agent 运行，只有 **10 turn** 预算；四阶段工作流需要
+   25-40 次工具调用 → 第 10 轮刚发完最后一批搜索就被掐断，报告从未生成，主 Agent 只拿到
+   它的开场叙述（"只返回开头一句"的真相）。
+2. 那 10 个 turn 里 **7 个耗在探索性空转**（`ls` skill 目录、读目标项目 package.json/
+   tailwind/Icon.tsx、跑 `--help`），因为第 1 个动作 `--env-check` 就在 Windows GBK 控制台
+   `UnicodeEncodeError` 崩了，Agent 只能自行摸索绕过。
+3. fork 内 `AskUserQuestion` 不可用（Phase 1 澄清门依赖它）、嵌套 `Agent` 派发不可靠
+   （Phase 2.5 依赖它）——fork 与本 skill 的编排定位从设计上冲突。
+
+### 架构变更
+
+| 变更 | 说明 |
+|------|------|
+| 移除 `context: fork` / `agent:` | Lead 改为当前主 Agent 内联执行；上下文隔离交由 Phase 2.5 的子 Agent 承担检索扇出（Lead 只读汇总与账本状态） |
+| 新增 Phase 6 交付契约 | 报告一律落盘 `.research/<session>/report.md`，最终回复固定 ≤25 行短摘要（路径+一句话结论+要点+质量+未决）；快撑不住时先落盘再说话 |
+| 新增「零、执行模型与冷启动」 | 说明为何不 fork + 前三个动作硬约束（禁止探索 skill 自身/禁止代码考古/首 turn 并行跑完 Phase 0） |
+| Phase 0 加 `--probe` 门 | 环境门之外必须做引擎功能自检，全灭则不开工 |
+
+### P0 修复：Windows 控制台崩溃
+- 新增 `scripts/console.py:force_utf8()`，7 个 CLI 入口（research/ledger/panel/tier/
+  validate_report/repo_health/env_check）在 main 前强制 UTF-8，不再需要调用方设
+  `PYTHONIOENCODING`；回归测试断言"不崩 + 中文以 UTF-8 落管道"
+- 顺带修掉 `--list`/`--mcp-check`/`--plan-only`/HTML 页脚里硬编码的 `v4.0` banner，
+  版本号改为从 SKILL.md frontmatter 单源读取（`skill_version()`）
+
+### P0 修复：引擎"假可用"
+| 问题（实测） | 修复 |
+|------|------|
+| Gitee v5 搜索端点匿名请求恒返回 `[]`（带无效 token 才回 401），`--list` 却标 ✅ | `GiteeEngine.requires_config=True` + `GITEE_TOKEN`，无 token 直接判不可用；请求带 `access_token` |
+| ModelScope 关键词搜索端点（dolphin/models）已 404，恒 0 结果 | 收缩为**模型卡详情查询**（`/api/v1/models/{Path}/{Name}` 实测 200），不再声明 `search` 能力；文档同步 |
+| 裸数组空响应被折叠成 `None`，"0 结果"与"引擎坏了"混为一谈 | 契约分流：`None`=不可用，`[]`=0 结果 |
+| `--env-check` 只探测域名可达，socket 通就算 ✅ | 新增 `scripts/probe.py` + `research.py --probe`：按引擎定制探针查询，输出 ✅N条/⚠️0结果/❌原因/⏭跳过 四级判定，≥1 个 ✅ 才放行 |
+| 搜索 0 结果时统一甩锅"所有引擎都不可用，请运行 --mcp-check" | cmd_search 分别列出「已调通但 0 结果」与「未取到数据」的引擎名，并指向 `--probe` |
+| 引擎返回 None 后没人知道为什么（arXiv 实为 HTTP 406） | `engines/fallback.py` 记录 `LAST_HTTP_ERROR`，`--probe` 直接印出 `HTTP 406`/`缺少配置: X` |
+
+### P1 修复
+- **相关性过滤**：新增 `research.py:filter_by_relevance()` + `--min-relevance`（**默认 50**）。
+  此前中文查询"向量数据库 开源"经 OpenAlex 带回土地覆盖/图像质量论文，因总分把权威/时效
+  与相关性混加权而得 60-68 全部放行。策略：高相关结果够数才丢弃，不够数保留并显式告警
+  （避免跨语言查询被误杀成空报告）。
+  阈值按实测标定：`"vector database open source license"` 的 6 条垃圾结果（Open Babel/
+  Bioconductor/OQMD/Astropy/OsiriX）relevance 落在 45-55 之间，30 全放行、45 只报 2 条、
+  50 起告警；而 `"retrieval augmented generation survey"` 的 6 条真相关结果在 50 下零误报。
+  另测 `title_and_abstract.search:` 过滤虽更严但仍混入"疟疾媒介/视网膜血管"，故不改查询构造，
+  改由告警把问题暴露给 Lead
+- **MECE 维度兜底**：`plan.py` 未命中主题模板时回退 `['综合']` → deep 也只生成 1 个子问题，
+  breadth=8 的并行编排整体落空（实测）。改为 `GENERIC_DIMENSIONS` 5 维骨架兜底，并在
+  SKILL.md 明确"问题树由 Lead 拆，`--plan-only` 必须带 `--dimensions`"
+- 显式 `--sources` 点名的引擎即使未声明 `search` 能力也会被调用（否则文档里的
+  `--sources modelscope` 详情查询是空头支票；已实测可用）
+
+### 文档纠偏
+- README：`30 引擎`→`32 数据源`、`124 用例`→`176 用例`、`v6.0`→`v6.5`、evals 场景数 37→38
+- **14 份 references 调研文档从安装目录回收进版本库**（`GitHub深度搜索技巧调研.md`、
+  `intelligent-routing-research.md`、`optimization-plan-v5.md`、`大厂方法论落地调研-v2.md`、
+  `论文全文与引用图谱调研-v2.md`、`浏览器自动化与反爬虫调研-v2.md`、
+  `调研报告格式最佳实践调研.md`、`国内大厂深度研究方案调研-v3.md`、
+  `深度研究开源项目调研-v3.md`、`国内智能体平台与调研专家团调研.md`、
+  `anti-bot-research-2026.md`、`大厂深度研究方法论调研报告.md`、
+  `开源深度研究项目调研报告.md`、`科研论文检索方案调研报告.md`）。
+  它们此前只存在于 `~/.agents/skills/deep-research-ultra/references/`，
+  研仓库里的 `references/` 缺这 14 份 → SKILL.md §17 的链接在版本库视角下全是死链
+- 新增 3 条防漂移断言（`test_v6.py::TestDocConsistency`）：SKILL.md 不得回退到 fork 执行、
+  引用的 references 必须真实存在、CLI banner 版本单一来源于 SKILL.md frontmatter
+- §15 代码结构补齐 console/probe/similarity/repo_health/platform_engines 与 3 个新测试文件
+- 引擎数口径统一为「32 个数据源：28 个可搜索，15 个支持 --probe」
+- `.gitignore` 增加 `.research/`（Phase 6 产物目录约定）
+- requirements.txt 去掉过时的 v5.0 标注
+
+### 测试
+
+146 → **176 passed**（+30：GBK 控制台冒烟 4、probe 判定 9、平台引擎真实性契约 3、
+arXiv 端点与诊断透出 3、plan 维度兜底 3、相关性过滤 4、文档一致性守护 3、其余为契约修正）
+
+### 已知限制（如实记录）
+- **arXiv 直连不稳定**：部分查询（`transformer`、`all:"vector database"` 等宽/零命中查询）
+  被服务端判 `HTTP 406`，规则未见官方文档说明，冷却 45-180s 仍复现。学术调研主力请用
+  `openalex` / `semantic-scholar`；`--probe` 会把该失败如实标为 ❌ 并附 406 原因
+- **Gitee 需 `GITEE_TOKEN`**（v6.1 宣传的"免费公开 API 无需 key"不成立）
+- **ModelScope 不再参与关键词搜索**，只按精确 model id 取模型卡（许可证/下载量，供六维门取证）
+- 移除 fork 后调研在主 Agent 展开，长报告会占用更多主上下文——用子 Agent 扇出 +
+  文件化交付控制在 Phase 6 的短摘要内
+
+---
+
+
 ## v6.4.0（2026-09-18）— 语义级 claim 聚类（解决 v6.3 遗留的两处语义盲区）
 
 ### 背景

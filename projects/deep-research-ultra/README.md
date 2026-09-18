@@ -1,15 +1,16 @@
-# Deep Research Ultra — 超级深度调研工具 v6.0
+# Deep Research Ultra — 超级深度调研工具 v6.5
 
 > **Plan-Execute-Synthesize-Reflect 四阶段深度调研范式**
-> **子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级（v6.0）**
-> **MCP 服务器 + 全局 Skill + 内置工具 + 降级引擎的四层数据源架构（30 引擎）**
+> **Lead 内联编排 + 子 Agent 并行检索 + 深度调研专家团 + 证据账本与分级**
+> **MCP 服务器 + 全局 Skill + 内置工具 + 降级引擎的四层数据源架构（32 个数据源）**
 
 🚀 **[点击查看教程网页](https://harryopo.github.io/deep-research-ultra/)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-orange.svg)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-6.0.0-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-6.5.0-brightgreen.svg)]()
+
 
 ---
 
@@ -24,6 +25,10 @@
 | 🏷️ **来源 Tier 分级（v6.0）** | Tier 1-4 域名判定，CRAAP 集成加权，报告附录 D 展示 |
 | ✅ **发布前校验门（v6.0）** | 引用一致性 / 覆盖率 / 必需章节 / 低质源占比 / 摘要长度 |
 | 🎚️ **effort 分级 + breadth 旋钮（v6.0）** | quick/standard/deep/exhaustive + 并行子主题数 |
+| 🔬 **引擎功能自检 `--probe`（v6.5）** | 探针查询实测每个引擎今天出不出得来数据，区分「0 结果 / 401 缺配置 / 406 限流」，杜绝 `--list` 假绿 |
+| 📦 **文件化交付契约（v6.5）** | 报告一律落盘 `.research/<session>/report.md`，返回值只给 ≤25 行短摘要（长正文塞返回值会被截断） |
+| 🖥️ **Windows 控制台自适应（v6.5）** | CLI 强制 UTF-8 输出，GBK 代码页不再 UnicodeEncodeError |
+| 🎯 **相关性过滤（v6.5）** | 无关结果不再靠"权威/时效"加权混进报告；高相关结果不足时保留并显式告警 |
 | 🏗️ **四层数据源** | MCP 服务器 → 全局 Skill → Claude 内置 → 降级引擎 |
 | 🌲 **MECE 问题树** | 麦肯锡 MECE 原则拆解主题，互斥穷尽不遗漏 + 多视角注入 |
 | 📊 **CRAAP 评分** | 五维可信度评估（时效/相关/权威/准确/目的） |
@@ -353,14 +358,17 @@ deep-research-ultra/
 │   ├── cache.py                # LRU 缓存
 │   └── tests/
 │       ├── test_core.py        # 核心单元测试
-│       └── test_v6.py          # v6 模块单元测试（共 124 个用例）
+│       ├── test_console.py     # GBK 控制台冒烟（CLI 不崩 + UTF-8 输出）
+│       ├── test_probe.py       # 引擎功能自检判定
+│       └── test_v6.py          # tier/ledger/panel/validate/plan/score/平台引擎/相关性过滤
 ├── evals/
-│   └── evals.json              # 评测集（37 个场景，含 v6 五场景）
+│   └── evals.json              # 评测集（38 个场景，含 v6 五场景）
 └── references/
     ├── mcp-config.md           # MCP 配置指南
     ├── tool-integration.md     # 工具集成指南
     ├── v6-research-notes.md   # v6 方法论与开源方案调研笔记
-    └── ...（历史调研归档）
+    ├── optimization-plan-v4.md # 四层架构优化方案
+    └── migration-v3-to-v4.md  # v3→v4 迁移指南
 ```
 
 ---
@@ -369,7 +377,7 @@ deep-research-ultra/
 
 | 特性 | Deep Research Ultra v6 | Perplexity | OpenAI Deep Research | LangChain open_deep_research |
 |------|------------------------|------------|---------------------|------------------------------|
-| **架构** | 四层 30 引擎 + 四阶段 + 多 Agent 编排 | 单引擎 | 闭源 | 单框架 |
+| **架构** | 四层 32 数据源 + 四阶段 + Lead 编排 | 单引擎 | 闭源 | 单框架 |
 | **子 Agent 并行** | ✅ 并行派发 + 证据账本 | ❌ | ✅ | ❌ |
 | **专家团评审** | ✅ 多视角 + 对抗闭环 | ❌ | ❌ | ❌ |
 | **证据账本** | ✅ claim→source 可溯源 | ❌ | ❌ | ❌ |
@@ -390,7 +398,7 @@ deep-research-ultra/
 ## 🧪 测试
 
 ```bash
-# 运行单元测试（124 个用例）
+# 运行单元测试（176 个用例）
 cd scripts && python -m pytest tests/ -v
 
 # 端到端测试（dry-run）
@@ -509,4 +517,4 @@ class NewEngine(SearchEngine):
 
 ---
 
-*v6.0 · 2026-09-18 · 四阶段范式 + 子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级；更新历史见 CHANGELOG.md*
+*v6.5 · 2026-09-18 · 四阶段范式 + Lead 内联编排 + 引擎功能自检 + 文件化交付契约；更新历史见 CHANGELOG.md*

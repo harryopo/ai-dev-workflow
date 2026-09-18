@@ -1,5 +1,6 @@
-# Deep Research Ultra v5.0 — Python 依赖
+# Deep Research Ultra — Python 依赖（当前版本见 SKILL.md frontmatter，历史见 CHANGELOG.md）
 # 核心模块仅使用 Python 标准库（urllib/json/subprocess），无需第三方依赖即可运行
+# 注意：未装 ddgs 时 Layer 4 的 duckduckgo 引擎不可用，用 `research.py --probe` 确认
 
 # Layer 4 降级引擎依赖（必需，用于 DuckDuckGo 搜索）
 ddgs>=6.0.0

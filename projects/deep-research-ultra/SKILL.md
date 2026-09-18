@@ -1,19 +1,46 @@
 ---
 name: deep-research-ultra
-version: 6.4.0
+version: 6.5.0
 description: |
-  超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，集成子 Agent 并行编排（Orchestrator-Worker）与深度调研专家团（多视角对抗/审稿人闭环），支持证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验；智能路由（三级级联）自动匹配 32 个引擎（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬）。
+  超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，由主 Agent 担任 Lead 编排子 Agent 并行检索（Orchestrator-Worker），配合深度调研专家团（多视角对抗/审稿人闭环）、证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验门；智能路由（三级级联）匹配 32 个数据源（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬），引擎真实可用性由 --probe 自检把关。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
-context: fork
-agent: general-purpose
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent WebSearch WebFetch
 ---
 
 # Deep Research Ultra — 超级深度调研工具
 
 **Plan → Execute → Synthesize → Reflect 四阶段深度调研范式**
-**子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级**
-**智能路由（三级级联） + 四层数据源（32 引擎） + GitHub 深度搜索 + 国内内容源 + 推荐度评分**
+**Lead 内联编排 + 子 Agent 并行检索 + 深度调研专家团 + 证据账本与分级**
+
+---
+
+## 零、执行模型与冷启动（先读这一节）
+
+### 0.1 执行模型：Lead 就是当前主 Agent
+
+本 skill **不 fork 运行**（`context: fork` 已移除）。原因：forked 子 Agent 只有 **10 个 turn**
+的预算（实测 `turn.finished reason=max_turns num_turns=10`），而四阶段工作流需要 25-40 次
+工具调用——fork 会在还没写报告前就被掐断，主 Agent 只收到它的开场白，表现为"调研失败/结果截断"。
+fork 里同时无法 `AskUserQuestion`（Phase 1 的澄清门必须要它），嵌套 `Agent` 派发也不可靠。
+
+因此：**主 Agent 担任 Lead，亲自跑四阶段；上下文的隔离与膨胀问题交给子 Agent 承担检索扇出**
+（Phase 2.5），Lead 只读汇总与账本状态，不亲自吞下原始搜索结果。
+
+### 0.2 前三个动作（硬约束，防探索性空转）
+
+实测一次失败运行里，fork 用 10 个 turn 中的 7 个去 `ls` skill 目录、读目标项目
+package.json/tailwind 配置、跑 `--help` —— 真正的检索只剩 3 个 turn。所以：
+
+1. **不要探索 skill 自身**：不 `ls` 脚本目录、不读 `scripts/*.py` 源码、不跑 `--help`。
+   本文件就是唯一接口文档，命令照抄即可。
+2. **不要为调研对象做代码考古**：目标项目的代码/资产只在结论依赖它时才读（如"适配性"维度）。
+3. **第 1 个 turn 就把 Phase 0 的两条命令并行跑完**（环境门 + 引擎自检），
+   第 2 个 turn 跑 Phase 1 的 `--plan-only`。**每个 turn 尽量并行发多条命令/多个子 Agent**。
+
+### 0.3 交付契约（决定成败的一条）
+
+报告**必须落盘**，返回值**必须是短摘要**——见 Phase 6。长正文塞进返回值会被截断，
+等价于调研失败。
 
 ---
 
@@ -99,38 +126,55 @@ python "${SKILL_DIR}/scripts/research.py" "深度调研大语言模型微调" --
 
 ## 三、四阶段工作流
 
-### Phase 0: Pre-flight（环境配置门 — 必过，v6.1）
+### Phase 0: Pre-flight（环境门 — 必过）
 
-**原则**：按调研场景先验证环境，就绪后才启动；未就绪先引导配置，不硬跑。
+**原则**：按调研场景先验证环境与引擎，就绪后才启动；未就绪先引导配置，不硬跑。
 
 **步骤 0.1 判定场景 → 环境分级（profile）**
 
 | 调研场景 | profile | 必需环境 | 可选增强（缺失仅告警） |
 |----------|---------|----------|------------------------|
 | 快速浏览 / 通用搜索 | `minimal` | Python + 内置引擎 + 网络 | — |
-| **开源项目调研** | `opensource` | Python + 网络（Gitee/ModelScope/arXiv API 免费直连） | `GITHUB_TOKEN`；oss-finder/agent-reach 等全局 skill |
-| 学术论文调研 | `academic` | Python + 网络（arXiv/S2/OpenAlex 免费直连） | `UNPAYWALL_EMAIL`、`GITHUB_TOKEN` |
+| **开源项目调研** | `opensource` | Python + 网络（GitHub/OpenAlex 免费直连） | `GITHUB_TOKEN`、`GITEE_TOKEN`；oss-finder/agent-reach 等全局 skill |
+| 学术论文调研 | `academic` | Python + 网络（OpenAlex/S2/PubMed 直连） | `UNPAYWALL_EMAIL`、`GITHUB_TOKEN` |
 | 全量深度调研 | `full` | Python + 网络 + MCP（setup-mcp.sh --core） | Tavily/Firecrawl/Crawl4AI/`claude`/`npx` |
 
-**步骤 0.2 环境验证**（逐项：命令 / 环境变量 / 全局 skill / 模块 / 网络连通）
+**步骤 0.2 两条命令并行跑完（同一个 turn 内发出）**
 
 ```bash
-# 开源调研（通常零配置即可就绪）
-python "${SKILL_DIR}/scripts/research.py" --env-check --env-profile opensource   # 加 --no-net 可跳过网络探测
+# ① 环境验证（命令 / 环境变量 / 全局 skill / 模块 / 网络连通）
+python "${SKILL_DIR}/scripts/research.py" --env-check --env-profile opensource   # 加 --no-net 跳过网络探测
 
-# 学术 / 全量
-python "${SKILL_DIR}/scripts/research.py" --env-check --env-profile academic
-python "${SKILL_DIR}/scripts/research.py" --env-check --env-profile full
+# ② 引擎功能自检：真实发一次探针查询，验证"今天出不出得来数据"
+python "${SKILL_DIR}/scripts/research.py" --probe
 ```
 
-**步骤 0.3 门控**：验证输出缺失项时（exit ≠ 0），先引导用户配置——缺失命令/环境变量/skill/网络按提示补齐后重跑验证；全部 ✅ 才进入 Phase 1。
+> 脚本自身强制 UTF-8 输出，**无需**设置 `PYTHONIOENCODING` / `PYTHONUTF8` / `-X utf8`。
+
+**步骤 0.3 为什么必须 --probe（不能只看 --list / --env-check）**
+
+`--list` 的 ✅ 只代表「依赖与配置就绪」，`--env-check` 只探测「域名是否连通」——两者都会
+给死引擎开绿灯。实测：Gitee 匿名搜索端点静默返回 `[]`、ModelScope 关键词搜索端点已 404、
+arXiv 对部分宽查询回 HTTP 406，而它们在 `--list` 里全是 ✅。`--probe` 用按引擎定制的探针
+查询实测，输出四级判定：
+
+| 判定 | 含义 | Lead 动作 |
+|------|------|-----------|
+| ✅ N 条 | 功能正常（附首条标题，可当场判断相关性） | 纳入 Phase 1 的 `--sources` 分配 |
+| ⚠️ 0 结果 | 调通但没数据（查询词无命中 / 契约变更 / 需授权） | 换源或补配置，不得当可用 |
+| ❌ 未取到数据 | 附具体原因（`HTTP 406`、`缺少配置: GITEE_TOKEN`、`依赖/服务未就绪`） | 按原因修配置或绕开该源 |
+| ⏭ 跳过 | 非搜索类（如 modelscope 模型卡详情） | 按需单独调用 |
+
+**步骤 0.4 门控**：`--env-check` 通过且 `--probe` ≥1 个 ✅ 才进 Phase 1。`--probe` 全灭时
+**不要开始调研**——把缺项报给用户并引导修复，比硬跑出一份没依据的报告更有价值。
 
 ```bash
-# 缺失 MCP → 一键配置（免费模式）
+# 缺失 MCP → 一键配置（免费模式）；只测某几个引擎用 --sources a,b
 bash "${SKILL_DIR}/scripts/setup-mcp.sh" --core
-# 验证引擎与数据源
-python "${SKILL_DIR}/scripts/research.py" --list
+python "${SKILL_DIR}/scripts/research.py" --list           # 配置态清单（不等于功能可用）
+python "${SKILL_DIR}/scripts/research.py" --probe --sources openalex,baidu-serp
 ```
+
 
 ### Phase 1: Plan（规划）— MECE 问题树 + 6 状态机
 
@@ -153,9 +197,11 @@ pending → searching → verified | conflict | supplementing → completed
 
 **步骤**：
 1. 主题澄清（AskUserQuestion）：调研目标 / 深度 / 维度 / 时间范围
-2. MECE 拆解：生成 Issue Tree（参考 `scripts/plan.py`）
+2. **MECE 拆解由 Lead 亲自做**——`scripts/plan.py` 不替你拆问题树，它只把你给的
+   `--dimensions` 展开成骨架并做 MECE 校验。**不传 `--dimensions` 就只能拿到通用骨架**，
+   子问题质量直接决定报告质量。
 3. 假设生成：每个子问题给出可验证假设
-4. 数据源匹配：智能路由自动选择（或手动指定）
+4. 数据源匹配：用 Phase 0 `--probe` 的实际 ✅ 清单做 `--sources` 分配（路由只给建议）
 5. 多视角注入：每个子问题默认挂 3 个对抗视角（域专家-准确性 / 怀疑者-矛盾反例 / 实践者-可落地性），`--perspectives 0` 可关闭
 
 **努力程度分级（effort）决策树**（对齐社区 depth/breadth 共识）：
@@ -171,21 +217,31 @@ pending → searching → verified | conflict | supplementing → completed
 
 > 决策规则：任务重要性高 / 结论将有决策用途 → 至少 `deep`；时间紧 / 快速浏览 → `quick`。
 > `--breadth N` 显式覆盖并行子 Agent 数；`--effort` 与 `--depth` 同时给出时以 `--effort` 为准。
+> **子问题数 = `--dimensions` 的个数**：想要 7-10 个子问题就要给 7-10 个维度，否则 breadth 空转。
 
 ### Phase 1.5: 计划确认门
 
 **目标**：把选择权交给用户，避免返工。
 
 ```
-计划输出 → 呈现「待确认清单」→ 用户增删子问题/调整深度 → 批准 → 才进 Execute
+Lead 拆维度 → --plan-only 出计划与待确认清单 → 用户增删/调深度 → 批准 → 才进 Execute
 ```
 
-1. 运行 `python research.py "<主题>" --plan-only` 生成计划 + 待确认清单（子问题列表 / 建议 effort / breadth / 专家团视角 / 数据源链）
+1. 运行 `--plan-only`，**必须带上你拆好的 `--dimensions`**（否则只会得到通用骨架，
+   与你的主题相关性存疑）：
+
+   ```bash
+   python "${SKILL_DIR}/scripts/research.py" "<主题>" --plan-only --effort deep \
+     --dimensions "现状与主要玩家,技术路线,生态与成熟度,许可与合规,落地成本,风险与反例" \
+     --goal "<用户要拿这份报告做什么决策>"
+   ```
+
 2. 用 **AskUserQuestion** 让用户确认或调整：
    - 子问题是否需要增删（MECE 之外还想看什么）
    - `--effort/--breadth` 是否要升降级
    - 专家团视角是否需要增删（`--perspectives`）
 3. 用户批准后，才进入 Phase 2 执行
+
 
 ### Phase 2: Execute（执行）— 并行子 Agent + 反思循环
 
@@ -236,7 +292,7 @@ Lead（主 Agent）
 你是 deep-research-ultra 的子研究员（Sub-Researcher）。
 主题: {subtopic}
 视角: {perspective}（域专家/怀疑者/实践者等，见 --perspectives）
-指定引擎: {engines}（由 Lead 从 32 引擎中按主题分配）
+指定引擎: {engines}（由 Lead 从 Phase 0 `--probe` 报 ✅ 的引擎中按主题分配）
 
 任务:
 1) 用 python "{SKILL_DIR}/scripts/research.py" "{subtopic}" --no-cache 检索（若指定引擎则加 --sources {engines}）
@@ -248,8 +304,10 @@ Lead（主 Agent）
 
 > **status 语义（真实性核心）**：子 Agent 一律写 `pending`——**verified 只能由 Lead 在归并阶段经交叉验证（≥2 独立来源）显式赋予**，禁止未验证即标 verified。
 
-- **并行派发**：Lead 对全部叶子子问题**一次性并行** `Agent` 调用（每子 Agent 独立上下文）；breadth = `--breadth` 值
-- **并发写安全（v6.3）**：子 Agent 各自写独立分片文件 `{ledger_dir}/{slug}.json`，**不直写共享 ledger.jsonl**（多进程并发追加整行不保证原子）；Lead 归并时统一 `ledger.py merge --dir` 收编去重
+- **并行派发**：Lead 对全部叶子子问题**一次性并行** `Agent` 调用（每子 Agent 独立上下文）；breadth = `--breadth` 值。**一次 turn 发完**，不要一个子问题一个 turn 串行派
+- **Lead 不吞原始结果**：子 Agent 的返回值只该是"写了哪几个分片文件 + 几条 claim/几个源"，
+  原始搜索结果留在子 Agent 的上下文里，不进 Lead
+- **并发写安全**：子 Agent 各自写独立分片文件 `{ledger_dir}/{slug}.json`，**不直写共享 ledger.jsonl**（多进程并发追加整行不保证原子）；Lead 归并时统一 `ledger.py merge --dir` 收编去重
 - **归并**：所有子 Agent 完成后，Lead 运行 `python scripts/ledger.py status --session {ledger_dir}` → 处理 conflict → 按交叉验证结果把达标 claim 升级 verified → 生成 outline
 - **证据账本目录约定**：`{workspace}/.research/{session_id}/ledger/`
 
@@ -384,9 +442,49 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 
 > 校验通过（exit 0）后才向用户交付；`--format html/markdown/json` 均可先导出再校验。
 
+### Phase 6: 交付契约（落盘 + 短摘要）
+
+**铁律**：报告正文一律落盘，**返回值只给短摘要**。长正文塞进返回值/最终消息会被截断，
+等价于调研失败——历史上那次"调研只返回开头一句"就是这个原因。
+
+**产物目录**（一次调研一个 session，全程可续）：
+
+```
+{workspace}/.research/{session_id}/
+├── ledger/            # claim→source 证据账本（子 Agent 分片 + merge）
+├── outline.md         # Phase 3 大纲（可选）
+├── report.md          # 交付物（正文）
+└── report.html        # 交付物（--format html 时）
+```
+
+**落盘顺序**：Lead 依据账本写 `report.md` → 跑 `validate_report.py` → 通过后才回复用户。
+中途快撑不住（上下文/turn/时间接近上限）时，**先把当前版本的 report.md 落盘再说话**，
+并在摘要里写明"未完成的部分"——留下可用的半成品，好过什么都不留下。
+
+**最终回复模板（≤25 行，严格按此结构）**：
+
+```
+📄 报告：<report.md 的绝对路径>（<字数> 字，<N> 个来源，校验 passed）
+
+一句话结论：<用户要的决策答案>
+
+要点
+- <结论>（[3][7]）
+- <结论>（[1]，⚠️ 单源待补）
+- ...（3-5 条）
+
+质量：覆盖率 X% ｜ 交叉验证率 Y% ｜ 矛盾 Z 处已标注 ｜ 引擎 <✅数>/<探测数> 通过自检
+
+未决 / 风险：<还缺什么证据、哪些结论不得直接用于决策>
+
+下一步：<可选：加深某维度 / 补查某条 claim / 出 HTML 版>
+```
+
+正文细节、来源全表、MECE 树、Tier 分布都留在文件里，不粘贴到对话。
+
 ---
 
-## 四、四层数据源架构（共 32 个引擎）
+## 四、四层数据源架构（共 32 个数据源：28 个可搜索，15 个支持 --probe 自检）
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -412,6 +510,8 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 │  ├── context7            库文档拉取                                  │
 │  ├── GitHub Deep Search  分桶+低星+依赖图+awesome（不漏项目）        │
 │  ├── GitHub Code Search  GitHub Code Search API（代码级）            │
+│  ├── Gitee               仓库搜索（v5 搜索端点需 GITEE_TOKEN）        │
+│  ├── ModelScope          模型卡详情（仅精确 id；无关键词搜索端点）     │
 │  ├── Baidu SERP          百度搜索（国内主力）                        │
 │  ├── Sogou 微信          微信公众号文章                              │
 │  ├── Sogou 知乎          知乎问答                                    │
@@ -552,8 +652,8 @@ influential = e.get_influential_citations(paper_id="2404.19756")
 | 类别 | 数据源 | 获取方式 |
 |------|--------|----------|
 | 海外代码平台 | GitHub 深搜（分桶+低星+依赖图+awesome）、GitHub Code Search | 免费 API，可选 `GITHUB_TOKEN` 提速 |
-| **国内代码平台** | **Gitee**（`gitee` 引擎，免费 API） | 免费直连 |
-| **国内模型/项目集市** | **魔搭 ModelScope**（`modelscope` 引擎，免费 API） | 免费直连 |
+| **国内代码平台** | **Gitee**（`gitee` 引擎） | 需 `GITEE_TOKEN`（匿名请求实测静默返回 `[]`） |
+| **国内模型集市** | **魔搭 ModelScope**（`modelscope` 引擎） | 仅按精确 model id 取模型卡（关键词搜索端点已下线） |
 | 多平台聚合 | oss-finder（GitHub/GitLab/Gitee/npm/PyPI） | 全局 skill |
 | **算法论文（必查）** | arXiv / OpenAlex / Semantic Scholar（搜索项目名/技术名自动附带论文） | 免费直连 |
 | 官方文档 | context7（库文档）、defuddle（官方站抓取）；Tier 1-2 官方域优先 | MCP/skill |
@@ -565,11 +665,13 @@ influential = e.get_influential_citations(paper_id="2404.19756")
 **命令示例**：
 
 ```bash
-# 一键执行开源调研（项目源 + 论文源双查由路由自动编排）
-python "${SKILL_DIR}/scripts/research.py" "RAG 开源实现 魔搭/Gitee 项目" --auto-route --sources oss-finder,gitee,modelscope,arxiv,openalex
+# 一键执行开源调研（引擎清单以 Phase 0 --probe 的 ✅ 结果为准，下例为默认可用的组合）
+python "${SKILL_DIR}/scripts/research.py" "RAG 开源实现" --auto-route \
+  --sources oss-finder,github-deep-search,openalex,baidu-serp --ledger .research/s1/ledger
 
-# 单引擎直达国内平台
-python "${SKILL_DIR}/scripts/research.py" "向量数据库 开源" --sources gitee,modelscope
+# 配了 GITEE_TOKEN 才能用 Gitee；ModelScope 只能按精确 id 取模型卡
+python "${SKILL_DIR}/scripts/research.py" "向量数据库" --sources gitee
+python "${SKILL_DIR}/scripts/research.py" "Qwen/Qwen2.5-7B" --sources modelscope   # 详情查询
 ```
 
 **真实性 / 可追溯（硬规则）**：
@@ -1026,17 +1128,22 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 
 ```
 scripts/
-├── research.py              # 主入口（--auto-route/--route/--depth/--effort/--breadth/--ledger/--perspectives）
+├── research.py              # 主入口（--env-check/--probe/--auto-route/--effort/--breadth/--dimensions/--ledger/--min-relevance）
+├── console.py               # CLI 强制 UTF-8 输出（Windows GBK 控制台曾直接 UnicodeEncodeError）
+├── probe.py                 # 引擎功能自检（探针查询表 + ok/empty/failed 判定）
+├── env_check.py             # 环境分级验证（minimal/opensource/academic/full）
 ├── search.py                # 引擎兼容入口（保留 --sources baidu,bing 等旧参数）
 ├── setup-mcp.sh             # MCP 一键配置脚本
 ├── router.py                # 智能路由（三级级联 Rule→Semantic→LLM）
 ├── recommend.py             # 推荐度评分（GitHub/PaperRecommender + detect_intent）
 ├── tier.py                  # 来源 Tier 分级（域名校验，score/report/validate 共用）
 ├── ledger.py                # 证据账本（claim→source 可溯源，多子Agent并发写）
+├── similarity.py            # 转载指纹去重 + claim 语义聚类 + 数值矛盾检测
+├── repo_health.py           # 仓库健康扫描（官方 API 事实 + 停更 + 许可证传染 + OSV CVE）
 ├── panel.py                 # 专家团评审清单生成（多视角 + 红蓝对抗契约）
-├── validate_report.py       # 发布前校验门（引用一致性/覆盖率/章节/Tier4占比/摘要长度）
+├── validate_report.py       # 发布前校验门（引用一致性/反查/覆盖率/章节/Tier4占比/六维要素）
 ├── engines/
-│   ├── __init__.py          # 引擎导出聚合（32 个引擎）
+│   ├── __init__.py          # 引擎导出聚合（32 个数据源，28 个可搜索）
 │   ├── base.py              # SearchEngine 抽象基类 + EngineMetadata + EngineRegistry
 │   ├── mcp_client.py        # MCP 客户端封装
 │   ├── mcp_engines.py       # MCP 服务器封装（Tavily/Firecrawl/open-websearch/arxiv/paper-search）
@@ -1044,11 +1151,12 @@ scripts/
 │   ├── academic_fulltext.py # 学术全文+引用图谱（arXiv全文/Unpaywall/S2图谱）
 │   ├── skill_engines.py     # 全局 skill 封装（agent-reach/oss-finder/last30days/sciverse/defuddle/context7）
 │   ├── github_deep_search.py# GitHub 深度搜索（分桶+低星+依赖图+awesome）+ Code Search
+│   ├── platform_engines.py  # 国内平台（Gitee 需 token / ModelScope 模型卡详情）
 │   ├── cn_sources.py        # 国内内容源（百度/搜狗微信/搜狗知乎/百度学术）
 │   ├── builtin.py           # Claude 内置工具封装（WebSearch/WebFetch）
 │   ├── crawl4ai_engine.py   # Crawl4AI 浏览器自动化 + LayeredCrawler
-│   └── fallback.py          # 降级引擎（ddgs/百度/Bing/SearXNG）+ curl_cffi TLS 伪装
-├── plan.py                  # MECE 问题树 + 6 状态机（多视角注入 + evidence_count）
+│   └── fallback.py          # 降级引擎（ddgs/百度/Bing/SearXNG）+ curl_cffi TLS 伪装 + LAST_HTTP_ERROR 诊断
+├── plan.py                  # MECE 问题树 + 6 状态机（多视角注入 + 通用维度兜底）
 ├── score.py                 # CRAAP 五维评分（Tier 加权 + has_low_quality_ratio）
 ├── verify.py                # 交叉验证（矛盾检测）
 ├── reflect.py               # 反思循环 + 多信号停止（证据充分性/边际claim收敛）
@@ -1057,7 +1165,9 @@ scripts/
 ├── cache.py                 # LRU 缓存
 └── tests/
     ├── test_core.py         # 核心模块单元测试
-    └── test_v6.py           # 模块单元测试（tier/ledger/panel/validate/plan/reflect/score）
+    ├── test_console.py      # GBK 控制台冒烟（CLI 不崩 + 中文以 UTF-8 落管道）
+    ├── test_probe.py        # 功能自检判定（0 结果 ≠ 可用）
+    └── test_v6.py           # tier/ledger/panel/validate/plan/reflect/score/平台引擎/相关性过滤
 ```
 
 ---
@@ -1066,13 +1176,19 @@ scripts/
 
 - ❌ **禁止跳过澄清** — 模糊主题必须先确认
 - ❌ **禁止无来源结论** — 每个结论必须有出处
-- ❌ **禁止静默降级** — 数据源不可用时必须告知用户
+- ❌ **禁止静默降级** — 数据源不可用时必须告知用户（哪个引擎、什么原因、换成了什么）
 - ❌ **禁止单源结论** — 关键结论需 ≥2 独立来源
 - ❌ **禁止递归调用本 skill** — 子 Agent 的 prompt 中不得包含"深度调研"、"帮我研究"、"全面分析"等触发词
 - ❌ **禁止使用 HTML regex 解析** — 已弃用，改用 MCP 或 defuddle 或 Crawl4AI
 - ❌ **禁止遗漏低星项目** — 开源调研必须使用 GitHub 深度搜索（分桶+低星+依赖图+awesome）
 - ❌ **禁止结论无账本引用** — 复杂调研（effort ≥ standard）结论必须带 [N] 编号并过发布前校验门
 - ❌ **禁止跳过专家团** — effort ≥ deep 的调研必须过专家团评审（域专家/怀疑者/实践者）
+- ❌ **禁止忽略相关性告警** — 搜索输出「⚠️ N 条与查询词几乎无重叠」时，必须换查询词/补
+  `--sources` 重跑，或把相关结论降级为"待确认"；`--min-relevance`（默认 50）不是可调到 0 的装饰
+- ❌ **禁止把长报告正文塞进返回值/最终消息** — 一律落盘 report.md，回复只给 Phase 6 的短摘要
+- ❌ **禁止跳过 --probe** — `--list`/`--env-check` 的 ✅ 只代表配置就绪，不代表今天出得来数据
+- ❌ **禁止探索性空转** — 不 `ls` skill 目录、不读脚本源码、不跑 `--help`；文档即接口
+- ❌ **禁止只跑不落地** — 每个阶段都要落盘（账本/大纲/报告），中断必须留得下可续用的产物
 
 ---
 
@@ -1081,17 +1197,24 @@ scripts/
 ### 内部参考
 
 - [references/mcp-config.md](references/mcp-config.md) — MCP 配置指南
-- [references/optimization-plan-v5.md](references/optimization-plan-v5.md) — 优化方案（optimization-plan）
+- [references/tool-integration.md](references/tool-integration.md) — 外部工具/skill 集成契约
+- [references/optimization-plan-v4.md](references/optimization-plan-v4.md) — 四层架构优化方案
+- [references/optimization-plan-v5.md](references/optimization-plan-v5.md) — v5 优化方案
+- [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) — v3→v4 迁移指南
+- [references/v6-research-notes.md](references/v6-research-notes.md) — 方法论与开源方案调研笔记（12 前沿模式 + Top 12 开源 + 能力缺口映射）
+- [references/intelligent-routing-research.md](references/intelligent-routing-research.md) — 智能路由设计
 - [references/大厂方法论落地调研-v2.md](references/大厂方法论落地调研-v2.md) — Kimi/秘塔方法论
 - [references/论文全文与引用图谱调研-v2.md](references/论文全文与引用图谱调研-v2.md) — arXiv/Unpaywall/S2
 - [references/浏览器自动化与反爬虫调研-v2.md](references/浏览器自动化与反爬虫调研-v2.md) — Crawl4AI/curl_cffi
-- [references/intelligent-routing-research.md](references/intelligent-routing-research.md) — 智能路由设计
 - [references/GitHub深度搜索技巧调研.md](references/GitHub深度搜索技巧调研.md) — GitHub 深度搜索技巧
 - [references/调研报告格式最佳实践调研.md](references/调研报告格式最佳实践调研.md) — 报告格式最佳实践
 - [references/国内大厂深度研究方案调研-v3.md](references/国内大厂深度研究方案调研-v3.md) — 国内大厂深度研究
 - [references/深度研究开源项目调研-v3.md](references/深度研究开源项目调研-v3.md) — 开源深度研究项目
 - [references/国内智能体平台与调研专家团调研.md](references/国内智能体平台与调研专家团调研.md) — 国内智能体平台与专家团
-- [references/v6-research-notes.md](references/v6-research-notes.md) — 方法论与开源方案调研笔记（12 前沿模式 + Top 12 开源 + 能力缺口映射）
+- [references/anti-bot-research-2026.md](references/anti-bot-research-2026.md) — 反爬虫专题调研
+- [references/大厂深度研究方法论调研报告.md](references/大厂深度研究方法论调研报告.md) — 大厂方法论（早期调研）
+- [references/开源深度研究项目调研报告.md](references/开源深度研究项目调研报告.md) — 开源项目（早期调研）
+- [references/科研论文检索方案调研报告.md](references/科研论文检索方案调研报告.md) — 论文检索方案
 
 ### 外部参考
 
@@ -1137,7 +1260,20 @@ python -m pytest tests/ -v
 # - tier.py: domain_tier / tier_label / tier_penalty
 # - ledger.py: ResearchLedger（并发追加 / merge / status / export_md）
 # - panel.py: PanelReviewer（perspectives / review_outline / review_draft）
-# - validate_report.py: validate_report（引用一致性 / 覆盖率 / 章节 / Tier4 占比 / 摘要长度）
+# - validate_report.py: validate_report（引用一致性 / 反查 / 覆盖率 / 章节 / Tier4 占比 / 六维要素）
+# - console.py: GBK 控制台冒烟（CLI 不崩 + 中文以 UTF-8 落管道）
+# - probe.py: 功能自检判定（0 结果 ≠ 可用 / 缺配置可见 / 异常归失败）
+# - platform_engines.py: Gitee 需 token / 空数组≠不可用 / ModelScope 仅详情
+# - research.py: filter_by_relevance（够用才丢，不够用保留并告警）
+# - plan.py: 维度兜底（未命中模板也出 ≥4 个子问题）
+```
+
+真实环境验证（联网，非单测）：
+
+```bash
+python "${SKILL_DIR}/scripts/research.py" --probe                 # 引擎功能自检
+python "${SKILL_DIR}/scripts/research.py" "<主题>" --plan-only --effort standard \
+  --dimensions "现状与主要玩家,技术路线,生态与成熟度,风险与局限,落地成本"   # 子问题数应等于维度数
 ```
 
 ---

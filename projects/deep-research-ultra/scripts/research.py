@@ -46,6 +46,21 @@ from typing import List, Optional
 SCRIPT_DIR = Path(__file__).parent.resolve()
 sys.path.insert(0, str(SCRIPT_DIR))
 
+SKILL_MD = SCRIPT_DIR.parent / 'SKILL.md'
+
+
+def skill_version() -> str:
+    """版本号单一来源：SKILL.md frontmatter（此前 banner 硬编码 v4.0，与实际版本漂移）。"""
+    import re
+    try:
+        for line in SKILL_MD.read_text(encoding='utf-8').splitlines()[:15]:
+            m = re.match(r'\s*version:\s*(\S+)', line)
+            if m:
+                return m.group(1)
+    except OSError:
+        pass
+    return '0.0.0'
+
 
 # ============================================================
 # 引擎注册（导入所有引擎并注册到 Registry）
@@ -109,7 +124,7 @@ def build_registry():
 def cmd_mcp_check(registry):
     """MCP 健康检查"""
     print("=" * 60)
-    print("Deep Research Ultra v4.0 — MCP 健康检查")
+    print(f"Deep Research Ultra v{skill_version()} — MCP 健康检查")
     print("=" * 60)
     print()
 
@@ -255,7 +270,7 @@ def cmd_route(args, registry):
 def cmd_list(registry):
     """列出所有引擎"""
     print("=" * 80)
-    print("Deep Research Ultra v4.0 — 引擎清单（四层架构）")
+    print(f"Deep Research Ultra v{skill_version()} — 引擎清单（四层架构）")
     print("=" * 80)
     print()
 
@@ -295,6 +310,69 @@ def cmd_list(registry):
     print(f"总计: {summary['total']} 个引擎，{summary['available']} 个可用")
     print(f"  Layer 1: {summary['by_layer'][1]}  Layer 2: {summary['by_layer'][2]}  "
           f"Layer 3: {summary['by_layer'][3]}  Layer 4: {summary['by_layer'][4]}")
+    print()
+    print("ℹ️  ✅ 仅表示依赖/配置就绪（功能真实性请用 --probe 验证）")
+
+
+def filter_by_relevance(results, min_relevance: float, target_count: int):
+    """按 CRAAP 相关性维度过滤：返回 (保留, 实际丢弃数, 低相关条数)。
+
+    只在高相关结果够数时才丢弃 —— 跨语言调研（中文主题命中英文源）相关性天然偏低，
+    无脑过滤会把整份报告清空。低相关结果不会静默混过：够数就丢，不够数就保留并让
+    调用方告警（结论不得只靠它们）。
+    """
+    if min_relevance <= 0:
+        return list(results), 0, 0
+
+    def _relevance(r) -> float:
+        score = getattr(r, 'craap_score', None) or {}
+        return float(score.get('relevance', 0) or 0)
+
+    strong = [r for r in results if _relevance(r) >= min_relevance]
+    weak = len(results) - len(strong)
+    needed = max(1, min(target_count, 5))
+    if len(strong) >= needed:
+        return strong, weak, weak
+    return list(results), 0, weak
+
+
+def cmd_probe(registry, args):
+    """引擎功能自检：真实发一次探针查询，按"拿没拿到结果"分级。
+
+    --list 的 ✅ 只代表配置就绪；本命令才代表"这个引擎今天真的能用"。
+    """
+    from probe import (STATUS_EMPTY, STATUS_FAILED, STATUS_OK, STATUS_SKIPPED,
+                       probe_engine, probeable_engines, summarize)
+
+    if args.sources:
+        wanted = {s.strip() for s in args.sources.split(',') if s.strip()}
+        engines = [e for e in registry.get_all() if e.get_name() in wanted]
+    else:
+        engines = probeable_engines(registry.get_all())
+
+    print("=" * 72)
+    print(f"Deep Research Ultra v{skill_version()} — 引擎功能自检（{len(engines)} 个直连引擎）")
+    print("=" * 72)
+
+    marks = {STATUS_OK: '✅', STATUS_EMPTY: '⚠️', STATUS_FAILED: '❌', STATUS_SKIPPED: '⏭ '}
+    reports = []
+    for engine in engines:
+        rep = probe_engine(engine, query=args.probe_query or '',
+                           max_results=max(3, min(args.limit, 5)))
+        reports.append(rep)
+        print(f"{marks.get(rep['status'], '?')} {rep['engine']:<20} "
+              f"{rep['count']:>2} 条  {rep['note']}")
+
+    counts = summarize(reports)
+    print("-" * 72)
+    print(f"功能正常 {counts.get(STATUS_OK, 0)} ｜ 0 结果 {counts.get(STATUS_EMPTY, 0)} ｜ "
+          f"不可用 {counts.get(STATUS_FAILED, 0)} ｜ 跳过 {counts.get(STATUS_SKIPPED, 0)}")
+    if not counts.get(STATUS_OK):
+        print("❌ 没有任何引擎通过功能自检 —— 不要开始调研，先按上面的缺项修环境", file=sys.stderr)
+        sys.exit(1)
+    unusable = [r['engine'] for r in reports if r['status'] in (STATUS_EMPTY, STATUS_FAILED)]
+    if unusable:
+        print(f"⚠️ 以下引擎未通过，规划时避开或补配置: {', '.join(unusable)}")
 
 
 # ============================================================
@@ -328,7 +406,7 @@ def cmd_plan_only(args):
     tree.roots = list(plan.issue_tree)
 
     print("=" * 60)
-    print("Deep Research Ultra v4.0 — MECE 调研计划")
+    print(f"Deep Research Ultra v{skill_version()} — MECE 调研计划")
     print("=" * 60)
     print()
     print(f"主题: {plan.topic}")
@@ -583,6 +661,10 @@ def cmd_search(args, registry):
 
     all_results = []
     used_engines = []
+    empty_engines = []      # 调通但 0 结果
+    unavailable = []        # 返回 None / 抛异常
+    # 用户显式 --sources 点名的引擎即使不声明 search 能力也照样调用（如 modelscope 详情查询）
+    explicit_sources = {s.strip() for s in args.sources.split(',')} if args.sources else set()
 
     # 如果指定了 --sources，过滤引擎
     if args.sources:
@@ -650,48 +732,70 @@ def cmd_search(args, registry):
     if args.all:
         # 搜索所有可用引擎
         for engine in chain:
-            if not engine.has_capability('search'):
-                continue
             name = engine.get_name()
+            if not engine.has_capability('search') and name not in explicit_sources:
+                continue
             if not _breaker_ok(name):
                 print(f"⚡ 断路器 OPEN，跳过: {name}", file=sys.stderr)
                 continue
             print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
                 results = engine.search(args.query, max_results=args.limit)
-                _breaker_record(name, True)
-                if results:
+                if results is None:
+                    # 基类契约：None = 引擎没取到数据（依赖/鉴权/契约变更）
+                    _breaker_record(name, False)
+                    unavailable.append(name)
+                elif results:
+                    _breaker_record(name, True)
                     all_results.extend(results)
                     used_engines.append(name)
+                else:
+                    _breaker_record(name, True)
+                    empty_engines.append(name)
             except Exception as e:
                 _breaker_record(name, False)
+                unavailable.append(name)
                 print(f"⚠️ {name} 搜索失败: {e}", file=sys.stderr)
     else:
         # 按降级链搜索，命中即停（或聚合前 N 个）
         for engine in chain:
-            if not engine.has_capability('search'):
-                continue
             name = engine.get_name()
+            if not engine.has_capability('search') and name not in explicit_sources:
+                continue
             if not _breaker_ok(name):
                 print(f"⚡ 断路器 OPEN，跳过: {name}", file=sys.stderr)
                 continue
             print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
                 results = engine.search(args.query, max_results=args.limit)
+                if results is None:
+                    _breaker_record(name, False)
+                    unavailable.append(name)
+                    continue
                 _breaker_record(name, True)
                 if results:
                     all_results.extend(results)
                     used_engines.append(name)
                     if len(all_results) >= args.limit:
                         break
+                else:
+                    empty_engines.append(name)
             except Exception as e:
                 _breaker_record(name, False)
+                unavailable.append(name)
                 print(f"⚠️ {name} 搜索失败: {e}", file=sys.stderr)
 
     if not all_results:
+        # v6.5：如实区分「调通了但 0 结果」与「引擎没取到数据」，
+        # 不再把两者的失败统一甩锅成"所有引擎都不可用，请运行 --mcp-check"
         print("❌ 未找到结果", file=sys.stderr)
-        if not used_engines:
-            print("💡 可能原因：所有引擎都不可用，请运行 --mcp-check", file=sys.stderr)
+        if empty_engines:
+            print(f"⚠️ 已调通但 0 结果: {', '.join(empty_engines)}"
+                  f"（查询词过窄 / 端点契约变更）", file=sys.stderr)
+        if unavailable:
+            print(f"❌ 未取到数据: {', '.join(unavailable)}", file=sys.stderr)
+        print("💡 先跑 --probe 看哪些引擎今天真的出得来数据，再调整 --sources 或查询词",
+              file=sys.stderr)
         sys.exit(1)
 
     print(f"📊 找到 {len(all_results)} 条结果（来自 {len(used_engines)} 个引擎）", file=sys.stderr)
@@ -709,6 +813,19 @@ def cmd_search(args, registry):
         before = len(all_results)
         all_results = [r for r in all_results if r.craap_score and r.craap_score.get('total', 0) >= args.min_score]
         print(f"🎯 过滤后: {len(all_results)}/{before} 条（min_score={args.min_score}）", file=sys.stderr)
+
+    # 5b. 相关性过滤（v6.5）：无关结果不得静默混进报告
+    #     （实测：中文查询 "向量数据库 开源" 曾带回土地覆盖/图像质量论文，
+    #       总分 60-68 却无一条被拦，因为总分把"权威/时效"和"相关"混加权了）
+    all_results, dropped, weak = filter_by_relevance(
+        all_results, args.min_relevance, args.limit)
+    if dropped:
+        print(f"🎯 相关性过滤：丢弃 {dropped} 条（relevance < {args.min_relevance}）",
+              file=sys.stderr)
+    elif weak:
+        print(f"⚠️ {weak} 条与查询词几乎无重叠（relevance < {args.min_relevance}），"
+              f"因高相关结果不足而保留 —— 结论不得只靠它们，建议换查询词或补 --sources",
+              file=sys.stderr)
 
     # 6. 交叉验证
     verifier = CrossVerifier()
@@ -924,7 +1041,7 @@ def _generate_simple_html(data, results, verification=None):
     html_parts.extend([
         "<hr>",
         f"<p style='color:#999;font-size:0.85em;text-align:center;'>"
-        f"Generated by Deep Research Ultra v4.0 — {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>",
+        f"Generated by Deep Research Ultra v{skill_version()} — {datetime.now().strftime('%Y-%m-%d %H:%M')}</p>",
         "</body>",
         "</html>",
     ])
@@ -1012,6 +1129,8 @@ v3 兼容（自动降级到 Layer 4）:
     # 评分
     parser.add_argument('--min-score', type=float, default=0,
                         help='最低 CRAAP 总分（0-100），低于此分过滤')
+    parser.add_argument('--min-relevance', type=float, default=50,
+                        help='最低 CRAAP 相关性分（0-100），高相关结果够数时丢弃低相关结果；0=关闭')
     parser.add_argument('--llm-score', action='store_true',
                         help='启用 LLM 语义评分（更准确，消耗 token）')
 
@@ -1022,6 +1141,10 @@ v3 兼容（自动降级到 Layer 4）:
     # 工具命令
     parser.add_argument('--mcp-check', action='store_true',
                         help='MCP 健康检查')
+    parser.add_argument('--probe', action='store_true',
+                        help='引擎功能自检：真实发探针查询，验证引擎今天是否出得来数据')
+    parser.add_argument('--probe-query', default=None,
+                        help='覆盖探针查询词（默认按引擎定制，见 probe.py 的 PROBE_QUERIES）')
     # v6.1: 环境分级门控
     parser.add_argument('--env-check', action='store_true',
                         help='环境分级验证（minimal/opensource/academic/full）')
@@ -1056,6 +1179,10 @@ v3 兼容（自动降级到 Layer 4）:
         cmd_env_check(args)
         return
 
+    if args.probe:
+        cmd_probe(registry, args)
+        return
+
     if args.list:
         cmd_list(registry)
         return
@@ -1083,4 +1210,6 @@ v3 兼容（自动降级到 Layer 4）:
 
 
 if __name__ == '__main__':
+    from console import force_utf8
+    force_utf8()
     main()

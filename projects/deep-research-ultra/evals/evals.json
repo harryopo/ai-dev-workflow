@@ -1,7 +1,7 @@
 {
   "skill": "deep-research-ultra",
-  "version": "6.0.0",
-  "description": "超级深度调研工具测试集（v6.0，四阶段 + 四层数据源 + 子Agent并行 + 专家团 + 证据账本与分级）",
+  "version": "6.5.0",
+  "description": "超级深度调研工具测试集（四阶段 + 四层数据源 + 子Agent并行 + 专家团 + 证据账本与分级 + 执行模型与引擎自检）",
   "last_updated": "2026-09-18",
   "architecture": {
     "phase_1_plan": "MECE 问题树 + 假设生成 + 数据源匹配",
@@ -42,7 +42,11 @@
     "arxiv": "完全免费，但需要 uvx（pip install uv）",
     "paper-search": "完全免费，需要 Node.js",
     "llm_score_cost": "LLM 语义评分消耗 token，默认关闭",
-    "fallback_html_parsing": "降级引擎（百度/Bing HTML 解析）仍可能因搜索引擎改版失效"
+    "fallback_html_parsing": "降级引擎（百度/Bing HTML 解析）仍可能因搜索引擎改版失效",
+    "gitee": "v5 搜索端点需 GITEE_TOKEN（匿名请求实测静默返回 []，不报错）",
+    "modelscope": "公开 API 仅模型卡详情端点可用，关键词搜索端点已下线（实测 404）",
+    "arxiv_fulltext": "arXiv 直连对部分宽查询返回 HTTP 406，学术调研主力用 openalex/semantic-scholar",
+    "engine_availability": "引擎真实可用性以 research.py --probe 为准；--list / --env-check 的 ✅ 仅代表配置与连通就绪"
   },
   "fixes": {
     "v6.0.0": [
@@ -588,6 +592,36 @@
         "六维任一缺失时校验门拦截（validate_report.py）"
       ],
       "category": "v6_quality_gate",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-039",
+      "name": "执行模型与交付契约（不 fork / 落盘短摘要）",
+      "input": "深度调研某 Electron 桌应用的开源 logo 与品牌 VIS 方案",
+      "expected_behavior": [
+        "Lead 在当前主 Agent 内执行四阶段（不依赖 forked 子 Agent 的 turn 预算）",
+        "不做探索性空转：不 ls skill 目录、不读脚本源码、不跑 --help",
+        "第一个 turn 并行跑完 --env-check 与 --probe，第三个动作内给出计划确认门",
+        "报告正文落盘 .research/<session>/report.md 并跑 validate_report.py",
+        "最终回复为 ≤25 行短摘要：报告路径 + 一句话结论 + 3-5 要点（带 [N]）+ 质量指标 + 未决项",
+        "不把报告长正文粘贴进回复或子 Agent 返回值"
+      ],
+      "category": "v65_execution_model",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-040",
+      "name": "引擎功能自检（拒绝假可用）",
+      "input": "调研国内开源向量数据库项目（含 Gitee/魔搭生态）",
+      "expected_behavior": [
+        "开工前跑 research.py --probe，按 ✅/⚠️/❌/⏭ 四级判定引擎真实可用性",
+        "不把 --list 或 --env-check 的 ✅ 当作功能可用（那只代表配置就绪）",
+        "Gitee 未配 GITEE_TOKEN 时不使用该源并向用户说明；ModelScope 仅按精确 model id 取模型卡",
+        "0 结果的引擎不得被描述为「已查询、无相关项目」，须区分「无数据」与「无结果」",
+        "引擎不可用时报告具体原因（HTTP 406 / 缺少配置 / 依赖未就绪），并给出改用哪些通过自检的源",
+        "--probe 全灭时停止调研，转为引导用户修环境"
+      ],
+      "category": "v65_engine_truth",
       "v6_feature": true
     }
   ]

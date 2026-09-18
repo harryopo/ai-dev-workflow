@@ -246,4 +246,6 @@ def _main(argv: Optional[List[str]] = None) -> int:
 
 
 if __name__ == '__main__':
+    from console import force_utf8
+    force_utf8()
     sys.exit(_main())

@@ -601,6 +601,14 @@ class PlanGenerator:
         'academic': ['理论基础', '关键论文', '实验方法', '数据集', '评估指标', '开源实现'],
     }
 
+    # 通用 MECE 骨架：主题未命中 DIMENSION_TEMPLATES 时的兜底。
+    # 此前兜底是 ['综合']，导致 --effort deep 也只生成 1 个子问题，
+    # breadth/并行子 Agent 编排整体落空。
+    GENERIC_DIMENSIONS = [
+        '现状与主要玩家', '技术路线与实现方式', '生态与成熟度',
+        '风险与局限', '落地成本与路径',
+    ]
+
     def clarify_topic(self, topic: str) -> Dict[str, Any]:
         """
         分析主题，判断是否需要澄清
@@ -709,10 +717,11 @@ class PlanGenerator:
         if perspectives is None:
             perspectives = DEFAULT_PERSPECTIVES
 
-        # 如果未提供维度，使用预设
+        # 如果未提供维度，先按主题类型套模板，再兜底通用 MECE 骨架
         if not dimensions:
             clarification = self.clarify_topic(topic)
-            dimensions = clarification['suggested_dimensions'] or ['综合']
+            dimensions = (clarification['suggested_dimensions']
+                          or self.GENERIC_DIMENSIONS)
 
         # 按深度模式截取维度数量（保持 dimensions 与 issue_tree 数量一致）
         max_questions = preset['max_sub_questions']

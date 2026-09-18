@@ -19,6 +19,8 @@ Thumbs.db
 
 # Output
 output/
+# deep-research-ultra 调研会话产物（账本/报告）
+.research/
 
 # Temporary
 *-temp.md

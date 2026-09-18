@@ -52,7 +52,8 @@ class ArxivFulltextEngine(SearchEngine):
     """
 
     # arXiv API 端点
-    SEARCH_URL = "http://export.arxiv.org/api/query"
+    # 用 https：http:// 每次都要吃一个 301 跳转（且跳转行为对参数敏感）
+    SEARCH_URL = "https://export.arxiv.org/api/query"
     PDF_URL_TEMPLATE = "https://arxiv.org/pdf/{paper_id}.pdf"
     HTML_URL_TEMPLATE = "https://arxiv.org/html/{paper_id}"
     LATEX_URL_TEMPLATE = "https://arxiv.org/e-print/{paper_id}"
@@ -119,9 +120,6 @@ class ArxivFulltextEngine(SearchEngine):
         """
         # 限制单批
         per_page = max(1, min(int(max_results), 2000))
-        params_dict: Dict[str, str] = {
-            'max_results': str(per_page),
-        }
 
         # 构造 search_query
         search_query = query
@@ -129,8 +127,14 @@ class ArxivFulltextEngine(SearchEngine):
         if categories:
             cat_query = ' OR '.join(f'cat:{c}' for c in categories)
             search_query = f'({search_query}) AND ({cat_query})' if search_query else cat_query
+
+        # 按官方示例把 search_query 放在最前。注意 arXiv 服务端会对部分查询返回
+        # HTTP 406（宽查询/累计请求量下更易触发，规则未见文档说明），
+        # 失败原因由 engines/fallback.LAST_HTTP_ERROR 透出给 --probe。
+        params_dict: Dict[str, str] = {}
         if search_query:
             params_dict['search_query'] = search_query
+        params_dict['max_results'] = str(per_page)
         if kwargs.get('id_list'):
             params_dict['id_list'] = str(kwargs['id_list'])
         if kwargs.get('sort_by'):
