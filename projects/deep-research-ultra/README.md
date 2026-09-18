@@ -1,14 +1,15 @@
-# Deep Research Ultra — 超级深度调研工具 v4.0
+# Deep Research Ultra — 超级深度调研工具 v6.0
 
 > **Plan-Execute-Synthesize-Reflect 四阶段深度调研范式**
-> **MCP 服务器 + 全局 Skill + 内置工具 + 降级引擎的四层数据源架构**
+> **子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级（v6.0）**
+> **MCP 服务器 + 全局 Skill + 内置工具 + 降级引擎的四层数据源架构（30 引擎）**
 
 🚀 **[点击查看教程网页](https://harryopo.github.io/deep-research-ultra/)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-orange.svg)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-4.0.0-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-6.0.0-brightgreen.svg)]()
 
 ---
 
@@ -17,12 +18,18 @@
 | 特性 | 说明 |
 |------|------|
 | 🧠 **四阶段工作流** | Plan → Execute → Synthesize → Reflect 深度调研范式 |
+| 👥 **子 Agent 并行编排（v6.0）** | Lead 规划 → 并行 spawn 子 Agent（独立上下文）→ 结果落盘 → 归并 |
+| 🧑‍⚖️ **深度调研专家团（v6.0）** | 多视角提问（域专家/怀疑者/实践者/记者/成本）+ 红蓝对抗 + 审稿人闭环 |
+| 📒 **证据账本（v6.0）** | claim→source 可溯源，多子 Agent 并发写，`ledger.py` 审计导出 |
+| 🏷️ **来源 Tier 分级（v6.0）** | Tier 1-4 域名判定，CRAAP 集成加权，报告附录 D 展示 |
+| ✅ **发布前校验门（v6.0）** | 引用一致性 / 覆盖率 / 必需章节 / 低质源占比 / 摘要长度 |
+| 🎚️ **effort 分级 + breadth 旋钮（v6.0）** | quick/standard/deep/exhaustive + 并行子主题数 |
 | 🏗️ **四层数据源** | MCP 服务器 → 全局 Skill → Claude 内置 → 降级引擎 |
-| 🌲 **MECE 问题树** | 麦肯锡 MECE 原则拆解主题，互斥穷尽不遗漏 |
+| 🌲 **MECE 问题树** | 麦肯锡 MECE 原则拆解主题，互斥穷尽不遗漏 + 多视角注入 |
 | 📊 **CRAAP 评分** | 五维可信度评估（时效/相关/权威/准确/目的） |
 | ✓ **交叉验证** | 同一结论需 ≥2 个独立来源支持，矛盾点自动标注 |
-| 🔄 **反思循环** | Drill-down 决策，覆盖率不足时自动生成深挖问题 |
-| 📝 **结构化报告** | CER 结构（Claim-Evidence-Reasoning）+ Mermaid 可视化 |
+| 🔄 **反思循环** | Drill-down 决策 + 证据充分性停止（EDR，不提前停止） |
+| 📝 **结构化报告** | CER 结构（Claim-Evidence-Reasoning）+ Mermaid + 雷达图 |
 | 🔌 **MCP 集成** | Tavily/Firecrawl/open-websearch/arxiv/paper-search |
 | 🎨 **Skill 复用** | agent-reach/sciverse/oss-finder/last30days/defuddle/context7 |
 | 💾 **智能缓存** | LRU + TTL + 磁盘持久化，避免重复请求 |
@@ -68,7 +75,7 @@ python scripts/research.py --list
 | `mcp` | 独立调用 MCP 服务器（不通过 Claude） | ❌ 可选 |
 | `jieba` | 中文分词（提升评分准确性） | ❌ 可选 |
 
-> 💡 v4.0 核心模块仅依赖 Python 标准库 + ddgs，最小化依赖体积。
+> 💡 核心模块仅依赖 Python 标准库 + ddgs，最小化依赖体积。
 
 ---
 
@@ -310,50 +317,66 @@ python scripts/research.py "query" --no-cache
 
 ```
 deep-research-ultra/
-├── SKILL.md                    # Claude Code Skill 定义（v4.0）
+├── SKILL.md                    # Claude Code Skill 定义（纯净版，更新历史见 CHANGELOG.md）
+├── CHANGELOG.md                # 版本更新与迁移指南
 ├── README.md                   # 本文件
 ├── requirements.txt            # Python 依赖（仅 ddgs）
 ├── LICENSE                     # MIT 许可证
 ├── scripts/
-│   ├── research.py             # v4 主入口（CLI）
-│   ├── search.py               # v3 兼容入口（保留）
+│   ├── research.py             # 主入口（CLI：--auto-route/--effort/--breadth/--ledger/--perspectives）
+│   ├── search.py               # 引擎兼容入口（保留 --sources 旧参数）
 │   ├── setup-mcp.sh            # MCP 一键配置脚本
+│   ├── router.py               # 智能路由（三级级联 Rule→Semantic→LLM）
+│   ├── recommend.py            # 推荐度评分（GitHub 8 维 / 论文 5 维 + 雷达图）
+│   ├── tier.py                 # 来源 Tier 分级（Tier 1-4）
+│   ├── ledger.py               # 证据账本（claim→source 可溯源）
+│   ├── panel.py                # 专家团评审清单生成
+│   ├── validate_report.py      # 发布前校验门
 │   ├── engines/
 │   │   ├── base.py             # SearchEngine 抽象基类 + EngineRegistry
 │   │   ├── mcp_client.py       # MCP 客户端封装
 │   │   ├── mcp_engines.py      # MCP 服务器封装（5 个）
+│   │   ├── academic_engines.py # 学术直连（OpenAlex/S2/PubMed）
+│   │   ├── academic_fulltext.py# 学术全文+引用图谱
 │   │   ├── skill_engines.py    # 全局 skill 封装（6 个）
+│   │   ├── github_deep_search.py # GitHub 深搜 + Code Search
+│   │   ├── cn_sources.py       # 国内内容源（百度/搜狗/百度学术）
 │   │   ├── builtin.py          # Claude 内置工具封装
-│   │   └── fallback.py         # 降级引擎（4 个）
-│   ├── plan.py                 # MECE 问题树 + PlanGenerator
-│   ├── score.py                # CRAAP 五维评分
+│   │   ├── crawl4ai_engine.py  # Crawl4AI 浏览器自动化
+│   │   └── fallback.py         # 降级引擎（4 个）+ curl_cffi TLS 伪装
+│   ├── plan.py                 # MECE 问题树 + 多视角注入
+│   ├── score.py                # CRAAP 五维评分（含 Tier 加权）
 │   ├── verify.py               # 交叉验证 + 矛盾检测
-│   ├── reflect.py              # 反思循环 + Drill-down
-│   ├── report.py               # 报告生成（md/html/csv + Mermaid）
+│   ├── reflect.py              # 反思循环 + 证据充分性停止
+│   ├── report.py               # 报告生成（md/html/csv/json + Mermaid + 账本附录）
 │   ├── progress.py             # 进度跟踪 + ETA 估算
 │   ├── cache.py                # LRU 缓存
 │   └── tests/
-│       └── test_core.py        # 单元测试（63 个用例）
+│       ├── test_core.py        # 核心单元测试
+│       └── test_v6.py          # v6 模块单元测试（共 124 个用例）
 ├── evals/
-│   └── evals.json              # 评测集（32 个场景）
+│   └── evals.json              # 评测集（37 个场景，含 v6 五场景）
 └── references/
     ├── mcp-config.md           # MCP 配置指南
     ├── tool-integration.md     # 工具集成指南
-    ├── optimization-plan-v4.md # v4.0 优化方案
-    └── migration-v3-to-v4.md   # v3 → v4 迁移指南
+    ├── v6-research-notes.md   # v6 方法论与开源方案调研笔记
+    └── ...（历史调研归档）
 ```
 
 ---
 
 ## 🆚 与竞品对比
 
-| 特性 | Deep Research Ultra v4 | Perplexity | OpenAI Deep Research | LangChain open_deep_research |
+| 特性 | Deep Research Ultra v6 | Perplexity | OpenAI Deep Research | LangChain open_deep_research |
 |------|------------------------|------------|---------------------|------------------------------|
-| **架构** | 四层 + 四阶段 | 单引擎 | 闭源 | 单框架 |
+| **架构** | 四层 30 引擎 + 四阶段 + 多 Agent 编排 | 单引擎 | 闭源 | 单框架 |
+| **子 Agent 并行** | ✅ 并行派发 + 证据账本 | ❌ | ✅ | ❌ |
+| **专家团评审** | ✅ 多视角 + 对抗闭环 | ❌ | ❌ | ❌ |
+| **证据账本** | ✅ claim→source 可溯源 | ❌ | ❌ | ❌ |
 | **MECE 问题树** | ✅ | ❌ | ❌ | ❌ |
-| **CRAAP 评分** | ✅ 五维 | ❌ | ❌ | ❌ |
+| **CRAAP 评分 + Tier** | ✅ 五维 + 来源分级 | ❌ | ❌ | ❌ |
 | **交叉验证** | ✅ ≥2 独立源 | ❌ | ❌ | ❌ |
-| **反思循环** | ✅ 最多 3 轮 | ❌ | ✅ | ✅ |
+| **反思循环** | ✅ 多信号 + 证据充分性停止 | ❌ | ✅ | ✅ |
 | **MCP 集成** | ✅ 5 个 MCP | ❌ | ❌ | ❌ |
 | **Skill 复用** | ✅ 6 个 skill | ❌ | ❌ | ❌ |
 | **中文优化** | ✅ 多引擎 | ⚠️ 有限 | ⚠️ 有限 | ❌ |
@@ -367,8 +390,8 @@ deep-research-ultra/
 ## 🧪 测试
 
 ```bash
-# 运行单元测试（63 个用例）
-cd scripts && python -m pytest tests/test_core.py -v
+# 运行单元测试（124 个用例）
+cd scripts && python -m pytest tests/ -v
 
 # 端到端测试（dry-run）
 python scripts/research.py --mcp-check
@@ -438,8 +461,8 @@ class NewEngine(SearchEngine):
 
 - [references/mcp-config.md](references/mcp-config.md) — MCP 配置指南
 - [references/tool-integration.md](references/tool-integration.md) — 工具集成指南
-- [references/optimization-plan-v4.md](references/optimization-plan-v4.md) — v4.0 优化方案
-- [references/migration-v3-to-v4.md](references/migration-v3-to-v4.md) — v3 → v4 迁移指南
+- [references/v6-research-notes.md](references/v6-research-notes.md) — v6 方法论与开源方案调研笔记
+- 完整更新历史见 [CHANGELOG.md](CHANGELOG.md)
 
 ### 外部参考
 
@@ -486,4 +509,4 @@ class NewEngine(SearchEngine):
 
 ---
 
-*v4.0 · 2026-07-30 · 基于 Plan-Execute-Synthesize-Reflect 范式*
+*v6.0 · 2026-09-18 · 四阶段范式 + 子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级；更新历史见 CHANGELOG.md*

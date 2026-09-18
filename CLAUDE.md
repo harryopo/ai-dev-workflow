@@ -95,3 +95,14 @@ projects/<skill-name>/
 - 实时记录写入 `.learnings/`。
 - 阶段性整理使用 `super-memory neat`。
 - 成熟规则提升写入本 `CLAUDE.md`。
+
+---
+
+## 10. SKILL.md 纯净原则（硬性）
+
+**SKILL.md 只保留运行必需内容**：触发条件 / 使用说明 / 工作流 / 约束 / CLI 用法。
+
+- **禁止**在 SKILL.md 写入版本演进史、更新概览、迁移指南、"vX.Y 新增/升级"等更新性标注（含 frontmatter description、章节标题括号、文末签名行）。
+- 版本更新与迁移指南统一移入各项目根目录的 **`CHANGELOG.md`**（新版本在此追加，旧版本不删）。
+- description 只写能力概述 + 触发词，可附一句"版本历史见 CHANGELOG.md"。
+- 目的：降低 skill 被加载时的 token 开销与上下文污染；违反视为缺陷，审查不通过。

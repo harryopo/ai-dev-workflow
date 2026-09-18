@@ -73,6 +73,12 @@ class Reflection:
     stop_reason: str = ''                               # 停止的原因
     suggestions: List[str] = field(default_factory=list)            # 改进建议
     created_at: str = ''                                # 创建时间
+    # v6.0 新增：证据充分性 / 边际新增 claim / 未答问题 / 低质源告警
+    evidence_sufficient: bool = True                   # 是否全部子主题证据充分
+    insufficient_topics: List[str] = field(default_factory=list)   # 证据不足的子主题
+    new_claim_marginal: float = 1.0                    # 本轮新增 claim / 上轮（<0.15 收敛信号）
+    unanswered: List[str] = field(default_factory=list)             # 未答问题清单
+    low_quality_sources: List[str] = field(default_factory=list)    # 低质源(Tier4)告警
 
     def __post_init__(self):
         if not self.created_at:
@@ -91,6 +97,11 @@ class Reflection:
             'drill_down_reason': self.drill_down_reason,
             'stop_reason': self.stop_reason,
             'suggestions': self.suggestions,
+            'evidence_sufficient': self.evidence_sufficient,
+            'insufficient_topics': self.insufficient_topics,
+            'new_claim_marginal': round(self.new_claim_marginal, 3),
+            'unanswered': self.unanswered,
+            'low_quality_sources': self.low_quality_sources[:5],
             'created_at': self.created_at,
         }
 
@@ -161,6 +172,8 @@ class Reflector:
         results: List[Any],              # 搜索结果
         round_num: int,                  # 当前轮次（从 0 开始）
         verification_result: Optional[Any] = None,  # VerificationResult
+        ledger: Optional[Any] = None,    # v6.0 证据账本（启用证据充分性/低质源统计）
+        previous_claim_count: Optional[int] = None,  # v6.0 上轮 claim 总数（边际收益）
     ) -> Reflection:
         """
         执行一轮反思
@@ -170,6 +183,8 @@ class Reflector:
             results: 本轮搜索结果
             round_num: 当前轮次
             verification_result: 交叉验证结果
+            ledger: v6.0 证据账本（ResearchLedger）；传入时启用证据充分性/低质源告警
+            previous_claim_count: v6.0 上轮 claim 总数；传入时计算边际新增率
 
         Returns:
             Reflection 对象
@@ -192,9 +207,40 @@ class Reflector:
         # 4. 生成新子问题（Drill-down）
         new_subquestions = self._generate_drill_down_questions(gaps, results)
 
-        # 5. 决定是否继续
+        # v6.0: 证据充分性 / 未答问题 / 低质源 / 边际新增 claim（账本存在时）
+        evidence_sufficient = True
+        insufficient_topics: List[str] = []
+        unanswered: List[str] = []
+        low_quality_sources: List[str] = []
+        current_claim_count = None
+        if ledger is not None:
+            stats = ledger.status()
+            evidence_sufficient = all(s.get('sufficient', True) for s in stats.values())
+            insufficient_topics = [t for t, s in stats.items() if not s.get('sufficient', True)]
+            if plan and getattr(plan, 'issue_tree', None):
+                unanswered = [q.question for q in plan.get_leaf_questions()
+                              if stats.get(q.question, {}).get('verified', 0) < 1]
+            else:
+                unanswered = [t for t, s in stats.items() if s.get('verified', 0) < 1]
+            for e in ledger.export_json().get('sources', []):
+                if e.get('tier') == 4:
+                    low_quality_sources.append(e.get('url', ''))
+            current_claim_count = len(ledger.claims())
+
+        if previous_claim_count is not None:
+            base = max(previous_claim_count, 1)
+            if current_claim_count is None:
+                new_claim_marginal = 0.0
+            else:
+                new_claim_marginal = max(0, current_claim_count - previous_claim_count) / base
+        else:
+            new_claim_marginal = 1.0
+
+        # 5. 决定是否继续（停止优先级：高优先级空白 > 证据不足 > 边际收益递减 > 覆盖率达标）
         should_drill_down, stop_reason, drill_reason = self._should_continue(
-            round_num, coverage_score, gaps, len(results)
+            round_num, coverage_score, gaps, len(results),
+            insufficient_topics=insufficient_topics,
+            new_claim_marginal=new_claim_marginal,
         )
 
         # 6. 生成改进建议
@@ -214,6 +260,11 @@ class Reflector:
             drill_down_reason=drill_reason,
             stop_reason=stop_reason,
             suggestions=suggestions,
+            evidence_sufficient=evidence_sufficient,
+            insufficient_topics=insufficient_topics,
+            new_claim_marginal=new_claim_marginal,
+            unanswered=unanswered,
+            low_quality_sources=low_quality_sources,
         )
 
         self.history.add(reflection)
@@ -429,35 +480,83 @@ class Reflector:
         coverage_score: float,
         gaps: List[CoverageGap],
         results_count: int,
+        history: Optional[Any] = None,
+        insufficient_topics: Optional[List[str]] = None,
+        new_claim_marginal: Optional[float] = None,
     ) -> tuple:
         """
-        决定是否继续深入
+        决定是否继续深入（v5.1 多信号停止判断 + v6.0 证据充分性优先级）
+
+        停止信号（满足任一即停止）：
+        1. 硬上限：达到最大反思轮次
+        2. 覆盖率达标：coverage_score >= threshold
+        3. 边际收益递减：连续两轮覆盖率提升 < 5%（对齐 Kimi 信息增量判断）
+        4. 无高优先级空白且覆盖率 >= 0.6
+        5. 无覆盖空白
+
+        继续信号：
+        - 存在证据不足子主题（v6.0 新增，优先于覆盖率达标：Salesforce EDR 不提前停止）
+        - 结果太少（< 5 条）
+        - 存在高优先级覆盖空白
+        - 覆盖率低于阈值
+
+        Args:
+            round_num: 当前反思轮次（0 起算）
+            coverage_score: 当前覆盖率 0-1
+            gaps: 覆盖空白列表
+            results_count: 当前结果总数
+            history: 反思历史（v5.1 新增，用于边际收益判断）
+            insufficient_topics: v6.0 证据不足的子主题列表
+            new_claim_marginal: v6.0 本轮新增 claim/上轮比值（<0.15 且覆盖≥0.6 → 收敛）
 
         Returns:
             (should_drill_down: bool, stop_reason: str, drill_down_reason: str)
         """
-        # 达到最大轮次
+        # 1. 硬上限（保留）
         if round_num >= self.max_rounds - 1:
             return False, f'已达到最大反思轮次（{self.max_rounds} 轮）', ''
 
-        # 覆盖率达标
+        # 2. 高优先级空白处理（提前检查，保持"空白优先"）
+        high_gaps = [g for g in gaps if g.priority == 'high']
+
+        # v6.0：证据充分性检查（优先于覆盖率达标；EDR 不提前停止）
+        if insufficient_topics:
+            return True, '', (f'{len(insufficient_topics)} 个子主题证据不足'
+                              f'（独立来源 <2）：{"; ".join(insufficient_topics[:3])}')
+
+        # 3. 覆盖率达标（保留）
         if coverage_score >= self.coverage_threshold:
             return False, f'覆盖率已达标（{coverage_score:.0%}）', ''
 
-        # 结果太少
+        # 4. 边际收益递减判断（v5.1 保留 + v6.0 新增 claim 边际率不等价补充）
+        if history and hasattr(history, 'reflections') and len(history.reflections) >= 2:
+            prev_cov = history.reflections[-2].coverage_score
+            curr_cov = history.reflections[-1].coverage_score
+            delta = curr_cov - prev_cov
+            if delta < 0.05 and coverage_score >= 0.6:
+                return False, f'覆盖率边际收益递减（+{delta:.0%}），视为收敛', ''
+        # v6.0：新增 claim 边际率 < 0.15 且覆盖率达标 → 收敛（Kimi 式信息增量停止）
+        if new_claim_marginal is not None and new_claim_marginal < 0.15 and coverage_score >= 0.6:
+            return False, (f'新增 claim 边际收益低（本轮 {new_claim_marginal:.0%}）'
+                           f'且覆盖率 {coverage_score:.0%}，视为收敛'), ''
+
+        # 5. 无高优先级空白且覆盖率 >= 0.6 → 停止（v5.1 新增）
+        if not high_gaps and coverage_score >= 0.6:
+            return False, '无高优先级空白且覆盖率达标', ''
+
+        # 6. 结果太少（保留）
         if results_count < 5:
             return True, '', f'结果数量不足（{results_count} 条），需要继续搜索'
 
-        # 有高优先级空白
-        high_priority_gaps = [g for g in gaps if g.priority == 'high']
-        if high_priority_gaps:
-            return True, '', f'存在 {len(high_priority_gaps)} 个高优先级覆盖空白'
+        # 7. 有高优先级空白（保留）
+        if high_gaps:
+            return True, '', f'存在 {len(high_gaps)} 个高优先级覆盖空白'
 
-        # 无明确空白
+        # 8. 无明确空白（保留）
         if not gaps:
             return False, '无覆盖空白', ''
 
-        # 默认继续
+        # 9. 默认继续
         return True, '', f'覆盖率 {coverage_score:.0%} 低于阈值 {self.coverage_threshold:.0%}'
 
     # ------------------------------------------------------------

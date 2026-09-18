@@ -39,9 +39,26 @@ HTML 报告结构：
 import csv
 import html
 import json
+import math
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
+
+# v5.2 推荐度评分系统（可选导入，测试环境可能不存在）
+try:
+    from recommend import (
+        GitHubRecommender,
+        PaperRecommender,
+        detect_intent,
+        RecommendationScore,
+    )
+    _RECOMMEND_AVAILABLE = True
+except ImportError:
+    _RECOMMEND_AVAILABLE = False
+    GitHubRecommender = None
+    PaperRecommender = None
+    detect_intent = None
+    RecommendationScore = None
 
 
 # ============================================================
@@ -157,6 +174,149 @@ class MermaidGenerator:
         for source, count in counter.most_common():
             lines.append(f'    "{source}" : {count}')
         return '\n'.join(lines)
+
+
+# ============================================================
+# SVG 雷达图生成器（v5.2 新增）
+# ============================================================
+
+class RadarChartGenerator:
+    """
+    SVG 雷达图生成器 — 多维度推荐度可视化
+
+    用于在报告中展示 GitHub 项目/论文的多维度评分对比。
+    纯 SVG 生成，不依赖外部库，支持暗色模式。
+    """
+
+    # 配色方案（每组一个颜色，最多 8 个项目对比）
+    COLORS = [
+        '#3b82f6',  # blue
+        '#10b981',  # emerald
+        '#f59e0b',  # amber
+        '#ef4444',  # red
+        '#8b5cf6',  # violet
+        '#ec4899',  # pink
+        '#06b6d4',  # cyan
+        '#84cc16',  # lime
+    ]
+
+    @staticmethod
+    def generate(
+        items: List[Dict[str, Any]],
+        dimensions: List[str],
+        dimension_labels: Optional[Dict[str, str]] = None,
+        max_items: int = 5,
+        size: int = 400,
+    ) -> str:
+        """
+        生成雷达图 SVG
+
+        Args:
+            items: [{"label": "项目A", "scores": {"popularity": 80, "activity": 70, ...}}, ...]
+            dimensions: ["popularity", "activity", "maintenance", ...]
+            dimension_labels: {"popularity": "人气", "activity": "活跃度", ...}
+            max_items: 最多对比项目数
+            size: SVG 尺寸（正方形）
+
+        Returns:
+            SVG 字符串
+        """
+        if not items or not dimensions:
+            return '<p style="color:var(--muted);">无推荐度数据，无法生成雷达图。</p>'
+
+        items = items[:max_items]
+        n_dims = len(dimensions)
+        if n_dims < 3:
+            return '<p style="color:var(--muted);">维度不足 3 个，无法生成雷达图。</p>'
+
+        labels = dimension_labels or {}
+        center = size / 2
+        radius = size * 0.35
+        angle_step = 2 * math.pi / n_dims
+
+        svg_parts = [
+            f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" '
+            f'viewBox="0 0 {size} {size}" style="max-width:100%;height:auto;">',
+        ]
+
+        # 1. 背景网格（5 层同心多边形）
+        for level in range(1, 6):
+            r = radius * level / 5
+            points = []
+            for i in range(n_dims):
+                angle = -math.pi / 2 + i * angle_step
+                x = center + r * math.cos(angle)
+                y = center + r * math.sin(angle)
+                points.append(f'{x:.1f},{y:.1f}')
+            opacity = 0.15 + level * 0.05
+            svg_parts.append(
+                f'<polygon points="{" ".join(points)}" '
+                f'fill="none" stroke="var(--border)" stroke-width="1" opacity="{opacity:.2f}"/>'
+            )
+
+        # 2. 轴线 + 维度标签
+        for i, dim in enumerate(dimensions):
+            angle = -math.pi / 2 + i * angle_step
+            x_end = center + radius * math.cos(angle)
+            y_end = center + radius * math.sin(angle)
+            svg_parts.append(
+                f'<line x1="{center}" y1="{center}" x2="{x_end:.1f}" y2="{y_end:.1f}" '
+                f'stroke="var(--border)" stroke-width="1"/>'
+            )
+            # 标签
+            label_x = center + (radius + 20) * math.cos(angle)
+            label_y = center + (radius + 20) * math.sin(angle)
+            label_text = labels.get(dim, dim)
+            svg_parts.append(
+                f'<text x="{label_x:.1f}" y="{label_y:.1f}" '
+                f'text-anchor="middle" dominant-baseline="middle" '
+                f'fill="var(--muted)" font-size="11">{html.escape(label_text)}</text>'
+            )
+
+        # 3. 每个项目的数据多边形
+        for idx, item in enumerate(items):
+            color = RadarChartGenerator.COLORS[idx % len(RadarChartGenerator.COLORS)]
+            scores = item.get('scores', {})
+            points = []
+            for i, dim in enumerate(dimensions):
+                value = scores.get(dim, 0)
+                # 归一化到 0-1
+                normalized = max(0, min(100, value)) / 100
+                r = radius * normalized
+                angle = -math.pi / 2 + i * angle_step
+                x = center + r * math.cos(angle)
+                y = center + r * math.sin(angle)
+                points.append(f'{x:.1f},{y:.1f}')
+
+            svg_parts.append(
+                f'<polygon points="{" ".join(points)}" '
+                f'fill="{color}" fill-opacity="0.12" '
+                f'stroke="{color}" stroke-width="2"/>'
+            )
+            # 数据点
+            for pt in points:
+                px, py = pt.split(',')
+                svg_parts.append(
+                    f'<circle cx="{px}" cy="{py}" r="3" fill="{color}"/>'
+                )
+
+        # 4. 图例
+        legend_y = size - 10
+        legend_x = 10
+        for idx, item in enumerate(items):
+            color = RadarChartGenerator.COLORS[idx % len(RadarChartGenerator.COLORS)]
+            label = item.get('label', f'项目{idx+1}')[:20]
+            svg_parts.append(
+                f'<rect x="{legend_x}" y="{legend_y - idx * 18}" width="12" height="12" '
+                f'fill="{color}" fill-opacity="0.3" stroke="{color}" stroke-width="1.5"/>'
+            )
+            svg_parts.append(
+                f'<text x="{legend_x + 16}" y="{legend_y - idx * 18 + 10}" '
+                f'fill="var(--fg)" font-size="11">{html.escape(label)}</text>'
+            )
+
+        svg_parts.append('</svg>')
+        return '\n'.join(svg_parts)
 
 
 # ============================================================
@@ -340,6 +500,99 @@ HTML_TEMPLATE = """<!DOCTYPE html>
             color: var(--muted);
             margin-top: 0.25rem;
         }}
+        /* v5.2 推荐度评分样式 */
+        .recommendation-section {{
+            margin: 2rem 0;
+        }}
+        .group-header {{
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }}
+        .group-header h3 {{
+            margin: 0;
+            font-size: 1.1rem;
+        }}
+        .group-badge {{
+            display: inline-block;
+            padding: 0.15rem 0.6rem;
+            border-radius: 10px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }}
+        .group-flagship {{ background: #dbeafe; color: #1e40af; }}
+        .group-mainstream {{ background: #d1fae5; color: #065f46; }}
+        .group-niche {{ background: #fef3c7; color: #92400e; }}
+        .group-paper {{ background: #ede9fe; color: #5b21b6; }}
+        .grade-badge {{
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #fff;
+        }}
+        .grade-Adopt {{ background: #059669; }}
+        .grade-Trial {{ background: #2563eb; }}
+        .grade-Assess {{ background: #d97706; }}
+        .grade-Hold {{ background: #6b7280; }}
+        .grade-MustRead {{ background: #dc2626; }}
+        .grade-Recommended {{ background: #059669; }}
+        .grade-Optional {{ background: #d97706; }}
+        .grade-Skip {{ background: #6b7280; }}
+        .recommendation-table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.5rem 0 1rem;
+            font-size: 0.9rem;
+        }}
+        .recommendation-table th {{
+            background: var(--accent-light);
+            padding: 0.6rem;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid var(--accent);
+            white-space: nowrap;
+        }}
+        .recommendation-table td {{
+            padding: 0.6rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: top;
+        }}
+        .recommendation-table tr:hover {{
+            background: var(--accent-light);
+        }}
+        .score-bar {{
+            display: inline-block;
+            width: 60px;
+            height: 8px;
+            background: var(--border);
+            border-radius: 4px;
+            overflow: hidden;
+            vertical-align: middle;
+            margin-right: 0.3rem;
+        }}
+        .score-bar-fill {{
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }}
+        .radar-container {{
+            display: flex;
+            justify-content: center;
+            margin: 1.5rem 0;
+            background: var(--code-bg);
+            padding: 1rem;
+            border-radius: 8px;
+        }}
+        .recommendation-reason {{
+            color: var(--muted);
+            font-size: 0.85rem;
+            font-style: italic;
+        }}
     </style>
 </head>
 <body>
@@ -390,6 +643,8 @@ class ReportGenerator:
         reflections: Optional[Any] = None,
         format: str = 'html',
         output_path: Optional[str] = None,
+        ledger: Optional[Any] = None,
+        options: Optional[Dict[str, Any]] = None,
     ) -> str:
         """
         生成报告
@@ -401,16 +656,21 @@ class ReportGenerator:
             reflections: ReflectionHistory 对象
             format: 输出格式（html/markdown/json/csv）
             output_path: 输出文件路径（如不提供则返回字符串）
+            ledger: v6.0 证据账本（ResearchLedger），追加账本摘要/来源 Tier 分布
+            options: v6.0 调研元信息 {'depth','breadth','perspectives','effort','validation'}
 
         Returns:
             报告内容字符串
         """
         if format == 'html':
-            content = self._generate_html(plan, results, verification, reflections)
+            content = self._generate_html(plan, results, verification, reflections,
+                                          ledger=ledger, options=options)
         elif format == 'markdown':
-            content = self._generate_markdown(plan, results, verification, reflections)
+            content = self._generate_markdown(plan, results, verification, reflections,
+                                              ledger=ledger, options=options)
         elif format == 'json':
-            content = self._generate_json(plan, results, verification, reflections)
+            content = self._generate_json(plan, results, verification, reflections,
+                                          ledger=ledger, options=options)
         elif format == 'csv':
             content = self._generate_csv(results)
         else:
@@ -431,6 +691,8 @@ class ReportGenerator:
         results: List[Any],
         verification: Optional[Any],
         reflections: Optional[Any],
+        ledger: Optional[Any] = None,
+        options: Optional[Dict[str, Any]] = None,
     ) -> str:
         """生成 HTML 报告"""
         topic = getattr(plan, 'topic', '调研报告') if plan else '调研报告'
@@ -445,21 +707,27 @@ class ReportGenerator:
         # 生成各部分内容
         toc = self._html_toc()
         executive_summary = self._html_executive_summary(plan, results, verification)
+        v6_meta = self._html_v6_meta(options, ledger)           # v6.0
         issue_tree_section = self._html_issue_tree(plan)
         analysis_section = self._html_analysis(results, verification)
         contradictions_section = self._html_contradictions(verification)
         timeline_section = self._html_timeline(results)
         sources_section = self._html_sources(results)
+        recommendations_section = self._html_recommendations(results, plan)
         quality_section = self._html_quality(plan, results, verification, reflections)
+        v6_appendix = self._html_v6_appendix(ledger)            # v6.0
 
         content = '\n'.join([
             executive_summary,
+            v6_meta,
             issue_tree_section,
             analysis_section,
             contradictions_section,
             timeline_section,
             sources_section,
+            recommendations_section,
             quality_section,
+            v6_appendix,
         ])
 
         return HTML_TEMPLATE.format(
@@ -484,9 +752,90 @@ class ReportGenerator:
             <li><a href="#contradictions">4. 矛盾点标注</a></li>
             <li><a href="#timeline">5. 时间线</a></li>
             <li><a href="#sources">6. 引用列表（CRAAP 评分）</a></li>
-            <li><a href="#quality">7. 调研质量自评</a></li>
+            <li><a href="#recommendations">7. 推荐度评分与排序（v5.2）</a></li>
+            <li><a href="#quality">8. 调研质量自评</a></li>
+            <li><a href="#v6-ledger">9. 证据账本与来源分级（v6.0）</a></li>
         </ul>
     </div>"""
+
+    # ------------------------------------------------------------
+    # v6.0：调研元信息 + 证据账本摘要 + 来源 Tier 分布
+    # ------------------------------------------------------------
+    def _html_v6_meta(self, options: Optional[Dict[str, Any]],
+                      ledger: Optional[Any]) -> str:
+        """调研元信息卡（effort/breadth/专家团/校验）+ 账本概览。无输入时返回空。"""
+        if not options and ledger is None:
+            return ''
+        parts = [f'<div class="card" id="v6-ledger"><h4>⚙️ 调研配置（v6.0）</h4><table>']
+        if options:
+            fields = [
+                ('effort', '努力程度'), ('breadth', '并行子主题数'),
+                ('depth', '深度'), ('perspectives', '专家团视角'),
+                ('validation', '发布校验'),
+            ]
+            for key, label in fields:
+                if options.get(key) is not None:
+                    parts.append(f'<tr><th>{label}</th><td>{html.escape(str(options[key]))}</td></tr>')
+        if ledger is not None:
+            stats = self._ledger_stats(ledger)
+            if stats:
+                parts.append(f'<tr><th>账本 claims</th><td>{stats["claims"]}</td></tr>')
+                parts.append(f'<tr><th>账本 sources</th><td>{stats["sources"]}</td></tr>')
+                parts.append(
+                    f'<tr><th>证据充分子主题</th><td>{stats["sufficient_topics"]}/{stats["topic_count"]}</td></tr>')
+        parts.append('</table></div>')
+        return '\n'.join(parts) if len(parts) > 1 else ''
+
+    def _html_v6_appendix(self, ledger: Optional[Any]) -> str:
+        """证据账本摘要（按子主题）+ 来源 Tier 分布附录。"""
+        if ledger is None:
+            return ''
+        stats = self._ledger_stats(ledger)
+        if not stats or not stats['topic_stats']:
+            return ''
+        out = ['<div class="card" id="v6-ledger-detail"><h4>📒 证据账本摘要</h4>',
+               '<table><tr><th>子主题</th><th>claims</th><th>verified</th>'
+               '<th>conflict</th><th>独立来源</th><th>覆盖</th><th>充分</th></tr>']
+        for t, s in sorted(stats['topic_stats'].items()):
+            mark = '✅' if s.get('sufficient') else '⚠️'
+            out.append(f'<tr><td>{html.escape(t)}</td><td>{s["claims"]}</td>'
+                       f'<td>{s["verified"]}</td><td>{s["conflict"]}</td>'
+                       f'<td>{s["independent_sources"]}</td><td>{s["coverage"]:.0%}</td>'
+                       f'<td>{mark}</td></tr>')
+        out.append('</table>')
+        if stats['tier_dist']:
+            out += ['<h4>📍 来源 Tier 分布（附录 D）</h4>',
+                    '<table><tr><th>Tier</th><th>含义</th><th>数量</th></tr>']
+            for tier in sorted(stats['tier_dist']):
+                label = {1: '官方/学术', 2: '权威/官方文档', 3: '一般', 4: '社区/低质'}.get(tier, str(tier))
+                out.append(f'<tr><td>{tier}</td><td>{label}</td><td>{stats["tier_dist"][tier]}</td></tr>')
+            out.append('</table>')
+        out.append('</div>')
+        return '\n'.join(out)
+
+    @staticmethod
+    def _ledger_stats(ledger: Optional[Any]) -> Optional[Dict[str, Any]]:
+        """从账本提取统计（任一步出错返回 None，绝不中断报告生成）。"""
+        if ledger is None:
+            return None
+        try:
+            stats = ledger.status()
+            sources = ledger.export_json().get('sources', [])
+            tier_dist: Dict[int, int] = {}
+            for s in sources:
+                t = s.get('tier')
+                if t is not None:
+                    tier_dist[t] = tier_dist.get(t, 0) + 1
+            return {
+                'topic_stats': stats,
+                'tier_dist': tier_dist,
+                'claims': len(ledger.claims()),
+                'sources': len(sources),
+                'sufficient_topics': sum(1 for s in stats.values() if s.get('sufficient')),
+                'topic_count': len(stats),
+            }
+        except Exception:
+            return None
 
     def _html_executive_summary(
         self, plan: Any, results: List[Any], verification: Optional[Any]
@@ -656,6 +1005,282 @@ class ReportGenerator:
             </tbody>
         </table>"""
 
+    def _html_recommendations(self, results: List[Any], plan: Any) -> str:
+        """
+        v5.2 推荐度评分与排序章节
+
+        包含：
+        1. GitHub 项目推荐度（分组：旗舰/主流/小众，组内按推荐度排序）
+        2. 推荐度对比表（含 8 维评分 + 推荐等级 + 推荐理由）
+        3. 雷达图（前 5 个项目多维度对比，SVG）
+        4. 学术论文推荐度（如有论文结果）
+        """
+        if not _RECOMMEND_AVAILABLE:
+            return (
+                '<h2 id="recommendations">7. 推荐度评分与排序</h2>'
+                '<p style="color:var(--muted);">推荐度评分模块未加载（recommend.py 不可用）。</p>'
+            )
+
+        if not results:
+            return (
+                '<h2 id="recommendations">7. 推荐度评分与排序</h2>'
+                '<p style="color:var(--muted);">无搜索结果，无法生成推荐度评分。</p>'
+            )
+
+        # 获取查询关键词（用于意图识别和相关性评分）
+        query = getattr(plan, 'topic', '') if plan else ''
+        intent = detect_intent(query) if detect_intent else 'default'
+
+        sections = [
+            '<h2 id="recommendations">7. 推荐度评分与排序（v5.2）</h2>',
+            f'<blockquote><p>🎯 查询意图：<strong>{html.escape(intent)}</strong>'
+            f' | 推荐度评分基于多维度加权（人气/活跃/维护/社区/文档/依赖/相关/生态）</p></blockquote>',
+        ]
+
+        # ---- GitHub 项目推荐度 ----
+        github_recommender = GitHubRecommender()
+        ranked_github = github_recommender.rank_results(results, query, intent)
+
+        if ranked_github:
+            sections.append(self._render_github_recommendations(ranked_github, intent))
+        else:
+            sections.append(
+                '<p style="color:var(--muted);">本次调研未包含 GitHub 项目结果。</p>'
+            )
+
+        # ---- 学术论文推荐度 ----
+        paper_recommender = PaperRecommender()
+        ranked_papers = paper_recommender.rank_results(results, query)
+
+        if ranked_papers:
+            sections.append(self._render_paper_recommendations(ranked_papers))
+
+        return '\n'.join(sections)
+
+    def _render_github_recommendations(
+        self, ranked: List[Dict[str, Any]], intent: str
+    ) -> str:
+        """渲染 GitHub 项目推荐度（分组 + 对比表 + 雷达图）"""
+        # 统计各组数量
+        group_counts = {'flagship': 0, 'mainstream': 0, 'niche': 0}
+        for item in ranked:
+            group = item['recommendation'].group
+            if group in group_counts:
+                group_counts[group] += 1
+
+        group_labels = {
+            'flagship': ('旗舰项目', '⭐ ≥ 1000', 'group-flagship'),
+            'mainstream': ('主流项目', '⭐ 100-1000', 'group-mainstream'),
+            'niche': ('小众项目', '⭐ < 100（可借鉴）', 'group-niche'),
+        }
+
+        parts = [
+            '<h3>📦 GitHub 项目推荐度</h3>',
+            f'<div class="stats-grid">',
+            f'<div class="stat-card"><div class="stat-value">{group_counts["flagship"]}</div>'
+            f'<div class="stat-label">旗舰项目</div></div>',
+            f'<div class="stat-card"><div class="stat-value">{group_counts["mainstream"]}</div>'
+            f'<div class="stat-label">主流项目</div></div>',
+            f'<div class="stat-card"><div class="stat-value">{group_counts["niche"]}</div>'
+            f'<div class="stat-label">小众项目</div></div>',
+            f'<div class="stat-card"><div class="stat-value">{len(ranked)}</div>'
+            f'<div class="stat-label">总计</div></div>',
+            f'</div>',
+        ]
+
+        # 按组渲染对比表
+        current_group = ''
+        for item in ranked:
+            rec = item['recommendation']
+            result = item['result']
+
+            # 组分隔符
+            if rec.group != current_group:
+                current_group = rec.group
+                label, desc, css_class = group_labels.get(
+                    rec.group, (rec.group, '', 'group-mainstream')
+                )
+                parts.append(
+                    f'<div class="group-header">'
+                    f'<span class="group-badge {css_class}">{html.escape(label)}</span>'
+                    f'<h3>{html.escape(label)}</h3>'
+                    f'<span style="color:var(--muted);font-size:0.85rem;">{html.escape(desc)}</span>'
+                    f'</div>'
+                )
+                # 表头
+                parts.append(
+                    '<table class="recommendation-table">'
+                    '<thead><tr>'
+                    '<th>#</th><th>项目</th><th>⭐ Stars</th>'
+                    '<th>推荐度</th><th>等级</th>'
+                    '<th>人气</th><th>活跃</th><th>维护</th><th>社区</th>'
+                    '<th>文档</th><th>依赖</th><th>相关</th><th>生态</th>'
+                    '<th>推荐理由</th>'
+                    '</tr></thead><tbody>'
+                )
+
+            # 表行
+            repo_data = result.raw if hasattr(result, 'raw') else result.get('raw', {})
+            stars = repo_data.get('stars', 0)
+            name = repo_data.get('full_name', repo_data.get('name', result.title if hasattr(result, 'title') else ''))
+            url = result.url if hasattr(result, 'url') else result.get('url', '')
+
+            dims = rec.dimensions
+            # 评分条颜色（根据分数）
+            def _score_bar(score: float) -> str:
+                if score >= 70:
+                    color = '#10b981'
+                elif score >= 40:
+                    color = '#f59e0b'
+                else:
+                    color = '#ef4444'
+                return (
+                    f'<span class="score-bar">'
+                    f'<span class="score-bar-fill" style="width:{score:.0f}%;background:{color};"></span>'
+                    f'</span>{score:.0f}'
+                )
+
+            parts.append(
+                f'<tr>'
+                f'<td>{rec.rank_in_group}</td>'
+                f'<td><a href="{html.escape(url)}" target="_blank">{html.escape(str(name)[:40])}</a></td>'
+                f'<td>{"⭐" if stars >= 1000 else ""}{stars}</td>'
+                f'<td><strong>{rec.total_score:.1f}</strong></td>'
+                f'<td><span class="grade-badge grade-{rec.grade}">{rec.grade}</span></td>'
+                f'<td>{_score_bar(dims.get("popularity", 0))}</td>'
+                f'<td>{_score_bar(dims.get("activity", 0))}</td>'
+                f'<td>{_score_bar(dims.get("maintenance", 0))}</td>'
+                f'<td>{_score_bar(dims.get("community", 0))}</td>'
+                f'<td>{_score_bar(dims.get("docs", 0))}</td>'
+                f'<td>{_score_bar(dims.get("dependency", 0))}</td>'
+                f'<td>{_score_bar(dims.get("relevance", 0))}</td>'
+                f'<td>{_score_bar(dims.get("ecosystem", 0))}</td>'
+                f'<td class="recommendation-reason">{html.escape(rec.recommendation_reason[:80])}</td>'
+                f'</tr>'
+            )
+
+        # 关闭最后一个表格
+        if current_group:
+            parts.append('</tbody></table>')
+
+        # 雷达图（前 5 个项目）
+        if len(ranked) >= 1:
+            radar_items = []
+            for item in ranked[:5]:
+                rec = item['recommendation']
+                result = item['result']
+                repo_data = result.raw if hasattr(result, 'raw') else result.get('raw', {})
+                name = repo_data.get('name', '项目')
+                radar_items.append({
+                    'label': name,
+                    'scores': rec.dimensions,
+                })
+
+            dim_labels = {
+                'popularity': '人气', 'activity': '活跃', 'maintenance': '维护',
+                'community': '社区', 'docs': '文档', 'dependency': '依赖',
+                'relevance': '相关', 'ecosystem': '生态',
+            }
+            radar_svg = RadarChartGenerator.generate(
+                items=radar_items,
+                dimensions=['popularity', 'activity', 'maintenance', 'community',
+                           'docs', 'dependency', 'relevance', 'ecosystem'],
+                dimension_labels=dim_labels,
+                max_items=5,
+                size=450,
+            )
+            parts.append('<h4>📊 推荐度雷达图（前 5 项目对比）</h4>')
+            parts.append(f'<div class="radar-container">{radar_svg}</div>')
+
+        return '\n'.join(parts)
+
+    def _render_paper_recommendations(self, ranked: List[Dict[str, Any]]) -> str:
+        """渲染学术论文推荐度"""
+        parts = [
+            '<div class="group-header">'
+            '<span class="group-badge group-paper">学术论文</span>'
+            '<h3>学术论文推荐度</h3>'
+            '</div>',
+            '<table class="recommendation-table">'
+            '<thead><tr>'
+            '<th>#</th><th>标题</th><th>引用</th>'
+            '<th>推荐度</th><th>等级</th>'
+            '<th>引用影响</th><th>时效</th><th>权威</th><th>h-index</th><th>相关</th>'
+            '<th>推荐理由</th>'
+            '</tr></thead><tbody>',
+        ]
+
+        for item in ranked[:15]:
+            rec = item['recommendation']
+            result = item['result']
+            paper_data = result.raw if hasattr(result, 'raw') else result.get('raw', {})
+            title = paper_data.get('title', result.title if hasattr(result, 'title') else '')
+            url = result.url if hasattr(result, 'url') else result.get('url', '')
+            citations = paper_data.get('citation_count', 0) or paper_data.get('citations', 0)
+
+            dims = rec.dimensions
+
+            def _score_bar(score: float) -> str:
+                if score >= 70:
+                    color = '#10b981'
+                elif score >= 40:
+                    color = '#f59e0b'
+                else:
+                    color = '#ef4444'
+                return (
+                    f'<span class="score-bar">'
+                    f'<span class="score-bar-fill" style="width:{score:.0f}%;background:{color};"></span>'
+                    f'</span>{score:.0f}'
+                )
+
+            parts.append(
+                f'<tr>'
+                f'<td>{rec.rank_in_group}</td>'
+                f'<td><a href="{html.escape(url)}" target="_blank">{html.escape(str(title)[:50])}</a></td>'
+                f'<td>{citations}</td>'
+                f'<td><strong>{rec.total_score:.1f}</strong></td>'
+                f'<td><span class="grade-badge grade-{rec.grade.replace(" ", "")}">{rec.grade}</span></td>'
+                f'<td>{_score_bar(dims.get("citation_impact", 0))}</td>'
+                f'<td>{_score_bar(dims.get("recency", 0))}</td>'
+                f'<td>{_score_bar(dims.get("authority", 0))}</td>'
+                f'<td>{_score_bar(dims.get("author_h_index", 0))}</td>'
+                f'<td>{_score_bar(dims.get("relevance", 0))}</td>'
+                f'<td class="recommendation-reason">{html.escape(rec.recommendation_reason[:80])}</td>'
+                f'</tr>'
+            )
+
+        parts.append('</tbody></table>')
+
+        # 论文雷达图（前 5 篇）
+        if len(ranked) >= 1:
+            radar_items = []
+            for item in ranked[:5]:
+                rec = item['recommendation']
+                result = item['result']
+                paper_data = result.raw if hasattr(result, 'raw') else result.get('raw', {})
+                title = paper_data.get('title', '论文')
+                radar_items.append({
+                    'label': title[:30],
+                    'scores': rec.dimensions,
+                })
+
+            dim_labels = {
+                'citation_impact': '引用影响', 'recency': '时效',
+                'authority': '权威', 'author_h_index': 'h-index',
+                'relevance': '相关',
+            }
+            radar_svg = RadarChartGenerator.generate(
+                items=radar_items,
+                dimensions=['citation_impact', 'recency', 'authority', 'author_h_index', 'relevance'],
+                dimension_labels=dim_labels,
+                max_items=5,
+                size=400,
+            )
+            parts.append('<h4>📊 论文推荐度雷达图（前 5 篇对比）</h4>')
+            parts.append(f'<div class="radar-container">{radar_svg}</div>')
+
+        return '\n'.join(parts)
+
     def _html_quality(
         self, plan: Any, results: List[Any],
         verification: Optional[Any], reflections: Optional[Any]
@@ -712,7 +1337,8 @@ class ReportGenerator:
 
     def _generate_markdown(
         self, plan: Any, results: List[Any],
-        verification: Optional[Any], reflections: Optional[Any]
+        verification: Optional[Any], reflections: Optional[Any],
+        ledger: Optional[Any] = None, options: Optional[Dict[str, Any]] = None
     ) -> str:
         """生成 Markdown 报告"""
         topic = getattr(plan, 'topic', '调研报告') if plan else '调研报告'
@@ -722,6 +1348,19 @@ class ReportGenerator:
             f"**生成时间**：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
             f"**数据源数**：{len(set(r.source if hasattr(r, 'source') else r.get('source', '') for r in results))}",
             "",
+        ]
+
+        # v6.0：调研元信息
+        if options:
+            lines.append('**调研配置（v6.0）**：')
+            for key, label in [('effort', '努力程度'), ('breadth', '并行子主题数'),
+                               ('depth', '深度'), ('perspectives', '专家团视角'),
+                               ('validation', '发布校验')]:
+                if options.get(key) is not None:
+                    lines.append(f'- {label}：{options[key]}')
+            lines.append('')
+
+        lines += [
             "## 1. 执行摘要",
             "",
             f"本次调研共收集 {len(results)} 条结果。",
@@ -763,6 +1402,24 @@ class ReportGenerator:
                 lines.append(f"- **原因**: {con.possible_reason}")
                 lines.append("")
 
+        # v6.0：证据账本摘要 + 来源 Tier 分布（附录 D）
+        stats = self._ledger_stats(ledger)
+        if stats and stats['topic_stats']:
+            lines.extend(["", "## 附录 D：证据账本与来源 Tier 分布（v6.0）", ""])
+            lines.extend([
+                "| 子主题 | claims | verified | conflict | 独立来源 | 覆盖 | 充分 |",
+                "|--------|--------|----------|----------|----------|------|------|",
+            ])
+            for t, s in sorted(stats['topic_stats'].items()):
+                mark = '✅' if s.get('sufficient') else '⚠️'
+                lines.append(f"| {t} | {s['claims']} | {s['verified']} | {s['conflict']} "
+                             f"| {s['independent_sources']} | {s['coverage']:.0%} | {mark} |")
+            if stats['tier_dist']:
+                lines.extend(["", "**来源 Tier 分布**：", ""])
+                for tier in sorted(stats['tier_dist']):
+                    label = {1: '官方/学术', 2: '权威/官方文档', 3: '一般', 4: '社区/低质'}.get(tier, str(tier))
+                    lines.append(f"- Tier {tier}（{label}）：{stats['tier_dist'][tier]} 条")
+
         return '\n'.join(lines)
 
     # ------------------------------------------------------------
@@ -771,7 +1428,8 @@ class ReportGenerator:
 
     def _generate_json(
         self, plan: Any, results: List[Any],
-        verification: Optional[Any], reflections: Optional[Any]
+        verification: Optional[Any], reflections: Optional[Any],
+        ledger: Optional[Any] = None, options: Optional[Dict[str, Any]] = None
     ) -> str:
         """生成 JSON 报告"""
         report = {
@@ -792,6 +1450,19 @@ class ReportGenerator:
                 for r in results
             ],
         }
+
+        # v6.0：元信息 + 证据账本
+        if options:
+            report['metadata']['v6_options'] = options
+        ledger_stats = self._ledger_stats(ledger)
+        if ledger_stats:
+            report['v6_ledger'] = {
+                'claims': ledger_stats['claims'],
+                'sources': ledger_stats['sources'],
+                'sufficient_topics': ledger_stats['sufficient_topics'],
+                'topic_stats': {t: s for t, s in ledger_stats['topic_stats'].items()},
+                'tier_distribution': ledger_stats['tier_dist'],
+            }
 
         if verification:
             report['verification'] = {
@@ -853,10 +1524,13 @@ def generate_report(
     reflections: Optional[Any] = None,
     format: str = 'html',
     output_path: Optional[str] = None,
+    ledger: Optional[Any] = None,
+    options: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """便捷函数：生成报告"""
+    """便捷函数：生成报告（v6.0 支持 ledger/options）"""
     reporter = ReportGenerator()
-    return reporter.generate(plan, results, verification, reflections, format, output_path)
+    return reporter.generate(plan, results, verification, reflections, format,
+                             output_path, ledger=ledger, options=options)
 
 
 # ============================================================

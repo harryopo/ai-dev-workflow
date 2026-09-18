@@ -41,6 +41,35 @@ from typing import Dict, List, Optional, Any
 # 数据结构
 # ============================================================
 
+# ============================================================
+# 问题链节点状态机（v5.1 新增，对齐秘塔问题链可视化 + Kimi 反思机制）
+# ============================================================
+
+# 状态流转：pending → searching → verified | conflict | supplementing → completed
+STATUS_FLOW = {
+    'pending':        ['searching'],
+    'searching':      ['verified', 'conflict', 'supplementing', 'pending'],
+    'verified':       ['completed', 'conflict'],   # 新证据可能推翻已验证结论
+    'conflict':       ['supplementing', 'verified'],
+    'supplementing':  ['verified', 'completed'],
+    'completed':      [],
+}
+
+# 节点状态标注 emoji（对齐秘塔颜色：灰/蓝/绿/红/橙）
+STATUS_EMOJI = {
+    'pending':       '⏳',  # 灰：待处理
+    'searching':     '🔄',  # 蓝：搜索中
+    'verified':      '✅',  # 绿：结论明确
+    'conflict':      '❌',  # 红：矛盾
+    'supplementing': '⚠️',  # 橙：信息待补充
+    'completed':     '📦',  # 归档
+}
+
+
+# 模块级默认多视角（v6.0：深度调研专家团；--perspectives 0 可关闭注入）
+DEFAULT_PERSPECTIVES = ['domain_expert', 'skeptic', 'practitioner']
+
+
 @dataclass
 class SubQuestion:
     """
@@ -50,6 +79,8 @@ class SubQuestion:
     - 可验证的假设（Hypothesis-Driven）
     - 匹配的数据源（MCP/Skill/内置/降级）
     - 子问题（形成树结构）
+    - v5.1 新增：问题链节点元数据（证据/置信度/查询历史/反思记录）
+    - v6.0 新增：多视角（专家团角色）与证据充分性计数
     """
     id: str                                    # 唯一标识
     question: str                              # 子问题描述
@@ -59,9 +90,17 @@ class SubQuestion:
     children: List['SubQuestion'] = field(default_factory=list)  # 子问题
     parent_id: Optional[str] = None            # 父节点 ID
     keywords: List[str] = field(default_factory=list)  # 搜索关键词
-    status: str = 'pending'                    # pending/searching/completed
+    status: str = 'pending'  # pending/searching/verified/conflict/supplementing/completed
     search_count: int = 0                      # 已搜索次数
     findings_count: int = 0                    # 已发现证据数
+    # v5.1 新增：问题链节点元数据（对齐秘塔 + Kimi）
+    evidence: List[Dict] = field(default_factory=list)      # 关键证据 [{statement, source_url, source_domain, craap_grade}]
+    confidence: float = 0.0                                  # 置信度 0-1
+    search_queries: List[str] = field(default_factory=list)  # 已执行的搜索查询历史
+    reflection_notes: List[str] = field(default_factory=list)  # 反思记录
+    # v6.0 新增
+    perspectives: List[str] = field(default_factory=list)    # 多视角角色（专家团注入）
+    evidence_count: int = 0                                  # 独立来源数（证据充分性判据）
 
     def add_child(self, child: 'SubQuestion') -> None:
         """添加子问题"""
@@ -86,6 +125,12 @@ class SubQuestion:
             'status': self.status,
             'search_count': self.search_count,
             'findings_count': self.findings_count,
+            'evidence': self.evidence,
+            'confidence': self.confidence,
+            'search_queries': self.search_queries,
+            'reflection_notes': self.reflection_notes,
+            'perspectives': self.perspectives,
+            'evidence_count': self.evidence_count,
             'children': [c.to_dict() for c in self.children],
         }
 
@@ -108,6 +153,8 @@ class ResearchPlan:
     created_at: str = ''                                # 创建时间
     estimated_duration: str = ''                        # 预估时长
     estimated_sources: int = 0                          # 预估数据源数
+    # v6.0 新增：待确认/未答问题清单（计划确认门 + 停止条件的输入）
+    unanswered_questions: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.created_at:
@@ -127,6 +174,7 @@ class ResearchPlan:
             'created_at': self.created_at,
             'estimated_duration': self.estimated_duration,
             'estimated_sources': self.estimated_sources,
+            'unanswered_questions': self.unanswered_questions,
         }
 
     def save(self, path: str) -> None:
@@ -159,6 +207,7 @@ class ResearchPlan:
             created_at=data.get('created_at', ''),
             estimated_duration=data.get('estimated_duration', ''),
             estimated_sources=data.get('estimated_sources', 0),
+            unanswered_questions=data.get('unanswered_questions', []),
         )
 
     def get_all_questions(self) -> List[SubQuestion]:
@@ -618,6 +667,7 @@ class PlanGenerator:
         language: str = 'auto',
         region: str = '',
         issue_tree_data: Optional[List[Dict]] = None,
+        perspectives: Optional[List[str]] = None,
     ) -> ResearchPlan:
         """
         生成调研计划
@@ -645,6 +695,10 @@ class PlanGenerator:
             ResearchPlan 对象
         """
         preset = self.DEPTH_PRESETS.get(depth, self.DEPTH_PRESETS['standard'])
+
+        # v6.0: 多视角注入（深度调研专家团）。None=默认 3 视角；[]=关闭
+        if perspectives is None:
+            perspectives = DEFAULT_PERSPECTIVES
 
         # 如果未提供维度，使用预设
         if not dimensions:
@@ -681,7 +735,11 @@ class PlanGenerator:
         leaf_count = sum(1 for q in issue_tree for _ in [q])  # 简化估算
         estimated_sources = leaf_count * preset['sources_per_question']
 
-        return ResearchPlan(
+        # v6.0: 递归为全部子问题注入多视角
+        for q in issue_tree:
+            self._inject_perspectives(q, perspectives)
+
+        plan = ResearchPlan(
             topic=topic,
             goal=goal,
             depth=depth,
@@ -693,6 +751,17 @@ class PlanGenerator:
             estimated_duration=preset['estimated_duration'],
             estimated_sources=estimated_sources,
         )
+        # 初始待确认清单 = 全部叶子子问题（计划确认门输入）
+        plan.unanswered_questions = [q.question for q in plan.get_leaf_questions()]
+        return plan
+
+    @staticmethod
+    def _inject_perspectives(q: SubQuestion, perspectives: List[str]) -> None:
+        """递归为子问题节点注入多视角（已注入的跳过）。"""
+        if not q.perspectives and perspectives:
+            q.perspectives = list(perspectives)
+        for child in q.children:
+            PlanGenerator._inject_perspectives(child, perspectives)
 
     def _build_sub_question(self, data: Dict, depth: int = 0,
                             parent_id: Optional[str] = None) -> SubQuestion:
@@ -725,6 +794,9 @@ def _main():
     parser.add_argument('--goal', default='')
     parser.add_argument('--time-range', default='')
     parser.add_argument('--output', default='research_plan.json')
+    # v6.0: 多视角注入（--perspectives 0 关闭；--perspectives skeptic,practitioner 自定义）
+    parser.add_argument('--perspectives', default='',
+                        help='多视角角色，逗号分隔；"0" 关闭（默认: domain_expert,skeptic,practitioner）')
     args = parser.parse_args()
 
     generator = PlanGenerator()
@@ -732,12 +804,19 @@ def _main():
     print("主题分析：")
     print(json.dumps(clarification, indent=2, ensure_ascii=False))
 
+    perspectives = None
+    if args.perspectives == '0':
+        perspectives = []
+    elif args.perspectives:
+        perspectives = [p.strip() for p in args.perspectives.split(',')]
+
     plan = generator.generate_plan(
         topic=args.topic,
         goal=args.goal,
         depth=args.depth,
         dimensions=clarification['suggested_dimensions'],
         time_range=args.time_range,
+        perspectives=perspectives,
     )
     plan.save(args.output)
     print(f"\n调研计划已保存到 {args.output}")

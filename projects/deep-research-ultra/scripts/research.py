@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """
-Deep Research Ultra v4.0 — 主入口（v4 CLI）
+Deep Research Ultra v5.1 — 主入口（v5 CLI）
 
 四阶段工作流：Plan → Execute → Synthesize → Reflect
-四层数据源：MCP → Skill → 内置 → 降级
+四层数据源：MCP + 学术直连/全文/引用图谱 → Skill → 内置/浏览器自动化 → 降级（含 curl_cffi TLS 伪装）
+v5.0 新增：智能路由（--auto-route）+ 学术直连引擎 + 反爬虫升级
+v5.1 新增：论文全文下载(arXiv/Unpaywall) + 引用图谱(S2) + Crawl4AI浏览器自动化 + 方法论落地(秘塔问题链/Kimi多信号停止)
 
 与 v3 search.py 的关系：
 - search.py 保留为 v3 兼容入口（--sources baidu,bing 等）
-- research.py 是 v4 推荐入口（--depth standard --format html 等）
+- research.py 是 v5 推荐入口（--depth standard --format html --auto-route 等）
 
 用法示例：
   # 标准深度调研（HTML 报告，默认）
   python research.py "深度调研 2025 年 AI Agent 框架"
 
+  # v5.0 智能路由（自动选择数据源）
+  python research.py "最新 LLM 论文" --auto-route
+
   # 深度模式（多轮反思）
   python research.py "深度调研大语言模型微调" --depth deep --reflect-rounds 3
+
+  # 查看路由分析（不执行搜索）
+  python research.py "RAG 开源实现" --route
 
   # 仅生成 MECE 计划
   python research.py "深度调研 RAG 最佳实践" --plan-only
@@ -44,28 +52,46 @@ sys.path.insert(0, str(SCRIPT_DIR))
 # ============================================================
 
 def build_registry():
-    """构建引擎注册表，注册所有可用引擎"""
+    """构建引擎注册表，注册所有可用引擎（v5.2 含 GitHub 深度搜索 + 国内内容源）"""
     from engines.base import EngineRegistry
     from engines import (
         TavilyMcpEngine, FirecrawlMcpEngine, OpenWebsearchMcpEngine,
         ArxivMcpEngine, PaperSearchMcpEngine,
+        OpenAlexEngine, SemanticScholarEngine, PubmedEngine,
+        ArxivFulltextEngine, UnpaywallEngine, CitationGraphEngine,
         AgentReachEngine, OssFinderEngine, Last30DaysEngine,
         SciverseEngine, DefuddleEngine, Context7Engine,
+        GitHubDeepSearchEngine, GitHubCodeSearchEngine,
+        BaiduSerpEngine, SogouWeixinEngine, SogouZhihuEngine, BaiduXueshuEngine,
         WebSearchEngine, WebFetchEngine,
+        Crawl4aiEngine, LayeredCrawler,
+        GiteeEngine, ModelScopeEngine,  # v6.1：国内开源平台
         DuckDuckGoEngine, BaiduHtmlEngine, BingHtmlEngine, SearXNGEngine,
     )
 
     registry = EngineRegistry()
     engine_classes = [
-        # Layer 1: MCP
+        # Layer 1: MCP 服务器
         TavilyMcpEngine, FirecrawlMcpEngine, OpenWebsearchMcpEngine,
         ArxivMcpEngine, PaperSearchMcpEngine,
+        # Layer 1: 学术直连引擎（v5.0 新增，无需 MCP，直连免费 API）
+        OpenAlexEngine, SemanticScholarEngine, PubmedEngine,
+        # Layer 1: 学术全文+引用图谱（v5.1 新增）
+        ArxivFulltextEngine, UnpaywallEngine, CitationGraphEngine,
         # Layer 2: Skill
         AgentReachEngine, OssFinderEngine, Last30DaysEngine,
         SciverseEngine, DefuddleEngine, Context7Engine,
+        # Layer 2: GitHub 深度搜索（v5.2 新增：分桶+低星+依赖图+awesome，不漏项目）
+        GitHubDeepSearchEngine, GitHubCodeSearchEngine,
+        # Layer 2: 国内内容源（v5.2 新增：百度/搜狗微信/搜狗知乎/百度学术）
+        BaiduSerpEngine, SogouWeixinEngine, SogouZhihuEngine, BaiduXueshuEngine,
         # Layer 3: 内置
         WebSearchEngine, WebFetchEngine,
-        # Layer 4: 降级
+        # Layer 3: 浏览器自动化（v5.1 新增）
+        Crawl4aiEngine,
+        # Layer 2: 国内开源平台（v6.1 新增：Gitee/ModelScope 免费 API 直连）
+        GiteeEngine, ModelScopeEngine,
+        # Layer 4: 降级（含 curl_cffi TLS 指纹伪装）
         DuckDuckGoEngine, BaiduHtmlEngine, BingHtmlEngine, SearXNGEngine,
     ]
     for cls in engine_classes:
@@ -126,6 +152,103 @@ def cmd_mcp_check(registry):
 
 
 # ============================================================
+# 命令：--env-check（v6.1 环境分级门控）
+# ============================================================
+
+def cmd_env_check(args):
+    """环境分级验证：按调研场景（profile）声明所需环境并逐项验证"""
+    from env_check import run_env_check, format_report, PROFILES
+
+    profile = getattr(args, 'env_profile', 'full')
+    if profile not in PROFILES:
+        print(f"❌ 未知 profile: {profile}（可选: {', '.join(PROFILES)}）", file=sys.stderr)
+        sys.exit(2)
+
+    include_net = not getattr(args, 'no_net', False)
+    print("=" * 60)
+    print(f"Deep Research Ultra — 环境验证（profile: {profile}）")
+    print("=" * 60)
+    report = run_env_check(profile, include_net=include_net)
+    print(format_report(report, verbose=False))
+
+    if not report.ready:
+        print()
+        print("💡 尚未就绪：请先完成上述缺失项配置，再重跑 --env-check 验证通过后开始调研。")
+        sys.exit(1)
+    sys.exit(0)
+
+
+# ============================================================
+# 命令：--route（v5.0 智能路由）
+# ============================================================
+
+def cmd_route(args, registry):
+    """智能路由分析 — 展示查询分类和推荐引擎链"""
+    from router import QueryRouter
+
+    print("=" * 70)
+    print("Deep Research Ultra v5.0 — 智能路由分析")
+    print("=" * 70)
+    print()
+
+    router = QueryRouter()
+    decision = router.route(args.query, {})
+
+    # 查询类型
+    type_labels = {
+        'academic': '学术论文', 'opensource': '开源项目', 'community': '社区口碑',
+        'docs': '技术文档', 'news': '时效新闻', 'general': '通用搜索',
+        'definition': '定义解释', 'guide': '操作指南', 'comparison': '对比分析',
+    }
+    type_label = type_labels.get(decision.query_type, decision.query_type)
+    print(f"📋 查询: {args.query}")
+    print(f"🏷️  类型: {decision.query_type}（{type_label}）")
+    if decision.secondary_types:
+        secondary_labels = [type_labels.get(t, t) for t in decision.secondary_types]
+        print(f"     次要类型: {', '.join(secondary_labels)}")
+    print(f"📊 置信度: {decision.confidence:.0%}")
+    print(f"⏰ 时间敏感度: {decision.time_sensitivity}")
+    print(f"🏛️ 权威性需求: {decision.authority_need}")
+    print()
+
+    # 多语言变体
+    if decision.query_variants:
+        print("🌍 多语言查询变体:")
+        for v in decision.query_variants:
+            print(f"   [{v.get('lang', '?')}] {v.get('q', '')}")
+        print()
+
+    # 推荐引擎链
+    print("🔗 推荐引擎链（按优先级）:")
+    available_engines = registry.get_available()
+    available_names = {e.get_name() for e in available_engines}
+    for i, eng_name in enumerate(decision.engine_chain, 1):
+        status = "✅" if eng_name in available_names else "❌"
+        engine = registry.get(eng_name)
+        desc = engine.metadata.description[:50] if engine else "(未注册)"
+        print(f"   {i}. {status} {eng_name:<20} {desc}")
+    print()
+
+    # 断路器过滤后的可用引擎链
+    filtered = router.filter_engines_by_breaker(decision.engine_chain)
+    removed = set(decision.engine_chain) - set(filtered)
+    if removed:
+        print(f"⚡ 断路器过滤: {', '.join(removed)}（暂时不可用，已跳过）")
+        print()
+
+    # 路由推理
+    if decision.reasoning:
+        print("📝 路由推理:")
+        print(f"   {decision.reasoning}")
+        print()
+
+    print("💡 使用以下命令执行调研:")
+    print(f"   python research.py \"{args.query}\" --sources {','.join(filtered[:5])}")
+    print(f"   或直接运行（自动路由）:")
+    print(f"   python research.py \"{args.query}\" --auto-route")
+
+
+# ============================================================
 # 命令：--list
 # ============================================================
 
@@ -179,10 +302,16 @@ def cmd_list(registry):
 # ============================================================
 
 def cmd_plan_only(args):
-    """仅生成 MECE 计划"""
+    """仅生成 MECE 计划（v6.0：含多视角 + 待确认清单）"""
     from plan import PlanGenerator, IssueTree
 
     gen = PlanGenerator()
+    perspectives = None
+    if getattr(args, 'perspectives', None) == '0':
+        perspectives = []
+    elif getattr(args, 'perspectives', None):
+        perspectives = [p.strip() for p in args.perspectives.split(',')]
+
     plan = gen.generate_plan(
         topic=args.query,
         goal=args.goal or '',
@@ -191,6 +320,7 @@ def cmd_plan_only(args):
         time_range=args.time_range or '',
         language=args.language or 'auto',
         region=args.region or '',
+        perspectives=perspectives,
     )
 
     # 构建 IssueTree 对象以便验证和可视化
@@ -262,6 +392,21 @@ def cmd_plan_only(args):
         print(mermaid)
         print()
 
+    # v6.0：待确认清单（计划确认门输入，供用户增删子问题/调整深度）
+    effort = args.effort or (args.depth if args.depth != 'extreme' else 'exhaustive')
+    breadth = args.breadth or {'quick': 2, 'standard': 4, 'deep': 8, 'exhaustive': 12}.get(effort, 4)
+    print("─" * 60)
+    print("📋 待确认清单（计划确认门）：")
+    print("─" * 60)
+    print(f"  建议 effort: {effort}{'（--effort 指定）' if args.effort else f'（{args.depth} 深度）'}")
+    print(f"  建议 breadth（并行子主题数）: {breadth}")
+    pv = [', '.join(q.perspectives) for q in plan.issue_tree if q.perspectives] or ['(默认域专家/怀疑者/实践者)']
+    print(f"  专家团视角: {'; '.join(dict.fromkeys(pv))}")
+    print(f"  子问题（共 {len(plan.unanswered_questions)} 个待执行主题）:")
+    for i, q in enumerate(plan.unanswered_questions, 1):
+        print(f"    {i}. {q}")
+    print("  提示: 可增删子问题、调整 --depth/--effort/--breadth/--perspectives，批准后再执行搜索。")
+
     # 保存计划
     if args.output:
         plan.save(args.output)
@@ -306,6 +451,13 @@ def cmd_search(args, registry):
         print(f"📋 MECE 计划已生成（{len(plan.issue_tree)} 个子问题）",
               file=sys.stderr)
 
+    # v6.0：证据账本（可选，--ledger 指定目录）
+    ledger = None
+    if args.ledger:
+        from ledger import ResearchLedger
+        ledger = ResearchLedger(args.ledger).init()
+        print(f"📒 证据账本已初始化: {args.ledger}", file=sys.stderr)
+
     # 3. 执行搜索（按降级链）
     chain = registry.get_fallback_chain()
     if not chain:
@@ -330,6 +482,34 @@ def cmd_search(args, registry):
             if chain:
                 print(f"⚠️ v3 引擎名自动映射到 v4 Layer 4（建议配置 MCP）", file=sys.stderr)
                 print(f"💡 运行 setup-mcp.sh --core 配置免费 MCP", file=sys.stderr)
+    elif getattr(args, 'auto_route', False):
+        # v5.0 智能路由：自动根据查询意图选择引擎链
+        try:
+            from router import QueryRouter
+            router = QueryRouter()
+            decision = router.route(args.query, {})
+            route_names = set(decision.engine_chain)
+            # 断路器过滤
+            filtered_names = set(router.filter_engines_by_breaker(decision.engine_chain))
+            type_labels = {
+                'academic': '学术论文', 'opensource': '开源项目', 'community': '社区口碑',
+                'docs': '技术文档', 'news': '时效新闻', 'general': '通用搜索',
+                'definition': '定义解释', 'guide': '操作指南', 'comparison': '对比分析',
+            }
+            print(f"🧭 智能路由: {decision.query_type}（{type_labels.get(decision.query_type, '')}）"
+                  f" 置信度={decision.confidence:.0%}", file=sys.stderr)
+            print(f"   引擎链: {', '.join(decision.engine_chain)}", file=sys.stderr)
+            # 过滤出可用引擎
+            routed_chain = [e for e in chain if e.get_name() in filtered_names]
+            if routed_chain:
+                chain = routed_chain
+            else:
+                # 路由推荐的引擎都不可用，降级到默认链
+                print(f"⚠️ 路由推荐引擎均不可用，降级到默认降级链", file=sys.stderr)
+        except ImportError:
+            print(f"⚠️ 智能路由模块未找到（router.py），使用默认降级链", file=sys.stderr)
+        except Exception as e:
+            print(f"⚠️ 智能路由失败: {e}，使用默认降级链", file=sys.stderr)
 
     # 搜索（取第一个可用引擎或聚合多个）
     if args.all:
@@ -391,19 +571,23 @@ def cmd_search(args, registry):
           f"{len(verification.contradictions)} 矛盾",
           file=sys.stderr)
 
-    # 7. 反思循环（如果 --reflect-rounds > 0）
+    # 7. 反思循环（如果 --reflect-rounds > 0；v6.0 支持证据账本与证据充分性停止）
     reflections = []
     if args.reflect_rounds > 0 and plan:
         from reflect import Reflector
         reflector = Reflector(max_rounds=args.reflect_rounds)
+        prev_claims = None
         for round_num in range(1, args.reflect_rounds + 1):
-            reflection = reflector.reflect(plan, all_results, round_num, verification)
+            reflection = reflector.reflect(plan, all_results, round_num, verification,
+                                           ledger=ledger, previous_claim_count=prev_claims)
             reflections.append(reflection)
             print(f"🔄 反思轮 {round_num}: 覆盖率 {reflection.coverage_score:.0%}, "
                   f"{'需 Drill-down' if reflection.should_drill_down else '停止: ' + (reflection.stop_reason or '')}",
                   file=sys.stderr)
             if not reflection.should_drill_down:
                 break
+            if ledger is not None:
+                prev_claims = len(ledger.claims())
 
     # 8. 准备输出数据（所有对象转为可 JSON 序列化的字典）
     def _to_dict_safe(obj):
@@ -434,12 +618,53 @@ def cmd_search(args, registry):
         cache.set(cache_key, output_data)
         print(f"💾 已缓存（key: {cache_key[:8]}...）", file=sys.stderr)
 
+    # v6.0：搜索结果落盘到证据账本（claim + source 多源关联）
+    if ledger:
+        written = 0
+        for r in all_results:
+            try:
+                title = r.title if hasattr(r, 'title') else r.get('title', '')
+                url = r.url if hasattr(r, 'url') else r.get('url', '')
+                craap = r.craap_score if hasattr(r, 'craap_score') else {}
+                text = title or ''
+                if not text:
+                    content = (r.content if hasattr(r, 'content')
+                               else (r.get('content', '') if isinstance(r, dict) else ''))
+                    text = str(content)[:80] or '(无标题)'
+                claim = ledger.add_claim(
+                    claim=str(text), topic=args.query, status='verified',
+                    perspective='engine', confidence=0.5)
+                if url:
+                    ledger.add_source(
+                        claim['id'], str(url), str(title),
+                        tier=craap.get('tier') if isinstance(craap, dict) and craap else None,
+                        craap_score=craap.get('total') if isinstance(craap, dict) and craap else None)
+                written += 1
+            except Exception as e:
+                print(f"⚠️ 账本写入失败: {e}", file=sys.stderr)
+        print(f"📒 已写入证据账本 {written} 条 claim", file=sys.stderr)
+
+    # v6.0：组装调研元信息（报告头显示）
+    options = None
+    if args.effort or args.breadth or args.perspectives:
+        options = {}
+        if args.effort:
+            options['effort'] = args.effort
+        if args.breadth:
+            options['breadth'] = args.breadth
+        if args.depth:
+            options['depth'] = args.depth
+        if args.perspectives:
+            options['perspectives'] = args.perspectives
+
     # 10. 输出
-    _output_results(output_data, args, plan, all_results, verification, reflections)
+    _output_results(output_data, args, plan, all_results, verification, reflections,
+                    options=options, ledger=ledger)
 
 
-def _output_results(data, args, plan=None, results=None, verification=None, reflections=None):
-    """输出结果"""
+def _output_results(data, args, plan=None, results=None, verification=None, reflections=None,
+                    options=None, ledger=None):
+    """输出结果（v6.0：options/ledger 透传到报告生成）"""
     format = args.format
 
     if format == 'json':
@@ -466,7 +691,8 @@ def _output_results(data, args, plan=None, results=None, verification=None, refl
         if plan and results:
             from report import ReportGenerator
             reporter = ReportGenerator()
-            md = reporter.generate(plan, results, verification, reflections, format='markdown')
+            md = reporter.generate(plan, results, verification, reflections,
+                                   format='markdown', ledger=ledger, options=options)
             print(md)
         else:
             # 简单 markdown（无 plan 时）
@@ -483,10 +709,11 @@ def _output_results(data, args, plan=None, results=None, verification=None, refl
 
     if format == 'html':
         if plan and results:
-            # 完整 HTML 报告（含 Mermaid 图表、CRAAP 评分表）
+            # 完整 HTML 报告（含 Mermaid 图表、CRAAP 评分表；v6.0 含证据账本附录）
             from report import ReportGenerator
             reporter = ReportGenerator()
-            html = reporter.generate(plan, results, verification, reflections, format='html')
+            html = reporter.generate(plan, results, verification, reflections,
+                                     format='html', ledger=ledger, options=options)
         elif results:
             # 简单 HTML 报告（无 plan，仅展示搜索结果）
             html = _generate_simple_html(data, results, verification)
@@ -583,14 +810,17 @@ def _generate_simple_html(data, results, verification=None):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Deep Research Ultra v4.0 — 深度调研工具',
+        description='Deep Research Ultra v5.0 — 深度调研工具（智能路由 + 学术直连 + 反爬虫升级）',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
-v4.0 四阶段工作流: Plan → Execute → Synthesize → Reflect
-四层数据源: MCP → Skill → 内置 → 降级
+v5.0 四阶段工作流: Plan → Execute → Synthesize → Reflect
+四层数据源: MCP + 学术直连 → Skill → 内置 → 降级（curl_cffi TLS 伪装）
+v5.0 新增: 智能路由(--auto-route) | 学术直连引擎(OpenAlex/S2/PubMed) | 反爬虫升级
 
 示例:
   %(prog)s "深度调研 2025 年 AI Agent 框架"
+  %(prog)s "最新 LLM 论文" --auto-route
+  %(prog)s "RAG 开源实现" --route
   %(prog)s "FastAPI vs Django" --depth standard --format html
   %(prog)s "大语言模型微调" --depth deep --reflect-rounds 3
   %(prog)s "RAG 最佳实践" --plan-only
@@ -600,7 +830,7 @@ v4.0 四阶段工作流: Plan → Execute → Synthesize → Reflect
 v3 兼容（自动降级到 Layer 4）:
   %(prog)s "AI" --sources baidu,bing,duckduckgo --format markdown
 
-详细文档: references/migration-v3-to-v4.md
+详细文档: references/optimization-plan-v5.md
         """
     )
 
@@ -612,6 +842,16 @@ v3 兼容（自动降级到 Layer 4）:
     parser.add_argument('--depth', '-d', default='standard',
                         choices=['quick', 'standard', 'deep', 'extreme'],
                         help='调研深度（quick=2-3子问题, standard=4-6, deep=7-10, extreme=10+）')
+    # v6.0：努力程度分级（映射 depth + breadth 上限）
+    parser.add_argument('--effort', default=None,
+                        choices=['quick', 'standard', 'deep', 'exhaustive'],
+                        help='v6.0 努力程度（quick=1轮检索跳过专家团 ... exhaustive=red-team对抗评审）')
+    parser.add_argument('--breadth', type=int, default=0,
+                        help='v6.0 并行子主题数（0=随 effort 自动；供主 Agent 并行派发参考）')
+    parser.add_argument('--ledger', default=None,
+                        help='v6.0 证据账本目录（.research/session/ledger），搜索结果落盘并用于反思/报告')
+    parser.add_argument('--perspectives', default=None,
+                        help='v6.0 专家团视角，逗号分隔（如 domain_expert,skeptic,practitioner；"0" 关闭）')
     parser.add_argument('--reflect-rounds', type=int, default=1,
                         help='反思循环轮数（0=禁用, 1=默认, 3=深度模式）')
     parser.add_argument('--goal', help='调研目标（明确目标可跳过澄清）')
@@ -627,6 +867,10 @@ v3 兼容（自动降级到 Layer 4）:
                         help='搜索所有可用引擎（聚合模式）')
     parser.add_argument('--no-plan', action='store_true',
                         help='跳过 MECE 计划生成（快速搜索模式）')
+    parser.add_argument('--auto-route', action='store_true',
+                        help='v5.0 智能路由：自动根据查询意图选择数据源（学术→论文引擎，开源→GitHub，理论+联网+实际）')
+    parser.add_argument('--route', action='store_true',
+                        help='v5.0 仅展示路由分析结果（不执行搜索）')
 
     # 输出
     parser.add_argument('--format', '-f', default='html',
@@ -650,6 +894,14 @@ v3 兼容（自动降级到 Layer 4）:
     # 工具命令
     parser.add_argument('--mcp-check', action='store_true',
                         help='MCP 健康检查')
+    # v6.1: 环境分级门控
+    parser.add_argument('--env-check', action='store_true',
+                        help='环境分级验证（minimal/opensource/academic/full）')
+    parser.add_argument('--env-profile', default='full',
+                        choices=['minimal', 'opensource', 'academic', 'full'],
+                        help='环境验证 profile（v6.1，默认 full）')
+    parser.add_argument('--no-net', action='store_true',
+                        help='跳过网络连通性探测（--env-check 用）')
     parser.add_argument('--list', '-l', action='store_true',
                         help='列出所有引擎（四层架构）')
     parser.add_argument('--plan-only', action='store_true',
@@ -672,8 +924,19 @@ v3 兼容（自动降级到 Layer 4）:
         cmd_mcp_check(registry)
         return
 
+    if args.env_check:
+        cmd_env_check(args)
+        return
+
     if args.list:
         cmd_list(registry)
+        return
+
+    if args.route:
+        if not args.query:
+            print("❌ --route 需要指定查询", file=sys.stderr)
+            sys.exit(1)
+        cmd_route(args, registry)
         return
 
     if args.plan_only:

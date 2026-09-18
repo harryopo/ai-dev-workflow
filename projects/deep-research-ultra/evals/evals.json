@@ -1,8 +1,8 @@
 {
   "skill": "deep-research-ultra",
-  "version": "4.0.0",
-  "description": "超级深度调研工具测试集（v4.0 架构，Plan-Execute-Synthesize-Reflect 四阶段 + 四层数据源）",
-  "last_updated": "2026-07-30",
+  "version": "6.0.0",
+  "description": "超级深度调研工具测试集（v6.0，四阶段 + 四层数据源 + 子Agent并行 + 专家团 + 证据账本与分级）",
+  "last_updated": "2026-09-18",
   "architecture": {
     "phase_1_plan": "MECE 问题树 + 假设生成 + 数据源匹配",
     "phase_2_execute": "并行子 Agent + 反思循环 + Drill-down",
@@ -45,6 +45,17 @@
     "fallback_html_parsing": "降级引擎（百度/Bing HTML 解析）仍可能因搜索引擎改版失效"
   },
   "fixes": {
+    "v6.0.0": [
+      "新增子 Agent 并行编排（Phase 2.5）：Lead 规划 → 并行 spawn 子 Agent → 结果落盘 → 归并",
+      "新增深度调研专家团（Phase 3.5）：多视角注入 + panel.py 评审清单 + 审稿人修订闭环",
+      "新增证据账本 scripts/ledger.py（claim→source 溯源、多子Agent并发写、merge/status/export）",
+      "新增来源 Tier 分级 scripts/tier.py（Tier 1-4 域名判定，CRAAP 集成加权与标注）",
+      "新增发布前校验门 scripts/validate_report.py（引用一致性/覆盖率/章节/Tier4占比/摘要长度）",
+      "新增 effort 分级 + breadth 旋钮（--effort/--breadth）与计划确认门（Phase 1.5）",
+      "reflect.py 增强：证据充分性停止（EDR）+ 新增 claim 边际收敛 + 低质源告警",
+      "报告增强：元信息行（effort/breadth/专家团/校验）+ 附录 D 来源 Tier 分布 + 账本摘要表",
+      "plan.py 增强：多视角注入（perspectives）+ evidence_count + unanswered_questions"
+    ],
     "v4.0.0": [
       "重构为 Plan-Execute-Synthesize-Reflect 四阶段范式",
       "引入四层数据源架构（MCP → Skill → 内置 → 降级）",
@@ -495,6 +506,89 @@
       ],
       "category": "compatibility",
       "v4_feature": true
+    },
+    {
+      "id": "dr-033",
+      "name": "专家团评审（专家团场景）",
+      "input": "深度调研大模型微调技术路线（要求过专家团评审与多视角对抗）",
+      "expected_behavior": [
+        "Plan 阶段每个子问题注入 ≥3 个对抗视角（域专家/怀疑者/实践者）",
+        "panel.py perspectives 输出 5 个内置角色定义",
+        "章节草稿经 panel.py review-outline 生成角色评审问题清单",
+        "Lead 逐条消化 findings（gap/contradiction/evidence_needed）",
+        "缺口写回 ledger（supplementing）并补查修订"
+      ],
+      "category": "v6_team_panel",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-034",
+      "name": "子 Agent 并行派发（并行编排场景）",
+      "input": "深度调研 RAG 开源实现（--effort deep --breadth 8）",
+      "expected_behavior": [
+        "Lead 将 MECE 叶子子问题一次性并行 spawn 子 Agent（每个独立上下文）",
+        "每个子 Agent 用 research.py 检索 + ledger add-claim/add-source 落盘",
+        "子 Agent 不产出长篇报告（只写事实+来源，发现矛盾标 conflict）",
+        "全部完成后 Lead 读 ledger.status → 冲突消解 → outline",
+        "报告含账本摘要（claims/独立来源/充分性）与附录 D Tier 分布"
+      ],
+      "category": "v6_parallel_subagent",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-035",
+      "name": "证据账本审计（溯源场景）",
+      "input": "对已有调研报告执行证据账本审计（claim→source 可溯源）",
+      "expected_behavior": [
+        "ledger init 创建 ledger.jsonl + claims/ + sources/ 目录",
+        "每条 claim 关联 ≥1 个 source（含 URL、Tier、CRAAP）",
+        "status 输出独立来源数与 sufficient 判据（≥2 且 ≥1 verified）",
+        "export_md/export_json 可导出完整账本用于审计",
+        "validate_report 校验报告内 [N] 引用与账本一致"
+      ],
+      "category": "v6_ledger_audit",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-036",
+      "name": "effort 分级路由（分级场景）",
+      "input": "quick 浏览某个技术选型（--effort quick）vs 深度调研（--effort exhaustive）",
+      "expected_behavior": [
+        "quick：2-3 子问题、breadth=2、跳过专家团、单主 Agent 串行",
+        "exhaustive：10+ 子问题、breadth=12、red-team 对抗评审、多轮修订",
+        "--effort 与 --depth 同时给出时以 --effort 为准",
+        "计划确认门输出待确认清单（子问题/effort/breadth/视角建议）"
+      ],
+      "category": "v6_effort_routing",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-037",
+      "name": "证据充分性停止（防提前停止场景）",
+      "input": "覆盖率已 0.8 但某子主题仅 1 个独立来源的调研",
+      "expected_behavior": [
+        "reflect 检出 insufficient_topics（独立来源 <2）",
+        "不因覆盖率达标而停止（EDR：不提前停止）→ 进入 supplementing",
+        "补充检索后独立来源 ≥2 且 verified ≥1 → sufficient",
+        "新增 claim 边际率 <0.15 且覆盖率 ≥0.6 → 收敛停止信号生效"
+      ],
+      "category": "v6_stop_early_detection",
+      "v6_feature": true
+    },
+    {
+      "id": "dr-038",
+      "name": "开源方案落地审计（质量门场景）",
+      "input": "用开源 X 优化自有项目，请评估候选仓库的落地风险（六维质量门）",
+      "expected_behavior": [
+        "对每个候选仓库跑 repo_health.py 获取官方事实（star/最近提交/许可证/归档）+ 检测时间",
+        "许可证传染性分级（MIT/Apache permissive，LGPL weak，GPL/AGPL strong）并标注法务提示",
+        "停更/归档/低活跃信号输出为风险标签（high/medium/low）",
+        "--package 查询 OSV CVE 清单并纳入结论",
+        "结论含技术栈对照表（兼容/需改造/冲突）+ 落地成本量级 + 可量化指标 + 灰度/回滚预案",
+        "六维任一缺失时校验门拦截（validate_report.py）"
+      ],
+      "category": "v6_quality_gate",
+      "v6_feature": true
     }
   ]
 }

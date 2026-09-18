@@ -98,6 +98,15 @@ LOW_CREDIBILITY_DOMAINS = {
 # 评分器
 # ============================================================
 
+# v6.0：来源 Tier 分级（可选依赖 tier.py，缺失时降级为无 Tier 逻辑）
+try:
+    from tier import domain_tier, tier_label, tier_penalty
+except ImportError:
+    domain_tier = None  # type: ignore
+    tier_label = lambda t: ''  # type: ignore
+    tier_penalty = lambda t: 0.0  # type: ignore
+
+
 class CraapScorer:
     """
     CRAAP 五维评分器
@@ -179,6 +188,11 @@ class CraapScorer:
             purpose_score * self.weights['purpose']
         )
 
+        # v6.0：来源 Tier 分级与加权（Tier 1 +0.1 / Tier 4 -0.15，阈值内钳制）
+        tier = domain_tier(url) if domain_tier and url else None
+        adj = tier_penalty(tier) if tier is not None else 0.0
+        total = max(0.0, min(100.0, total + adj * 100)) if adj else total
+
         return {
             'currency': round(currency_score, 1),
             'relevance': round(relevance_score, 1),
@@ -188,6 +202,9 @@ class CraapScorer:
             'total': round(total, 1),
             'grade': self._get_grade(total),
             'llm_evaluated': llm_evaluated,
+            # v6.0 新增
+            'tier': tier,
+            'tier_label': tier_label(tier) if tier is not None else '',
         }
 
     def score_batch(self, results: List[Any], query: str = '',
@@ -558,20 +575,45 @@ def get_score_summary(results: List[Any]) -> Dict[str, Any]:
 
     totals = []
     grades = {'high': 0, 'medium': 0, 'low': 0}
+    tier_count = {}  # v6.0
     for r in results:
         score = r.craap_score if hasattr(r, 'craap_score') else r.get('craap_score', {})
         total = score.get('total', 0)
         grade = score.get('grade', 'low')
+        tier = score.get('tier')
         totals.append(total)
         grades[grade] = grades.get(grade, 0) + 1
+        if tier is not None:
+            tier_count[tier] = tier_count.get(tier, 0) + 1
 
-    return {
+    summary = {
         'avg_total': round(sum(totals) / len(totals), 1),
         'max_total': max(totals),
         'min_total': min(totals),
         'grade_distribution': grades,
         'total_results': len(results),
     }
+    if tier_count:
+        summary['tier_distribution'] = tier_count
+        summary['low_quality_ratio'] = round(
+            tier_count.get(4, 0) / len(results), 3)
+    return summary
+
+
+def has_low_quality_ratio(results: List[Any], threshold: float = 0.3) -> bool:
+    """
+    v6.0：判断结果集中低质源（Tier 4）占比是否 ≥ 阈值。
+
+    被 validate_report / report 复用；结果无 Tier 标注时返回 False（不阻断）。
+    """
+    if not results:
+        return False
+    tier4 = 0
+    for r in results:
+        score = r.craap_score if hasattr(r, 'craap_score') else r.get('craap_score', {})
+        if isinstance(score, dict) and score.get('tier') == 4:
+            tier4 += 1
+    return (tier4 / len(results)) >= threshold
 
 
 # ============================================================

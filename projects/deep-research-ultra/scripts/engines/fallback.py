@@ -50,9 +50,10 @@ def _http_get(
     timeout: int = 15,
     max_retries: int = 3,
     proxy: Optional[str] = None,
+    impersonate: str = "chrome124",
 ) -> Optional[bytes]:
     """
-    带重试的 HTTP GET 请求
+    带重试的 HTTP GET 请求（优先使用 curl_cffi 进行 TLS 指纹伪装）
 
     Args:
         url: 请求 URL
@@ -60,6 +61,7 @@ def _http_get(
         timeout: 超时时间（秒）
         max_retries: 最大重试次数
         proxy: HTTP 代理地址
+        impersonate: curl_cffi TLS 指纹伪装目标（默认 chrome124）
 
     Returns:
         响应内容（bytes），失败返回 None
@@ -70,7 +72,38 @@ def _http_get(
     headers.setdefault('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
     headers.setdefault('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
 
-    # 代理
+    # 优先使用 curl_cffi（TLS 指纹伪装）
+    try:
+        from curl_cffi import requests as cffi_requests
+        last_error = None
+        for attempt in range(max_retries):
+            try:
+                r = cffi_requests.get(
+                    url,
+                    headers=headers,
+                    timeout=timeout,
+                    proxies={"http": proxy, "https": proxy} if proxy else None,
+                    impersonate=impersonate,
+                )
+                if r.status_code == 200:
+                    return r.content
+                elif r.status_code == 429:
+                    # 限流，等待更长时间
+                    time.sleep(2.0 * (2 ** attempt))
+                    last_error = f"HTTP 429 rate limited"
+                else:
+                    last_error = f"HTTP {r.status_code}"
+                    if attempt < max_retries - 1:
+                        time.sleep(1.0 * (2 ** attempt))
+            except Exception as e:
+                last_error = e
+                if attempt < max_retries - 1:
+                    time.sleep(1.0 * (2 ** attempt))
+        # curl_cffi 全部重试失败，降级到 urllib
+    except ImportError:
+        pass  # curl_cffi 未安装，使用 urllib
+
+    # 降级到 urllib 实现（保留原有代码）
     if proxy:
         proxy_handler = urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
         opener = urllib.request.build_opener(proxy_handler)
@@ -95,6 +128,95 @@ def _http_get(
     return None
 
 
+def _http_post(
+    url: str,
+    json_body: Optional[Dict] = None,
+    data: Optional[bytes] = None,
+    headers: Optional[Dict] = None,
+    timeout: int = 30,
+    max_retries: int = 3,
+    proxy: Optional[str] = None,
+    impersonate: str = "chrome",
+) -> Optional[bytes]:
+    """
+    带重试的 HTTP POST 请求（优先使用 curl_cffi 进行 TLS 指纹伪装）
+
+    Args:
+        url: 请求 URL
+        json_body: JSON 请求体（与 data 二选一）
+        data: 原始请求体（bytes）
+        headers: 请求头
+        timeout: 超时时间（秒）
+        max_retries: 最大重试次数
+        proxy: HTTP 代理地址
+        impersonate: curl_cffi TLS 指纹伪装目标（默认 chrome，自动跟随最新版本）
+
+    Returns:
+        响应内容（bytes），失败返回 None
+    """
+    if headers is None:
+        headers = {}
+    headers.setdefault('User-Agent', DEFAULT_USER_AGENT)
+    headers.setdefault('Accept', 'application/json, text/html, */*')
+    headers.setdefault('Accept-Language', 'zh-CN,zh;q=0.9,en;q=0.8')
+    if json_body is not None:
+        headers.setdefault('Content-Type', 'application/json')
+
+    # 优先使用 curl_cffi（TLS 指纹伪装）
+    try:
+        from curl_cffi import requests as cffi_requests
+        for attempt in range(max_retries):
+            try:
+                r = cffi_requests.post(
+                    url,
+                    json=json_body,
+                    data=data,
+                    headers=headers,
+                    timeout=timeout,
+                    proxies={"http": proxy, "https": proxy} if proxy else None,
+                    impersonate=impersonate,
+                )
+                if r.status_code in (200, 201):
+                    return r.content
+                elif r.status_code == 429:
+                    time.sleep(2.0 * (2 ** attempt))
+                else:
+                    if attempt < max_retries - 1:
+                        time.sleep(1.0 * (2 ** attempt))
+            except Exception:
+                if attempt < max_retries - 1:
+                    time.sleep(1.0 * (2 ** attempt))
+        return None
+    except ImportError:
+        pass  # curl_cffi 未安装，使用 urllib
+
+    # 降级到 urllib 实现
+    if proxy:
+        proxy_handler = urllib.request.ProxyHandler({'http': proxy, 'https': proxy})
+        opener = urllib.request.build_opener(proxy_handler)
+    else:
+        opener = urllib.request.build_opener()
+
+    for attempt in range(max_retries):
+        try:
+            body = None
+            if json_body is not None:
+                body = json.dumps(json_body).encode('utf-8')
+            elif data is not None:
+                body = data
+            req = urllib.request.Request(url, data=body, headers=headers, method='POST')
+            with opener.open(req, timeout=timeout) as response:
+                raw_data = response.read()
+                content_encoding = response.headers.get('Content-Encoding', '')
+                if content_encoding == 'gzip':
+                    return gzip.decompress(raw_data)
+                return raw_data
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, ConnectionError):
+            if attempt < max_retries - 1:
+                time.sleep(1.0 * (2 ** attempt))
+    return None
+
+
 def _decode_html(raw: bytes) -> str:
     """解码 HTML（自动检测编码）"""
     if not raw:
@@ -106,6 +228,26 @@ def _decode_html(raw: bytes) -> str:
         except UnicodeDecodeError:
             continue
     return raw.decode('utf-8', errors='ignore')
+
+
+def _json_loads(raw):
+    """安全 JSON 解析（接受 bytes 或 str，失败返回 None）"""
+    import json as _json
+    if not raw:
+        return None
+    if isinstance(raw, bytes):
+        for encoding in ['utf-8', 'gbk', 'latin-1']:
+            try:
+                raw = raw.decode(encoding)
+                break
+            except UnicodeDecodeError:
+                continue
+    if not isinstance(raw, str):
+        return None
+    try:
+        return _json.loads(raw)
+    except (ValueError, TypeError):
+        return None
 
 
 # ============================================================

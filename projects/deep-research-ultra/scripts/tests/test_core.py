@@ -827,5 +827,317 @@ class TestFallbackEngines:
             assert engine.is_available() is False
 
 
+# ============================================================
+# router.py 测试（v5.0 智能路由）
+# ============================================================
+
+class TestQueryPreprocessor:
+    """QueryPreprocessor 测试"""
+
+    def test_detect_language_chinese(self):
+        from router import QueryPreprocessor
+        pp = QueryPreprocessor()
+        assert pp.detect_language('最新论文') == 'zh'
+        assert pp.detect_language('什么是 RAG') == 'mixed'
+
+    def test_detect_language_english(self):
+        from router import QueryPreprocessor
+        pp = QueryPreprocessor()
+        assert pp.detect_language('latest LLM paper') == 'en'
+
+    def test_rewrite_normalizes_whitespace(self):
+        from router import QueryPreprocessor
+        pp = QueryPreprocessor()
+        assert pp.rewrite('  hello   world  ') == 'hello world'
+
+    def test_generate_variants_chinese(self):
+        from router import QueryPreprocessor
+        pp = QueryPreprocessor()
+        variants = pp.generate_variants('最新论文')
+        assert len(variants) >= 1
+        assert variants[0]['q'] == '最新论文'
+        # 应该有英文变体
+        en_variants = [v for v in variants if v['lang'] == 'en']
+        assert len(en_variants) >= 1
+
+    def test_preprocess_returns_tuple(self):
+        from router import QueryPreprocessor
+        pp = QueryPreprocessor()
+        rewritten, variants = pp.preprocess('最新论文')
+        assert isinstance(rewritten, str)
+        assert isinstance(variants, list)
+
+
+class TestRuleRouter:
+    """RuleRouter 测试"""
+
+    def test_strong_keyword_academic(self):
+        from router import RuleRouter
+        rr = RuleRouter()
+        result = rr.match('最新 arxiv 论文')
+        assert result is not None
+        assert result['query_type'] == 'academic'
+        assert result['confidence'] >= 0.9
+
+    def test_strong_keyword_opensource(self):
+        from router import RuleRouter
+        rr = RuleRouter()
+        result = rr.match('github 开源项目')
+        assert result is not None
+        assert result['query_type'] == 'opensource'
+
+    def test_comparison_vs(self):
+        from router import RuleRouter
+        rr = RuleRouter()
+        result = rr.match('LangChain vs LlamaIndex')
+        assert result is not None
+        assert result['query_type'] == 'comparison'
+
+    def test_no_match_returns_none(self):
+        from router import RuleRouter
+        rr = RuleRouter(accept_threshold=0.99)
+        # 无任何关键词命中
+        result = rr.match('xyz abc qwe')
+        assert result is None
+
+    def test_regex_doi(self):
+        from router import RuleRouter
+        rr = RuleRouter()
+        result = rr.match('论文 10.1038/nature12373')
+        assert result is not None
+        assert result['query_type'] == 'academic'
+
+
+class TestCircuitBreaker:
+    """CircuitBreaker 测试"""
+
+    def test_initial_state_closed(self):
+        from router import CircuitBreaker
+        cb = CircuitBreaker()
+        assert cb.state == CircuitBreaker.CLOSED
+        assert cb.can_call() is True
+
+    def test_trip_to_open(self):
+        from router import CircuitBreaker
+        cb = CircuitBreaker(failure_threshold=3, recovery_timeout=60)
+        for _ in range(3):
+            cb.record_failure()
+        assert cb.state == CircuitBreaker.OPEN
+        assert cb.can_call() is False
+
+    def test_success_resets(self):
+        from router import CircuitBreaker
+        cb = CircuitBreaker()
+        cb.record_failure()
+        cb.record_failure()
+        cb.record_success()
+        assert cb.state == CircuitBreaker.CLOSED
+        assert cb.failure_count == 0
+
+    def test_half_open_after_timeout(self):
+        from router import CircuitBreaker
+        cb = CircuitBreaker(failure_threshold=1, recovery_timeout=0.1)
+        cb.record_failure()
+        assert cb.state == CircuitBreaker.OPEN
+        time.sleep(0.15)
+        assert cb.can_call() is True
+        assert cb.state == CircuitBreaker.HALF_OPEN
+
+
+class TestQueryRouter:
+    """QueryRouter 主类测试"""
+
+    def test_route_academic(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('最新 LLM 论文', {})
+        assert d.query_type == 'academic'
+        assert 'arxiv' in d.engine_chain
+        assert d.confidence >= 0.8
+
+    def test_route_opensource(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('RAG 开源实现', {})
+        assert d.query_type == 'opensource'
+        assert 'oss-finder' in d.engine_chain
+
+    def test_route_definition(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('什么是 RAG', {})
+        assert d.query_type == 'definition'
+
+    def test_route_comparison(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('LangChain vs LlamaIndex', {})
+        assert d.query_type == 'comparison'
+
+    def test_route_general_fallback(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('量子计算原理', {})
+        assert d.query_type == 'general'
+        assert d.confidence < 0.8  # 低置信度
+
+    def test_time_sensitivity_realtime(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('今天 AI 新闻', {})
+        assert d.time_sensitivity == 'realtime'
+
+    def test_authority_high(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        d = r.route('arxiv 论文', {})
+        assert d.authority_need == 'high'
+
+    def test_build_engine_chain_dedup(self):
+        from router import QueryRouter
+        chain = QueryRouter.build_engine_chain('academic', ['opensource'])
+        assert 'arxiv' in chain
+        assert 'oss-finder' in chain
+        # 无重复
+        assert len(chain) == len(set(chain))
+
+    def test_filter_engines_by_breaker(self):
+        from router import QueryRouter
+        r = QueryRouter()
+        # 打开 arxiv 断路器
+        r.get_breaker('arxiv').record_failure()
+        r.get_breaker('arxiv').record_failure()
+        r.get_breaker('arxiv').record_failure()
+        filtered = r.filter_engines_by_breaker(['arxiv', 'tavily'])
+        assert 'arxiv' not in filtered
+        assert 'tavily' in filtered
+
+
+# ============================================================
+# engines/academic_fulltext.py 测试（v5.1 新增）
+# ============================================================
+
+class TestArxivFulltextEngine:
+    """ArxivFulltextEngine 测试"""
+
+    def test_metadata(self):
+        from engines.academic_fulltext import ArxivFulltextEngine
+        e = ArxivFulltextEngine()
+        m = e.metadata
+        assert m.name == 'arxiv-fulltext'
+        assert m.layer == 1
+        assert m.is_china_friendly is True
+        assert m.requires_config is False
+        assert 'fulltext' in m.capabilities
+        assert 'latex' in m.capabilities
+
+    def test_rate_limit_delays(self):
+        from engines.academic_fulltext import ArxivFulltextEngine
+        e1 = ArxivFulltextEngine()
+        e2 = ArxivFulltextEngine()
+        # 类变量共享，连续调用应被限速
+        e1._rate_limit()
+        start = time.time()
+        e2._rate_limit()
+        elapsed = time.time() - start
+        # 至少等待了部分时间（允许一些误差）
+        assert elapsed >= 0.5  # 宽松断言，避免 CI 不稳定
+
+    def test_pdf_url_template(self):
+        from engines.academic_fulltext import ArxivFulltextEngine
+        e = ArxivFulltextEngine()
+        assert '2404.19756' in e.PDF_URL_TEMPLATE.format(paper_id='2404.19756')
+
+
+class TestUnpaywallEngine:
+    """UnpaywallEngine 测试"""
+
+    def test_metadata(self):
+        from engines.academic_fulltext import UnpaywallEngine
+        e = UnpaywallEngine()
+        m = e.metadata
+        assert m.name == 'unpaywall'
+        assert m.layer == 1
+        assert m.is_china_friendly is True
+        assert 'oa' in m.capabilities
+        assert 'UNPAYWALL_EMAIL' in m.config_keys
+
+    def test_get_email_from_env(self):
+        from engines.academic_fulltext import UnpaywallEngine
+        e = UnpaywallEngine()
+        old = os.environ.get('UNPAYWALL_EMAIL')
+        try:
+            os.environ['UNPAYWALL_EMAIL'] = 'test@example.com'
+            email = e._get_email()
+            assert email == 'test@example.com'
+        finally:
+            if old is None:
+                os.environ.pop('UNPAYWALL_EMAIL', None)
+            else:
+                os.environ['UNPAYWALL_EMAIL'] = old
+
+    def test_get_email_default(self):
+        from engines.academic_fulltext import UnpaywallEngine
+        e = UnpaywallEngine()
+        old = os.environ.pop('UNPAYWALL_EMAIL', None)
+        try:
+            email = e._get_email()
+            assert email  # 应该有默认值
+        finally:
+            if old is not None:
+                os.environ['UNPAYWALL_EMAIL'] = old
+
+
+class TestCitationGraphEngine:
+    """CitationGraphEngine 测试"""
+
+    def test_metadata(self):
+        from engines.academic_fulltext import CitationGraphEngine
+        e = CitationGraphEngine()
+        m = e.metadata
+        assert m.name == 's2-citation-graph'
+        assert m.layer == 1
+        assert 'citation_graph' in m.capabilities
+        assert 'intents' in m.capabilities
+
+
+# ============================================================
+# engines/crawl4ai_engine.py 测试（v5.1 新增）
+# ============================================================
+
+class TestCrawl4aiEngine:
+    """Crawl4aiEngine 测试"""
+
+    def test_metadata(self):
+        from engines.crawl4ai_engine import Crawl4aiEngine
+        e = Crawl4aiEngine()
+        m = e.metadata
+        assert m.name == 'crawl4ai'
+        assert m.layer == 3
+        assert m.requires_config is True
+        assert 'CRAWL4AI_URL' in m.config_keys
+        assert 'extract' in m.capabilities
+        assert 'crawl' in m.capabilities
+
+    def test_not_configured_when_no_env(self):
+        from engines.crawl4ai_engine import Crawl4aiEngine
+        e = Crawl4aiEngine()
+        old = os.environ.pop('CRAWL4AI_URL', None)
+        try:
+            assert e.is_available() is False
+        finally:
+            if old is not None:
+                os.environ['CRAWL4AI_URL'] = old
+
+
+class TestLayeredCrawler:
+    """LayeredCrawler 测试"""
+
+    def test_can_instantiate(self):
+        from engines.crawl4ai_engine import LayeredCrawler
+        crawler = LayeredCrawler()
+        assert crawler is not None
+
+
 if __name__ == "__main__":
     pytest.main([__file__, '-v'])
