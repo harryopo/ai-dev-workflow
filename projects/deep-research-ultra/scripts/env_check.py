@@ -74,8 +74,11 @@ PROFILES: Dict[str, Dict[str, Any]] = {
 # 可选项目（缺失只警告，不阻断启动）
 OPTIONAL_ENVS = {'GITHUB_TOKEN', 'UNPAYWALL_EMAIL', 'CRAWL4AI_URL', 'CRAWL4AI_API_TOKEN',
                  'TAVILY_API_KEY', 'FIRECRAWL_API_KEY'}
-OPTIONAL_SKILLS = {'agent-reach', 'last30days', 'sciverse', 'context7', 'defuddle'}
+OPTIONAL_SKILLS = {'agent-reach', 'last30days', 'sciverse', 'context7', 'defuddle',
+                   'oss-finder'}
 OPTIONAL_COMMANDS = {'claude', 'npx', 'uvx', 'node', 'docker'}
+# 网络探测主机全部视为可选（单点不通只告警，不阻断——调研可走降级链）
+OPTIONAL_NET_HOSTS = True
 
 
 @dataclass
@@ -195,7 +198,8 @@ def run_env_check(profile: str = 'full', include_net: bool = True,
     if include_net:
         for host in cfg.get('net', []):
             ok, detail = _check_net(host, timeout)
-            report.checks.append(CheckItem('net', host, ok, detail))
+            # v6.3：网络不通只告警（降级链兜底），不阻断启动
+            report.checks.append(CheckItem('net', host, ok, detail, optional=True))
     else:
         report.net_skipped = True
 

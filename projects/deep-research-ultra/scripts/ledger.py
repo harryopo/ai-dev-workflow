@@ -93,14 +93,16 @@ class ResearchLedger:
     # 写入
     # ------------------------------------------------------------------
     def add_claim(self, claim: str, topic: str = 'general',
-                  status: str = 'verified', perspective: str = 'general',
+                  status: str = 'pending', perspective: str = 'general',
                   confidence: float = 0.5, claim_id: Optional[str] = None,
                   note: str = '') -> Dict[str, Any]:
         """写入一条 claim。
 
         status ∈ {verified, conflict, supplementing, pending, completed}
+        注意：默认 pending——verified 必须由交叉验证（≥2 独立来源）显式赋予，
+        未验证的搜索结果一律 pending，防止账本覆盖率虚高。
         """
-        status = status if status in VALID_STATUS else 'verified'
+        status = status if status in VALID_STATUS else 'pending'
         cid = claim_id or f'c-{uuid.uuid4().hex[:10]}'
         entry = {
             'type': 'claim', 'id': cid, 'text': str(claim).strip(),
@@ -252,6 +254,15 @@ class ResearchLedger:
         result = {}
         for t, s in topics.items():
             n = max(s['claims'], 1)
+            # sufficient 判据（v6.3 修正）：claim 级严格——
+            # ≥1 条 verified claim 且每条 verified claim 均有 ≥2 独立来源 URL，
+            # 不再用 topic 级 URL 并集（旧判据会被多条单源 claim 虚假满足）
+            verified_claims = [e for e in self.claims(t)
+                               if e.get('status') == 'verified']
+            insufficient = [
+                c['id'] for c in verified_claims
+                if len(src_map.get(c['id'], set())) < 2
+            ]
             result[t] = {
                 'claims': s['claims'],
                 'verified': s['verified'],
@@ -260,17 +271,28 @@ class ResearchLedger:
                 'pending': s['pending'],
                 'independent_sources': len(s['source_urls']),
                 'coverage': round(s['verified'] / n, 2),
-                'sufficient': len(s['source_urls']) >= 2 and s['verified'] >= 1,
+                'sufficient': (s['verified'] >= 1 and not insufficient
+                               and len(s['source_urls']) >= 2),
+                'insufficient_claim_ids': insufficient,
             }
         if topic is not None:
             return result.get(topic, {})
         return result
 
     def export_json(self, path: Optional[str] = None) -> Dict[str, Any]:
-        """导出为完整 JSON（供 validate_report 与报告引用锚定使用）。"""
+        """导出为完整 JSON（供 validate_report 与报告引用锚定使用）。
+
+        v6.3：为每条 source 注入稳定编号 primary_index（1 起始，按写入顺序），
+        报告 [N] 引用与校验门反查共用此编号，实现"引用→具体来源 URL"强契约。
+        """
         all_entries = self._all()
         claims = [e for e in all_entries if e.get('type') == 'claim']
-        sources = [e for e in all_entries if e.get('type') == 'source']
+        sources = []
+        for idx, e in enumerate(
+                (e for e in all_entries if e.get('type') == 'source'), start=1):
+            e = dict(e)
+            e['primary_index'] = idx
+            sources.append(e)
         data = {
             'exported_at': _now(),
             'stats': self.status(),

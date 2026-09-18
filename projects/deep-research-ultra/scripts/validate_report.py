@@ -54,8 +54,12 @@ class ValidationReport:
 # ---------------------------------------------------------------------------
 
 def extract_citations(report_md: str) -> List[int]:
-    """提取报告中的 [N] 数字引用编号。"""
-    return [int(x) for x in re.findall(r'\[(\d{1,3})\](?!\()', report_md)]
+    """提取报告中的 [N] 数字引用编号。
+
+    v6.3：排除引用定义行 `[N]:`（Markdown 链接定义）与 Markdown 链接 `[N](url)`，
+    只统计正文引用。
+    """
+    return [int(x) for x in re.findall(r'\[(\d{1,3})\](?!\()(?!:)', report_md)]
 
 
 def _section_missing(md: str, section: str, keywords: List[str]) -> bool:
@@ -117,7 +121,7 @@ def validate_report(report_md: str,
     sources = data['sources']
     stats = data['stats']
 
-    # ---------- 校验 1：引用一致性 ----------
+    # ---------- 校验 1：引用一致性（v6.3 强契约）----------
     refs = extract_citations(report_md)
     n_sources = len(sources)
     report.stats['citations'] = len(refs)
@@ -129,6 +133,26 @@ def validate_report(report_md: str,
                 f'引用编号越界: {out_of_range[:10]}（账本来源数 {n_sources}）')
         if len(set(refs)) < len(refs):
             report.warnings.append('引用编号存在重复，请核对顺序')
+        # v6.3 反查：编号 N 的来源，其 URL/标题须能在报告正文或附录中找到
+        # （不止"数字在范围内"，而是引用→具体来源可追溯）
+        source_by_index = {s.get('primary_index'): s for s in sources}
+        orphan_refs = []
+        for r in sorted(set(refs)):
+            s = source_by_index.get(r)
+            if not s:
+                if 1 <= r <= n_sources:      # 无 primary_index 的旧账本回退
+                    s = sources[r - 1]
+                else:
+                    orphan_refs.append(r)
+                    continue
+            needle = (s.get('url') or '').strip()
+            title = (s.get('title') or '').strip()
+            if needle and needle not in report_md and (not title or title not in report_md):
+                orphan_refs.append(r)
+        if orphan_refs:
+            report.issues.append(
+                f'引用 [{", ".join(map(str, orphan_refs[:8]))}] 无法追溯到具体来源'
+                f'（编号存在但对应 URL/标题未出现在报告中）——请补附录来源映射')
 
     # ---------- 校验 2：覆盖充分性 ----------
     total_claims = len(claims)
@@ -145,10 +169,48 @@ def validate_report(report_md: str,
             f'覆盖率不足: {coverage:.0%} < 阈值 {min_coverage:.0%}'
             f'（verified {verified_claims}/{total_claims}）')
 
-    # 每 topic 至少 1 verified
+    # 每 topic 至少 1 verified（v6.3：从 warning 升级为 issue——账本分主题后无已证实结论即拦截）
     for t, s in stats.items():
         if s.get('verified', 0) < 1:
-            report.warnings.append(f'子主题「{t}」无 verified claim（{s.get("claims",0)} 条均非已证实）')
+            report.issues.append(
+                f'子主题「{t}」无 verified claim（{s.get("claims", 0)} 条均非已证实）')
+
+    # ---------- 校验 2b（v6.3）：verified claim 独立来源强度 ----------
+    # 每条被引为结论的 verified claim 必须有 ≥2 独立来源 URL（交叉验证硬规则）
+    source_url_by_claim: Dict[str, set] = {}
+    for s in sources:
+        source_url_by_claim.setdefault(str(s.get('claim_id', '')), set()).add(
+            str(s.get('url', '')))
+    weak_verified = [
+        c.get('id') for c in claims
+        if c.get('status') == 'verified'
+        and len(source_url_by_claim.get(c.get('id', ''), set())) < max(2, min_sources_per_claim)
+    ]
+    report.stats['weak_verified_claims'] = len(weak_verified)
+    if total_claims and weak_verified:
+        report.issues.append(
+            f'{len(weak_verified)} 条 verified claim 独立来源不足（<2）：'
+            f'{"、".join(map(str, weak_verified[:5]))}——需补充交叉验证或降级为 pending')
+
+    # ---------- 校验 6（v6.3）：开源调研六维要素 ----------
+    # 报告含候选仓库链接（GitHub/Gitee）时，检查六维质量门要素是否齐备
+    repo_links = re.findall(r'https://(?:github|gitee)\.com/[\w.-]+/[\w.-]+', report_md)
+    if repo_links:
+        required_dims = {
+            '风险标签': ('🔴', '高风险', '🟠', '中风险', '🟢', '低风险', '风险'),
+            '许可证': ('许可证', 'License', 'MIT', 'GPL', 'Apache'),
+            '维护/最近提交': ('最近提交', '维护', '停更', 'pushed', '活跃'),
+            '适配性': ('适配', '兼容', '技术栈', '改造'),
+            '落地成本/计划': ('落地', '成本', '灰度', '回滚', '改造范围'),
+            '量化指标': ('指标', '基线', '量化', '预期'),
+        }
+        missing_dims = [name for name, kws in required_dims.items()
+                       if not any(kw in report_md for kw in kws)]
+        report.stats['opensource_repos'] = len(set(repo_links))
+        if missing_dims:
+            report.issues.append(
+                f'开源调研六维质量门缺失维度: {"、".join(missing_dims)}'
+                f'（报告含 {len(set(repo_links))} 个候选仓库链接）')
 
     # ---------- 校验 4：低质源占比 ----------
     if sources:
@@ -185,9 +247,12 @@ def _main(argv: Optional[List[str]] = None) -> int:
         return 0
 
     def _opt(name: str, default: str = '') -> str:
-        if name in args:
-            return args[args.index(name) + 1]
-        return default
+        # v6.3 容错：尾参缺失（防止 IndexError traceback）
+        try:
+            i = args.index(name)
+        except ValueError:
+            return default
+        return args[i + 1] if i + 1 < len(args) else default
 
     report_path = _opt('--report')
     ledger_path = _opt('--ledger', '') or None

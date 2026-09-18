@@ -190,7 +190,8 @@ class TestValidateReport:
 ## 结论与建议
 结论良好。
 ## 来源
-[1] 来源1 [2] 来源2
+[1] 来源1 https://arxiv.org/0
+[2] 来源2 https://arxiv.org/100
 '''
 
     def test_pass(self, tmp_path):
@@ -446,6 +447,9 @@ class TestRepoHealth:
         assert license_risk('GPL-3.0')[0] == 'strong'
         assert license_risk('AGPL-3.0')[0] == 'strong'
         assert license_risk('')[0] == 'unknown'
+        # v6.3：or-later 变体不再被 'gpl' 子串误判为 strong
+        assert license_risk('LGPL-3.0-or-later')[0] == 'weak'
+        assert license_risk('GPL-3.0-or-later')[0] == 'strong'
 
     def test_parse_repo_ref(self):
         from repo_health import _parse_repo_ref
@@ -486,3 +490,116 @@ class TestRepoHealth:
         h = scan_repo('a/b')
         assert h.api_ok is False
         assert any(r['category'] == 'api_unavailable' for r in h.risks)
+
+
+# ============================================================
+# v6.3 真实性验证强化（落盘分流 / 引用反查 / 六维）
+# ============================================================
+
+class TestTruthV63:
+    """verified 语义链：分流落盘 / 引用→来源强契约 / 六维要素"""
+
+    def _verify_stub(self):
+        """构造 verification 桩（对象属性形态，兼容 _write_ledger）"""
+        Claim = type('C', (), {})
+        c1, c2, c3 = Claim(), Claim(), Claim()
+        c1.statement = 'Transformer 是主流架构'
+        c2.statement = '某低质说法'
+        c3.statement = '唯一单源结论'
+        Con = type('K', (), {})
+        k = Con()
+        k.claim_a, k.claim_b = '性能提升 3 倍', '性能提升 2 倍'
+        Ver = type('V', (), {})
+        v = Ver()
+        v.verified_claims, v.single_source_claims, v.contradictions = [c1], [c3], [k]
+        return v
+
+    def test_write_ledger_status_split(self, tmp_path):
+        from ledger import ResearchLedger
+        import research as rz
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        results = [
+            type('R', (), {'title': 'Transformer 是主流架构',
+                           'url': 'https://arxiv.org/a', 'content': 'c',
+                           'craap_score': {'tier': 1, 'total': 80}})(),
+            type('R', (), {'title': '唯一单源结论',
+                           'url': 'https://arxiv.org/b', 'content': 'c',
+                           'craap_score': {}})(),
+            type('R', (), {'title': '性能提升 3 倍',
+                           'url': 'https://x.example/c', 'content': 'c',
+                           'craap_score': {}})(),
+            type('R', (), {'title': '完全未被验证的第三条',
+                           'url': 'https://x.example/d', 'content': 'c',
+                           'craap_score': {}})(),
+        ]
+        n = rz._write_ledger(L, results, self._verify_stub(), '主题')
+        assert n == 4
+        statuses = {c['text']: c['status'] for c in L.claims()}
+        assert statuses['Transformer 是主流架构'] == 'verified'
+        assert statuses['唯一单源结论'] == 'pending'
+        assert statuses['性能提升 3 倍'] == 'conflict'
+        assert statuses['完全未被验证的第三条'] == 'pending'   # 未验证不再标 verified
+
+    def test_citation_without_url_traced_fails(self, tmp_path):
+        from validate_report import validate_report
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c1 = L.add_claim('结论A', '主题A', 'verified', 'general', 0.9)
+        for i in range(3):
+            L.add_source(c1['id'], f'https://arxiv.org/{i}', tier=1)
+        # 报告引用 [1] 但正文/附录没有该来源 URL → 反查失败
+        bad = '''# 报告
+## 执行摘要
+结论 [1]。
+## 调研范围与方法
+m
+## 结论与建议
+c
+## 来源
+[1] 完全没写 URL 的来源
+'''
+        r = validate_report(bad, ledger=L)
+        assert r.passed is False
+        assert any('无法追溯' in i for i in r.issues)
+
+    def test_opensource_six_dims_missing(self, tmp_path):
+        from validate_report import validate_report
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c1 = L.add_claim('项目X 可用', '开源', 'verified', 'general', 0.9)
+        L.add_source(c1['id'], 'https://github.com/a/b', tier=2)
+        L.add_source(c1['id'], 'https://gitee.com/a/b2', tier=2)
+        # 报告含仓库链接但缺六维要素（无风险标签/许可证/适配性等）
+        sparse = '''# 报告
+## 执行摘要
+推荐项目X [1] https://github.com/a/b。
+## 调研范围与方法
+m
+## 结论与建议
+c
+## 来源
+[1] https://github.com/a/b [2] https://gitee.com/a/b2
+'''
+        r = validate_report(sparse, ledger=L)
+        assert r.passed is False
+        assert any('六维' in i for i in r.issues)
+
+    def test_primary_index_stable(self, tmp_path):
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c1 = L.add_claim('A', 't', 'verified')
+        c2 = L.add_claim('B', 't', 'verified')
+        L.add_source(c1['id'], 'https://a/1')
+        L.add_source(c1['id'], 'https://a/2')
+        L.add_source(c2['id'], 'https://b/1')
+        srcs = L.export_json()['sources']
+        idx = [s['primary_index'] for s in srcs]
+        assert idx == [1, 2, 3]
+
+    def test_ledger_default_pending(self, tmp_path):
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c = L.add_claim('未指定状态的 claim', 't')          # 默认
+        c2 = L.add_claim('非法状态值', 't', status='bogus')  # 非法值
+        assert c['status'] == 'pending'
+        assert c2['status'] == 'pending'

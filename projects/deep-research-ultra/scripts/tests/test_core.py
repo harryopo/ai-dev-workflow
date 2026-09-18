@@ -543,9 +543,15 @@ class TestReflector:
         assert '覆盖率已达标' in stop
 
     def test_should_stop_max_rounds(self):
-        from reflect import Reflector
+        from reflect import Reflector, CoverageGap
         reflector = Reflector(max_rounds=3)
-        should, stop, drill = reflector._should_continue(2, 0.3, [], 5)
+        # v6.3 off-by-one 修复后：round_num 从 1 起算，达到 max_rounds（=3）才停；
+        # 轮次 2 < 3 应继续（需有低优先级空白防止提前停在"无覆盖空白"）
+        gap = CoverageGap(dimension='d', reason='r', suggested_question='q',
+                          priority='low')
+        should, stop, drill = reflector._should_continue(2, 0.3, [gap], 20)
+        assert should is True
+        should, stop, drill = reflector._should_continue(3, 0.3, [gap], 20)
         assert should is False
         assert '最大反思轮次' in stop
 

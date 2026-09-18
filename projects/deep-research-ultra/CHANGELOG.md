@@ -5,6 +5,50 @@
 
 ---
 
+## v6.3.0（2026-09-18）— 真实性验证链重建（审查驱动修复）
+
+### 背景
+三维审查（代码/架构/内容）评分 62/100，发现 6 项 P0：verified 语义污染、Gitee 引擎契约错误、反思循环读空账本、矛盾检测死代码、六维门无实现、引用校验弱契约。本次系统性修复并强化真实性机制。
+
+### P0 修复（真实性核心）
+
+| 问题 | 修复 |
+|------|------|
+| verified 语义污染：搜索结果未经交叉验证直接落盘 `status='verified'`，账本覆盖率虚高 | `ledger.add_claim` 默认/非法 status 改 `pending`；`research.py` 落盘按交叉验证结果分流（verified/conflict/pending），confidence 分级 0.8/0.3/0.4 |
+| 反思循环读空账本（落盘在反思之后） | 落盘前移到交叉验证后、反思循环前；缓存命中也落盘（此前 `--ledger` 二跑命中缓存导致账本为空） |
+| verify.py contradicted 死代码：从已过滤列表回找矛盾 claim 恒空 | 先收集后过滤；矛盾 claim 计入 total_claims，verification_rate 不再虚高 |
+| GiteeEngine 必然崩溃（API 实测返回裸数组，代码按 dict 取 items） | 兼容 list/dict 两种契约 |
+| 六维质量门无实现 | validate_report 新增校验 6：报告含仓库链接时检查六维要素齐备（缺维拦截） |
+| 引用校验只查数字范围 | 新增引用反查：编号 N 的来源 URL/标题须出现在报告中；extract_citations 排除 `[N]:` 定义行 |
+
+### P1 修复
+
+- **sufficient 判据 claim 级化**：每条 verified claim 独立来源 ≥2（旧 topic 级 URL 并集判据可被多条单源 claim 虚假满足）；输出 insufficient_claim_ids
+- **断路器接线**：cmd_search 搜索循环内 record_success/failure + OPEN 跳过（此前状态恒 CLOSED）
+- **[N] 强契约**：export_json 注入稳定 `primary_index` 编号，报告与校验门共用
+- **`--depth extreme` 静默降级**：DEPTH_PRESETS 补 extreme 条目（12 子问题/8 源/20-40 分钟）
+- **reflect off-by-one**：`--reflect-rounds 3` 实际只跑 2 轮 → 修为完整 3 轮
+- **缓存 key 缺参**：补 ledger/effort/breadth/perspectives/reflect_rounds
+- **cmd_search 计划生成不透传参数**：补 perspectives/goal/dimensions/time_range
+- **ModelScope 运算符优先级**：path 为空时 Name 被整组丢弃 → 显式分支
+- **repo_health**：LGPL-or-later 误判 strong → 归一化后缀比对；OSV severity 截断 CVSS 向量 → 修正
+- **env_check**：oss-finder 移入可选；网络探测全部可选化（单点不通不阻断，走降级链）
+- **validate_report CLI**：`_opt` 尾参 IndexError 容错；"每 topic ≥1 verified" warning→issue
+
+### 内容修正（SKILL.md）
+
+- 引擎数 30 → **32**（含 Layer2 12→14）；CRAAP 标度 0-20 → 0-100（与实现一致）
+- 引用不存在的函数名修正：cross_validate→CrossVerifier.verify、score_with_craap→CraapScorer.score、build_issue_tree→PlanGenerator.generate_plan
+- 子 Agent 模板 status verified→pending + 「verified 只能由 Lead 交叉验证赋予」语义框
+- Phase 2.5 补并发写安全约定（子 Agent 分片文件 + merge，不直写共享 jsonl）
+- Phase 5 校验门表格补 3 项 v6.3 校验（引用反查/独立来源强度/六维要素）
+
+### 测试
+
+96 → **140 passed**（+5 v6.3 用例：落盘分流/引用反查/六维缺失/primary_index 稳定/默认 pending；修正 test_should_stop_max_rounds 适配 off-by-one 修复）
+
+---
+
 ## v6.2.0（2026-09-18）— 开源调研质量门（六维必检）+ 仓库健康扫描
 
 ### 背景

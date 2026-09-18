@@ -1,8 +1,8 @@
 ---
 name: deep-research-ultra
-version: 6.2.0
+version: 6.3.0
 description: |
-  超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，集成子 Agent 并行编排（Orchestrator-Worker）与深度调研专家团（多视角对抗/审稿人闭环），支持证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验；智能路由（三级级联）自动匹配 30 个引擎（四层：MCP+学术直连 / Skill+GitHub 深搜+国内源 / 内置+浏览器 / 降级+反爬）。
+  超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，集成子 Agent 并行编排（Orchestrator-Worker）与深度调研专家团（多视角对抗/审稿人闭环），支持证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验；智能路由（三级级联）自动匹配 32 个引擎（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬）。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
 context: fork
 agent: general-purpose
@@ -13,7 +13,7 @@ allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent WebSearch WebFetc
 
 **Plan → Execute → Synthesize → Reflect 四阶段深度调研范式**
 **子 Agent 并行编排 + 深度调研专家团 + 证据账本与分级**
-**智能路由（三级级联） + 四层数据源（30 引擎） + GitHub 深度搜索 + 国内内容源 + 推荐度评分**
+**智能路由（三级级联） + 四层数据源（32 引擎） + GitHub 深度搜索 + 国内内容源 + 推荐度评分**
 
 ---
 
@@ -217,7 +217,7 @@ pending → searching → verified | conflict | supplementing → completed
 
 ### Phase 2.5: 并行子 Agent 编排
 
-**目标**：解决"单主流程串行调 30 引擎"的长上下文丢失问题；每个子主题独立上下文、独立检索、结果落盘，再归并。
+**目标**：解决"单主流程串行调多引擎"的长上下文丢失问题；每个子主题独立上下文、独立检索、结果落盘，再归并。
 
 ```
 Lead（主 Agent）
@@ -236,18 +236,21 @@ Lead（主 Agent）
 你是 deep-research-ultra 的子研究员（Sub-Researcher）。
 主题: {subtopic}
 视角: {perspective}（域专家/怀疑者/实践者等，见 --perspectives）
-指定引擎: {engines}（由 Lead 从 30 引擎中按主题分配）
+指定引擎: {engines}（由 Lead 从 32 引擎中按主题分配）
 
 任务:
 1) 用 python "{SKILL_DIR}/scripts/research.py" "{subtopic}" --no-cache 检索（若指定引擎则加 --sources {engines}）
-2) 用 python "{SKILL_DIR}/scripts/ledger.py" add-claim --session {ledger_dir} --text "<claim>" --topic "{subtopic}" --status verified --perspective "{perspective}" --confidence <0-1>
+2) 用 python "{SKILL_DIR}/scripts/ledger.py" add-claim --session {ledger_dir} --text "<claim>" --topic "{subtopic}" --status pending --perspective "{perspective}" --confidence <0-1>
    再用 add-source 为该 claim 关联 ≥1 个来源 URL（--tier 自动判定）
 3) 每条 claim 必须：只记录事实与来源，不做总结断言；发现矛盾标 --status conflict
 约束: 你的全部产物写入 {ledger_dir}/{slug}.json 后退出；不写长篇报告。
 ```
 
+> **status 语义（真实性核心）**：子 Agent 一律写 `pending`——**verified 只能由 Lead 在归并阶段经交叉验证（≥2 独立来源）显式赋予**，禁止未验证即标 verified。
+
 - **并行派发**：Lead 对全部叶子子问题**一次性并行** `Agent` 调用（每子 Agent 独立上下文）；breadth = `--breadth` 值
-- **归并**：所有子 Agent 完成后，Lead 运行 `python scripts/ledger.py status --session {ledger_dir}` → 处理 conflict → 生成 outline
+- **并发写安全（v6.3）**：子 Agent 各自写独立分片文件 `{ledger_dir}/{slug}.json`，**不直写共享 ledger.jsonl**（多进程并发追加整行不保证原子）；Lead 归并时统一 `ledger.py merge --dir` 收编去重
+- **归并**：所有子 Agent 完成后，Lead 运行 `python scripts/ledger.py status --session {ledger_dir}` → 处理 conflict → 按交叉验证结果把达标 claim 升级 verified → 生成 outline
 - **证据账本目录约定**：`{workspace}/.research/{session_id}/ledger/`
 
 ### Phase 3: Synthesize（合成）— 结构化报告
@@ -371,7 +374,10 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 | 校验项 | 失败处理 |
 |--------|----------|
 | 引用一致性：正文 [N] 都在账本有对应来源 | 回到 Phase 3.5 补引用 |
+| **引用反查（v6.3）**：编号 N 的来源 URL/标题须出现在报告中（数字在范围内≠可追溯） | 补附录来源映射 |
 | 覆盖率：verified claims / total ≥ 0.6 | 回到 Phase 2.5 补子主题 |
+| **独立来源强度（v6.3）**：每条 verified claim 独立来源 ≥2 | 补交叉验证或降级 pending |
+| **六维要素（v6.3）**：报告含仓库链接时，风险标签/许可证/维护/适配/落地/量化齐备 | 按 7.0b 六维质量门补写 |
 | 必需章节：执行摘要/方法/结论/来源 | 补写章节 |
 | 低质源占比：Tier4 < 30%（告警） | 建议补权威源后复核 |
 | 执行摘要 ≤ 1200 字 | 精简摘要 |
@@ -380,7 +386,7 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 
 ---
 
-## 四、四层数据源架构（共 30 个引擎）
+## 四、四层数据源架构（共 32 个引擎）
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -397,7 +403,7 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 │  ├── Unpaywall           DOI→合法 OA PDF                             │
 │  └── S2 Citation Graph   引用图谱 + intents + influential            │
 ├─────────────────────────────────────────────────────────────────────┤
-│  Layer 2: 全局 Skill + GitHub 深搜 + 国内源层（12 个引擎）           │
+│  Layer 2: 全局 Skill + GitHub 深搜 + 国内源层（14 个引擎）           │
 │  ├── agent-reach         13 平台社交（X/Reddit/HN/B站/知乎...）     │
 │  ├── oss-finder          GitHub/GitLab/Gitee/npm/PyPI               │
 │  ├── last30days          近 30 天全网                                │
@@ -800,25 +806,25 @@ ranked = rec.rank_results(results_list, query='RAG framework', intent='novel_app
 - **C**ollectively **E**xhaustive：子问题合起来覆盖全部
 - **6 状态**：pending → searching → verified/conflict/supplementing → completed
 
-实现：`scripts/plan.py` 的 `build_issue_tree(topic, depth)`
+实现：`scripts/plan.py` 的 `PlanGenerator.generate_plan()`（多视角注入 + unanswered_questions）
 
 ### 10.2 CRAAP 评分（五维可信度评估）
 
 | 维度 | 含义 | 分值 |
 |------|------|------|
-| **C**urrency | 时效性 | 0-20 |
-| **R**elevance | 相关性（LLM 评分） | 0-20 |
-| **A**uthority | 权威性（域名 + 作者） | 0-20 |
-| **A**ccuracy | 准确性（可验证性） | 0-20 |
-| **P**urpose | 目的性（偏见检测） | 0-20 |
+| **C**urrency | 时效性 | 0-100 |
+| **R**elevance | 相关性 | 0-100 |
+| **A**uthority | 权威性（域名 + 作者 + Tier） | 0-100 |
+| **A**ccuracy | 准确性（可验证性） | 0-100 |
+| **P**urpose | 目的性（偏见检测） | 0-100 |
 
-实现：`scripts/score.py` 的 `score_with_craap(item, query, context)`
+实现：`scripts/score.py` 的 `CraapScorer.score(result, query)`（五维各 0-100 加权总分，Tier 加权调节）
 
 ### 10.3 交叉验证
 
 **硬性规则**：同一结论需要 **≥2 个独立来源**支持。
 
-实现：`scripts/verify.py` 的 `cross_validate(claims)`
+实现：`scripts/verify.py` 的 `CrossVerifier.verify(results)`（相似聚合→独立来源计数→矛盾检测）
 
 ### 10.4 多信号反思循环（Kimi 式）
 
@@ -901,7 +907,7 @@ bash "${SKILL_DIR}/scripts/setup-mcp.sh" --core
 # 2. 检查数据源可用性
 python "${SKILL_DIR}/scripts/research.py" --mcp-check
 
-# 3. 列出所有可用引擎（共 30 个）
+# 3. 列出所有可用引擎（共 32 个）
 python "${SKILL_DIR}/scripts/research.py" --list
 
 # 4.（可选）安装 curl_cffi 增强 TLS 伪装
@@ -1028,7 +1034,7 @@ scripts/
 ├── panel.py                 # 专家团评审清单生成（多视角 + 红蓝对抗契约）
 ├── validate_report.py       # 发布前校验门（引用一致性/覆盖率/章节/Tier4占比/摘要长度）
 ├── engines/
-│   ├── __init__.py          # 引擎导出聚合（30 个引擎）
+│   ├── __init__.py          # 引擎导出聚合（32 个引擎）
 │   ├── base.py              # SearchEngine 抽象基类 + EngineMetadata + EngineRegistry
 │   ├── mcp_client.py        # MCP 客户端封装
 │   ├── mcp_engines.py       # MCP 服务器封装（Tavily/Firecrawl/open-websearch/arxiv/paper-search）

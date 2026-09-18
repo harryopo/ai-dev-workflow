@@ -37,9 +37,12 @@ TIMEOUT = 10.0
 PERMISSIVE = {'mit', 'apache-2.0', 'bsd-2-clause', 'bsd-3-clause', 'isc',
               'unlicense', 'zlib', '0bsd', 'wtfpl'}
 WEAK_COPYLEFT = {'lgpl-2.0', 'lgpl-2.1', 'lgpl-3.0', 'lgpl-2.1-only', 'lgpl-3.0-only',
-                 'mpl-2.0', 'epl-1.0', 'epl-2.0', 'cddl-1.0', 'cddl-1.1'}
+                 'lgpl-2.0-or-later', 'lgpl-2.1-or-later', 'lgpl-3.0-or-later',
+                 'lgpl-2.1-or-later-only', 'mpl-2.0', 'epl-1.0', 'epl-2.0',
+                 'cddl-1.0', 'cddl-1.1'}
 STRONG_COPYLEFT = {'gpl-2.0', 'gpl-3.0', 'agpl-3.0', 'gpl-2.0-only', 'gpl-3.0-only',
-                   'agpl-3.0-only', 'sspl-1.0', 'cc-by-sa-4.0'}
+                   'agpl-3.0-only', 'gpl-2.0-or-later', 'gpl-3.0-or-later',
+                   'agpl-3.0-or-later', 'sspl-1.0', 'cc-by-sa-4.0'}
 
 
 def license_risk(spdx_id: str) -> Tuple[str, str]:
@@ -47,16 +50,19 @@ def license_risk(spdx_id: str) -> Tuple[str, str]:
     s = (spdx_id or '').strip().lower()
     if not s or s == 'no-license' or 'other' in s:
         return 'unknown', '无有效许可证（或 LicenseRef），私有项目慎用，需法务确认'
-    if s in PERMISSIVE:
+    # 归一化 -only/-or-later 后缀再比对（弱传染集合已含 or-later 变体，
+    # 避免 'lgpl-3.0-or-later' 落入下方 'gpl' 子串 heuristic 被误判为 strong）
+    base = re.sub(r'-only$|-or-later(-only)?$', '', s)
+    if s in PERMISSIVE or base in PERMISSIVE:
         return 'permissive', '可自由商用/修改（MIT/Apache/BSD 系），最常见安全选择'
-    if s in WEAK_COPYLEFT:
+    if s in WEAK_COPYLEFT or base in WEAK_COPYLEFT:
         return 'weak', '修改该组件需以同许可证开源该组件（LGPL/MPL/EPL）；动态链接通常可避免传染'
-    if s in STRONG_COPYLEFT:
+    if s in STRONG_COPYLEFT or base in STRONG_COPYLEFT:
         return 'strong', '传染性最强（GPL/AGPL）：分发含其代码的产品需整体开源，商业闭源项目高风险'
-    # heuristic：含 gpl/agpl 字样的未知变体
+    # heuristic：含 agpl/gpl 字样的未知变体（排除已归入 weak 的 lgpl）
     if 'agpl' in s:
         return 'strong', f'疑似强传染性许可证（{spdx_id}），需法务确认'
-    if 'gpl' in s:
+    if re.search(r'(?<!l)gpl', s):   # gpl 但不是 lgpl
         return 'strong', f'疑似强传染性许可证（{spdx_id}），需法务确认'
     return 'unknown', f'未收录许可证 {spdx_id}（{s}），需法务确认'
 
@@ -224,11 +230,17 @@ def _scan_osv(pkg_ref: str) -> Dict[str, Any]:
 
 
 def _osv_severity(v: Dict[str, Any]) -> str:
+    """提取严重度：优先 database_specific.severity，其次 severity[].score 解析。"""
     sev = v.get('database_specific', {}).get('severity', '')
     if isinstance(sev, str) and sev:
         return sev
     for s in v.get('severity', []) or []:
-        return str(s.get('score', ''))[:8]
+        score = str(s.get('score', ''))
+        # score 是 CVSS 向量（如 "CVSS:3.1/AV:N/..."），截断会误当严重度；
+        # 从向量解析基础严重度需完整解析器，此处返回向量存在标记
+        if score.startswith('CVSS'):
+            return 'CVSS-vector'
+        return score or 'unknown'
     return 'unknown'
 
 

@@ -512,8 +512,9 @@ class Reflector:
         Returns:
             (should_drill_down: bool, stop_reason: str, drill_down_reason: str)
         """
-        # 1. 硬上限（保留）
-        if round_num >= self.max_rounds - 1:
+        # 1. 硬上限（v6.3 修复 off-by-one：round_num 从 1 起算，
+        #     旧条件 max_rounds-1 导致 --reflect-rounds 3 实际只跑 2 轮）
+        if round_num >= self.max_rounds:
             return False, f'已达到最大反思轮次（{self.max_rounds} 轮）', ''
 
         # 2. 高优先级空白处理（提前检查，保持"空白优先"）

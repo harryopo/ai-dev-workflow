@@ -78,7 +78,12 @@ class GiteeEngine(SearchEngine):
         data = _http_get_json(url)
         if not data:
             return None
-        items = data.get('items') or data.get('rows') or []
+        # v6.3 修复：Gitee v5 实测返回裸数组（无 items/rows 包装）；
+        # 兼容 dict（items/rows）与 list 两种契约
+        if isinstance(data, list):
+            items = data
+        else:
+            items = data.get('items') or data.get('rows') or []
         out: List[SearchResult] = []
         for it in items:
             if not isinstance(it, dict):
@@ -150,8 +155,13 @@ class ModelScopeEngine(SearchEngine):
         for it in items:
             if not isinstance(it, dict):
                 continue
-            path = it.get('Path') or it.get('path') or it.get('Name') or it.get('name') or ''
-            name = it.get('ChineseName') or it.get('Name') or it.get('name') or path.split('/')[-1] if path else ''
+            path = it.get('Path') or it.get('path') or ''
+            # v6.3 修复运算符优先级：旧写法 `A or B or C if path else ''`
+            # 在 path 为空时把 Name 侧整组丢弃；改为显式分支
+            name = (it.get('ChineseName') or it.get('Name')
+                    or it.get('name') or '')
+            if not name and path:
+                name = path.split('/')[-1]
             if isinstance(name, list):
                 name = name[0] if name else ''
             desc = it.get('Description') or it.get('description') or ''

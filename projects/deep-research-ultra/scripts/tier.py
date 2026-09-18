@@ -143,9 +143,12 @@ def domain_tier(url: str) -> int:
         return int(overrides[reg])
 
     # 2) 学术/官方文档精确命中（含子域自举）
+    #    v6.3：http 无 TLS 的 Tier 1 学术源降一级（学术域走明文链路可信度打折）
     for domain, tier in ACADEMIC_DOMAINS.items():
         if _host_matches(host, domain, allow_sub=True):
-            return tier if not (is_http and tier == 1) else min(tier + 1, 4)
+            if is_http and tier == 1:
+                return min(tier + 1, 4)
+            return tier
 
     # 3) 官方文档/权威平台（允许子域：docs.github.com 等）
     for domain, tier in OFFICIAL_DOCS.items():
@@ -191,7 +194,7 @@ def tier_label(tier: int) -> str:
 
 
 def tier_penalty(tier: int) -> float:
-    """Tier → 评分权重调节（+0.1 / +0.0 / 0.0 / -0.15），供 score.py 使用。"""
+    """Tier → 评分权重调节（+0.10 / +0.05 / +0.00 / -0.15），供 score.py 使用。"""
     return {1: 0.10, 2: 0.05, 3: 0.0, 4: -0.15}.get(int(tier), 0.0)
 
 

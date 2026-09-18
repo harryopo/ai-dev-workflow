@@ -417,6 +417,92 @@ def cmd_plan_only(args):
 # 命令：默认搜索（v4 模式）
 # ============================================================
 
+def _extract_claim_texts(obj_list, attr='statement'):
+    """从 Claim 对象列表或 dict 列表提取文本（兼容缓存命中与新鲜验证结果）。"""
+    out = []
+    for c in obj_list or []:
+        v = getattr(c, attr, None) if not isinstance(c, dict) else c.get(attr, '')
+        if v:
+            out.append(str(v))
+    return out
+
+
+def _write_ledger(ledger, results, verification, query):
+    """搜索结果落盘证据账本（v6.3：按交叉验证结果分流 status，不再一律 verified）。
+
+    分流规则：
+    - 命中 verified_claims（≥2 独立来源）→ status='verified'
+    - 命中 contradictions → status='conflict'
+    - 命中 single_source_claims 或未命中 → status='pending'（未验证）
+    """
+    if ledger is None:
+        return 0
+    ver = verification if verification is not None else None
+    if isinstance(ver, dict):
+        verified_texts = _extract_claim_texts(ver.get('verified_claims'))
+        single_texts = _extract_claim_texts(ver.get('single_source_claims'))
+        conflict_texts = []
+        for con in ver.get('contradictions') or []:
+            ca = con.get('claim_a', '') if isinstance(con, dict) else ''
+            cb = con.get('claim_b', '') if isinstance(con, dict) else ''
+            conflict_texts += [str(ca), str(cb)]
+    elif ver is not None:
+        verified_texts = _extract_claim_texts(getattr(ver, 'verified_claims', []))
+        single_texts = _extract_claim_texts(getattr(ver, 'single_source_claims', []))
+        conflict_texts = []
+        for con in getattr(ver, 'contradictions', []) or []:
+            conflict_texts += [str(getattr(con, 'claim_a', '')),
+                               str(getattr(con, 'claim_b', ''))]
+    else:
+        verified_texts, single_texts, conflict_texts = [], [], []
+
+    def _match(text, pool):
+        t = str(text).strip()
+        for p in pool:
+            if t and (t in p or p in t):
+                return True
+        return False
+
+    written = 0
+    for r in results:
+        try:
+            title = r.title if hasattr(r, 'title') else r.get('title', '')
+            url = r.url if hasattr(r, 'url') else r.get('url', '')
+            craap = r.craap_score if hasattr(r, 'craap_score') else r.get('craap_score', {})
+            if not isinstance(craap, dict):
+                craap = {}
+            text = title or ''
+            if not text:
+                content = (r.content if hasattr(r, 'content')
+                           else (r.get('content', '') if isinstance(r, dict) else ''))
+                text = str(content)[:80] or '(无标题)'
+            if _match(text, conflict_texts):
+                status = 'conflict'
+                conf = 0.3
+            elif _match(text, verified_texts):
+                status = 'verified'
+                conf = 0.8
+            elif _match(text, single_texts):
+                status = 'pending'      # 单源：待交叉验证
+                conf = 0.4
+            else:
+                status = 'pending'      # v6.3：未验证一律 pending
+                conf = 0.4
+            claim = ledger.add_claim(
+                claim=str(text), topic=query, status=status,
+                perspective='engine', confidence=conf,
+                note='auto: from search results (status by cross-verification)')
+            if url:
+                ledger.add_source(
+                    claim['id'], str(url), str(title),
+                    tier=craap.get('tier') if craap else None,
+                    craap_score=craap.get('total') if craap else None)
+            written += 1
+        except Exception as e:
+            print(f"⚠️ 账本写入失败: {e}", file=sys.stderr)
+    return written
+
+
 def cmd_search(args, registry):
     """v4 搜索模式"""
     from cache import LRUCache
@@ -424,29 +510,60 @@ def cmd_search(args, registry):
     from verify import CrossVerifier
     from report import ReportGenerator
 
-    # 1. 缓存检查
+    # 0. 断路器接线（惰性 router，失败容忍）
+    breaker_router = None
+    try:
+        from router import QueryRouter
+        breaker_router = QueryRouter()
+    except Exception:
+        breaker_router = None
+
+    # 1. 缓存检查（v6.3：key 含 ledger/effort/breadth/perspectives/reflect 参数，
+    #    防止带账本的二跑命中旧缓存导致账本为空）
     cache = LRUCache()
     cache_key = LRUCache.make_key(
         args.query, sources=args.sources,
         language=args.language, region=args.region,
         depth=args.depth,
+        ledger=bool(args.ledger), effort=args.effort,
+        breadth=args.breadth, perspectives=getattr(args, 'perspectives', None),
+        reflect_rounds=args.reflect_rounds,
     )
     if not args.no_cache:
         cached = cache.get(cache_key)
         if cached:
             print(f"✅ 缓存命中（key: {cache_key[:8]}...）", file=sys.stderr)
+            # v6.3：缓存命中也落盘（此前直接 return 导致 --ledger 二跑账本为空）
+            ledger = None
+            if args.ledger:
+                from ledger import ResearchLedger
+                ledger = ResearchLedger(args.ledger).init()
+                n = _write_ledger(ledger, cached.get('results', []),
+                                  cached.get('verification'), args.query)
+                print(f"📒 已写入证据账本 {n} 条 claim（缓存结果）", file=sys.stderr)
             _output_results(cached, args)
             return
 
-    # 2. 生成计划（除非 --no-plan）
+    # 2. 生成计划（除非 --no-plan；v6.3：透传 perspectives/goal/dimensions/time_range）
     plan = None
     if not args.no_plan:
         from plan import PlanGenerator
         gen = PlanGenerator()
+        _persp = None
+        if getattr(args, 'perspectives', None) == '0':
+            _persp = []
+        elif getattr(args, 'perspectives', None):
+            _persp = [p.strip() for p in args.perspectives.split(',')]
         plan = gen.generate_plan(
             topic=args.query,
+            goal=getattr(args, 'goal', '') or '',
             depth=args.depth,
+            dimensions=(args.dimensions.split(',')
+                        if getattr(args, 'dimensions', None) else None),
+            time_range=getattr(args, 'time_range', '') or '',
             language=args.language or 'auto',
+            region=getattr(args, 'region', '') or '',
+            perspectives=_persp,
         )
         print(f"📋 MECE 计划已生成（{len(plan.issue_tree)} 个子问题）",
               file=sys.stderr)
@@ -511,35 +628,65 @@ def cmd_search(args, registry):
         except Exception as e:
             print(f"⚠️ 智能路由失败: {e}，使用默认降级链", file=sys.stderr)
 
-    # 搜索（取第一个可用引擎或聚合多个）
+    # 搜索（取第一个可用引擎或聚合多个；v6.3：断路器接线——
+    #     OPEN 的引擎跳过，成功/失败记账，恢复走 HALF_OPEN 试探）
+    def _breaker_ok(name):
+        if breaker_router is None:
+            return True
+        try:
+            return breaker_router.get_breaker(name).can_call()
+        except Exception:
+            return True
+
+    def _breaker_record(name, ok):
+        if breaker_router is None:
+            return
+        try:
+            b = breaker_router.get_breaker(name)
+            b.record_success() if ok else b.record_failure()
+        except Exception:
+            pass
+
     if args.all:
         # 搜索所有可用引擎
         for engine in chain:
             if not engine.has_capability('search'):
                 continue
-            print(f"🔍 搜索中: {engine.get_name()}...", file=sys.stderr)
+            name = engine.get_name()
+            if not _breaker_ok(name):
+                print(f"⚡ 断路器 OPEN，跳过: {name}", file=sys.stderr)
+                continue
+            print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
                 results = engine.search(args.query, max_results=args.limit)
+                _breaker_record(name, True)
                 if results:
                     all_results.extend(results)
-                    used_engines.append(engine.get_name())
+                    used_engines.append(name)
             except Exception as e:
-                print(f"⚠️ {engine.get_name()} 搜索失败: {e}", file=sys.stderr)
+                _breaker_record(name, False)
+                print(f"⚠️ {name} 搜索失败: {e}", file=sys.stderr)
     else:
         # 按降级链搜索，命中即停（或聚合前 N 个）
         for engine in chain:
             if not engine.has_capability('search'):
                 continue
-            print(f"🔍 搜索中: {engine.get_name()}...", file=sys.stderr)
+            name = engine.get_name()
+            if not _breaker_ok(name):
+                print(f"⚡ 断路器 OPEN，跳过: {name}", file=sys.stderr)
+                continue
+            print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
                 results = engine.search(args.query, max_results=args.limit)
+                _breaker_record(name, True)
                 if results:
                     all_results.extend(results)
-                    used_engines.append(engine.get_name())
+                    used_engines.append(name)
                     if len(all_results) >= args.limit:
                         break
             except Exception as e:
-                print(f"⚠️ {engine.get_name()} 搜索失败: {e}", file=sys.stderr)
+                _breaker_record(name, False)
+                print(f"⚠️ {name} 搜索失败: {e}", file=sys.stderr)
 
     if not all_results:
         print("❌ 未找到结果", file=sys.stderr)
@@ -571,7 +718,14 @@ def cmd_search(args, registry):
           f"{len(verification.contradictions)} 矛盾",
           file=sys.stderr)
 
-    # 7. 反思循环（如果 --reflect-rounds > 0；v6.0 支持证据账本与证据充分性停止）
+    # 6.5 落盘证据账本（v6.3：前移到反思循环之前——
+    #     此前落盘在反思之后导致 evidence_sufficient/marginal 恒读空账本）
+    if ledger:
+        written = _write_ledger(ledger, all_results, verification, args.query)
+        print(f"📒 已写入证据账本 {written} 条 claim（按交叉验证分流 status）",
+              file=sys.stderr)
+
+    # 7. 反思循环（如果 --reflect-rounds > 0；账本已就绪，证据充分性停止生效）
     reflections = []
     if args.reflect_rounds > 0 and plan:
         from reflect import Reflector
@@ -617,32 +771,6 @@ def cmd_search(args, registry):
     if not args.no_cache:
         cache.set(cache_key, output_data)
         print(f"💾 已缓存（key: {cache_key[:8]}...）", file=sys.stderr)
-
-    # v6.0：搜索结果落盘到证据账本（claim + source 多源关联）
-    if ledger:
-        written = 0
-        for r in all_results:
-            try:
-                title = r.title if hasattr(r, 'title') else r.get('title', '')
-                url = r.url if hasattr(r, 'url') else r.get('url', '')
-                craap = r.craap_score if hasattr(r, 'craap_score') else {}
-                text = title or ''
-                if not text:
-                    content = (r.content if hasattr(r, 'content')
-                               else (r.get('content', '') if isinstance(r, dict) else ''))
-                    text = str(content)[:80] or '(无标题)'
-                claim = ledger.add_claim(
-                    claim=str(text), topic=args.query, status='verified',
-                    perspective='engine', confidence=0.5)
-                if url:
-                    ledger.add_source(
-                        claim['id'], str(url), str(title),
-                        tier=craap.get('tier') if isinstance(craap, dict) and craap else None,
-                        craap_score=craap.get('total') if isinstance(craap, dict) and craap else None)
-                written += 1
-            except Exception as e:
-                print(f"⚠️ 账本写入失败: {e}", file=sys.stderr)
-        print(f"📒 已写入证据账本 {written} 条 claim", file=sys.stderr)
 
     # v6.0：组装调研元信息（报告头显示）
     options = None

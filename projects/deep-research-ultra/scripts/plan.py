@@ -581,6 +581,15 @@ class PlanGenerator:
             'estimated_duration': '10-20 分钟',
             'estimated_sources': '30-50',
         },
+        # v6.3 补齐：--depth extreme 此前无条目被静默按 standard 处理
+        'extreme': {
+            'description': '极深调研（20-40 分钟）',
+            'max_sub_questions': 12,
+            'max_depth': 3,
+            'sources_per_question': 8,
+            'estimated_duration': '20-40 分钟',
+            'estimated_sources': '50-80',
+        },
     }
 
     # 常见维度模板

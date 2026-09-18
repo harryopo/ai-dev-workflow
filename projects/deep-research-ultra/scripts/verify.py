@@ -390,9 +390,12 @@ class CrossVerifier:
                         claim.contradictions.append(con.claim_a_id)
 
         # 重新分类（矛盾结论从 verified/single 中移除）
+        # v6.3 修复：先在过滤前收集 contradicted——旧代码从已过滤列表回找，
+        # 导致矛盾 claim 恒丢失、total_claims 少计、verification_rate 虚高
+        all_claims = verified + single_source
+        contradicted = [c for c in all_claims if c.status == 'contradicted']
         verified = [c for c in verified if c.status == 'verified']
         single_source = [c for c in single_source if c.status == 'single']
-        contradicted = [c for c in verified + single_source if c.status == 'contradicted']
 
         # 计算验证率
         total_claims = len(verified) + len(single_source) + len(contradicted)
