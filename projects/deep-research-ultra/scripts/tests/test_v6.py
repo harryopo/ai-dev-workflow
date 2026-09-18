@@ -603,3 +603,82 @@ c
         c2 = L.add_claim('非法状态值', 't', status='bogus')  # 非法值
         assert c['status'] == 'pending'
         assert c2['status'] == 'pending'
+
+
+# ============================================================
+# similarity.py + v6.4 语义级（转载指纹 / 数值矛盾 / 近义聚类）
+# ============================================================
+
+class TestSimilarityV64:
+    """语义级聚类的三个核心场景"""
+
+    def test_same_content_detection(self):
+        from similarity import is_same_content
+        assert is_same_content('OpenAI 发布 GPT-5 模型',
+                               'OpenAI 发布 GPT-5 模型|新浪') is True
+        assert is_same_content('某地发生地震(转载)',
+                               '某地发生地震（转载站）') is True
+        assert is_same_content('苹果发布新手机',
+                               '特斯拉股价暴涨') is False
+
+    def test_effective_independent_dedupes_syndication(self):
+        from similarity import effective_independent_count
+        syndicated = [
+            {'title': 'OpenAI 发布 GPT-5 模型', 'url': 'https://reuters.com/a', 'tier': 2},
+            {'title': 'OpenAI 发布 GPT-5 模型|新浪', 'url': 'https://sina.com/a', 'tier': 3},
+            {'title': '完全不同的另一篇调研', 'url': 'https://arxiv.org/x', 'tier': 1},
+        ]
+        assert effective_independent_count(syndicated) == 2   # 转载合并
+        assert effective_independent_count(syndicated[:2]) == 1  # 纯转载
+
+    def test_group_by_similarity_paraphrase(self):
+        from similarity import group_by_similarity
+        sents = [
+            'Transformer 是主流 LLM 架构',
+            'Transformer 是当下主流的大模型架构',   # 近义改写
+            '性能提升 10 倍',
+            '性能提升 2 倍',                        # 数值差异(仍同主题)
+            'MoE 混合专家降低推理成本',
+        ]
+        groups = group_by_similarity(sents)
+        flat = [sorted(g) for g in groups]
+        assert [0, 1] in flat          # 近义聚
+        assert [2, 3] in flat          # 数值聚(供矛盾检测)
+        assert [4] in flat
+
+    def test_numeric_conflict(self):
+        from similarity import numeric_conflict
+        c = numeric_conflict('性能提升 10 倍', '性能提升 2 倍')
+        assert c is not None and c['ratio'] > 0.5
+        assert numeric_conflict('性能提升 2.8 倍', '性能提升 3 倍') is None  # <20% 不算矛盾
+
+
+class TestVerifyV64:
+    """verify 集成：近义聚合 + 数值矛盾入 contradictions"""
+
+    def _mk_claim(self, sid, statement):
+        from verify import Claim
+        c = Claim(id=sid, statement=statement)
+        return c
+
+    def test_group_similar_claims_paraphrase(self):
+        from verify import CrossVerifier
+        v = CrossVerifier()
+        claims = [
+            self._mk_claim('c1', 'Transformer 是主流 LLM 架构'),
+            self._mk_claim('c2', 'Transformer 是当下主流的大模型架构'),
+            self._mk_claim('c3', 'MoE 降低推理成本'),
+        ]
+        groups = v._group_similar_claims(claims)
+        assert any(len(g) == 2 for g in groups)
+
+    def test_numeric_contradiction_detected(self):
+        from verify import CrossVerifier
+        v = CrossVerifier()
+        claims = [
+            self._mk_claim('c1', '性能提升 10 倍'),
+            self._mk_claim('c2', '性能提升 2 倍'),
+        ]
+        cons = v._detect_numeric_contradictions(claims)
+        assert len(cons) == 1
+        assert '数值矛盾' in cons[0].possible_reason

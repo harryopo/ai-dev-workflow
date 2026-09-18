@@ -5,6 +5,36 @@
 
 ---
 
+## v6.4.0（2026-09-18）— 语义级 claim 聚类（解决 v6.3 遗留的两处语义盲区）
+
+### 背景
+v6.3 审查遗留两项架构级盲区：① 独立来源按 URL 并集计数 → 同一通稿跨站转载被当作 N 个独立来源，sufficient 虚高；② claim 聚类靠字面词集 Jaccard → 近义改写漏聚（"主流 LLM 架构" vs "主流大模型架构"）、数值矛盾（10x vs 2x）被判相似并入组而未标注。
+
+### 新功能
+
+| 能力 | 说明 | 模块 |
+|------|------|------|
+| 转载指纹去重 | 标题归一化（去站名/转载/栏目冗余词）→ 同指纹多来源只算 1 个独立来源；dedupe 时组内优先保留官方域 | scripts/similarity.py（新） |
+| 语义化聚类 | 判据双通道：字符 n-gram 相似度 OR 核心 token（汉字 2-gram+英文词）重叠 ≥2 → 覆盖近义改写 | similarity.group_by_similarity |
+| 数值矛盾检测 | 提取数值（倍/x/%/万/亿等），同单位差异 >20% 且同主题 → 判矛盾，入 Contradiction（带差异比） | similarity.numeric_conflict + verify._detect_numeric_contradictions |
+| 全链路接线 | ledger.status 新增 effective_sources（指纹去重独立数）；sufficient/insufficient 判定改用有效独立数；validate_report 校验 2b 同步对齐 | ledger.py / validate_report.py |
+
+### 变更文件
+
+- 新增：`scripts/similarity.py`（纯标准库，中文/英文混合文本可用，一次全部测试）
+- 修改：`scripts/verify.py`（聚合替换 + 数值矛盾补充）、`scripts/ledger.py`（effective_sources + 判据）、`scripts/validate_report.py`（2b 对齐）、`tests/test_v6.py`（+6 用例）、`SKILL.md`（version）、`CHANGELOG.md`
+
+### 测试
+
+140 → **146 passed**（+6：转载判定/有效独立数/近义聚类/数值冲突/verify 集成二项）
+
+### 端到端验证
+
+- 3 站转载 + 1 独立原文 → effective_sources=2、sufficient=True（转载被合并，不再虚高）
+- 纯 2 站转载（无独立）→ effective_sources=1、sufficient=False、insufficient_claim_ids 命中
+
+---
+
 ## v6.3.0（2026-09-18）— 真实性验证链重建（审查驱动修复）
 
 ### 背景

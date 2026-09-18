@@ -1,6 +1,6 @@
 ---
 name: deep-research-ultra
-version: 6.3.0
+version: 6.4.0
 description: |
   超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，集成子 Agent 并行编排（Orchestrator-Worker）与深度调研专家团（多视角对抗/审稿人闭环），支持证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验；智能路由（三级级联）自动匹配 32 个引擎（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬）。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
@@ -824,7 +824,9 @@ ranked = rec.rank_results(results_list, query='RAG framework', intent='novel_app
 
 **硬性规则**：同一结论需要 **≥2 个独立来源**支持。
 
-实现：`scripts/verify.py` 的 `CrossVerifier.verify(results)`（相似聚合→独立来源计数→矛盾检测）
+**独立来源定义（v6.4 语义级）**：按内容指纹去重——同一通稿跨站转载（标题归一化后相同/高相似）只算 **1** 个独立来源；`ledger.status` 的 `effective_sources` 为指纹去重后的有效独立数，sufficient/校验门均以此为准（防转载虚高）。
+
+实现：`scripts/verify.py` 的 `CrossVerifier.verify(results)`（语义聚合→独立来源指纹去重计数→矛盾检测）+ `scripts/similarity.py`（`group_by_similarity` 近义聚类 / `numeric_conflict` 数值矛盾）
 
 ### 10.4 多信号反思循环（Kimi 式）
 

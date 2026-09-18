@@ -379,6 +379,15 @@ class CrossVerifier:
         # 检测矛盾点
         contradictions = self._detect_contradictions(verified + single_source)
 
+        # v6.4 数值矛盾补充：同组内出现差异显著的数值（如 10x vs 2x），
+        # 旧启发式只有对立词表，数值矛盾被判为"相似"并入组而未被标注
+        numeric_c = self._detect_numeric_contradictions(verified + single_source)
+        seen = {(con.claim_a_id, con.claim_b_id) for con in contradictions}
+        for con in numeric_c:
+            if (con.claim_a_id, con.claim_b_id) not in seen and \
+               (con.claim_b_id, con.claim_a_id) not in seen:
+                contradictions.append(con)
+
         # 标记矛盾结论
         for con in contradictions:
             for claim in verified + single_source:
@@ -412,30 +421,15 @@ class CrossVerifier:
         )
 
     def _group_similar_claims(self, claims: List[Claim]) -> List[List[Claim]]:
-        """聚合相似结论（基于关键词重叠）"""
+        """聚合相似结论（v6.4 语义级：similarity.group_by_similarity 替换词集 Jaccard，
+        覆盖近义改写（同主体+同关键词）与数值表述差异。」"""
         if not claims:
             return []
 
-        groups = []
-        used = set()
-
-        for i, claim_a in enumerate(claims):
-            if i in used:
-                continue
-            group = [claim_a]
-            used.add(i)
-
-            for j in range(i + 1, len(claims)):
-                if j in used:
-                    continue
-                claim_b = claims[j]
-                if self._are_claims_similar(claim_a, claim_b):
-                    group.append(claim_b)
-                    used.add(j)
-
-            groups.append(group)
-
-        return groups
+        from similarity import group_by_similarity
+        statements = [c.statement for c in claims]
+        groups_idx = group_by_similarity(statements)
+        return [[claims[i] for i in g] for g in groups_idx]
 
     @staticmethod
     def _are_claims_similar(claim_a: Claim, claim_b: Claim, threshold: float = 0.5) -> bool:
@@ -512,6 +506,33 @@ class CrossVerifier:
                             break
 
         return contradictions
+
+    # ------------------------------------------------------------
+    # 数值矛盾检测（v6.4）
+    # ------------------------------------------------------------
+
+    def _detect_numeric_contradictions(self, claims: List[Claim]) -> List[Contradiction]:
+        """检测数值矛盾：两 claim 相似（同主题）但数值差异 >20%（如 10x vs 2x）。"""
+        from similarity import numeric_conflict, text_similarity
+        out = []
+        for i in range(len(claims)):
+            for j in range(i + 1, len(claims)):
+                a, b = claims[i], claims[j]
+                conflict = numeric_conflict(a.statement, b.statement, ratio_threshold=0.2)
+                if conflict is None:
+                    continue
+                # 仅当确为同主题（相似度尚可）才判矛盾，避免毫不相关数值误报
+                if text_similarity(a.statement, b.statement) < 0.12:
+                    continue
+                out.append(Contradiction(
+                    claim_a_id=a.id, claim_b_id=b.id,
+                    claim_a=a.statement, claim_b=b.statement,
+                    possible_reason=(f'数值矛盾：{conflict["a"]} vs {conflict["b"]}'
+                                     f'（差异 {conflict["ratio"]:.0%}）'),
+                    sources_a=list(a.get_sources()),
+                    sources_b=list(b.get_sources()),
+                ))
+        return out
 
     # ------------------------------------------------------------
     # LLM 矛盾检测提示

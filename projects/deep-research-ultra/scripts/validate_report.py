@@ -176,16 +176,21 @@ def validate_report(report_md: str,
                 f'子主题「{t}」无 verified claim（{s.get("claims", 0)} 条均非已证实）')
 
     # ---------- 校验 2b（v6.3）：verified claim 独立来源强度 ----------
-    # 每条被引为结论的 verified claim 必须有 ≥2 独立来源 URL（交叉验证硬规则）
-    source_url_by_claim: Dict[str, set] = {}
-    for s in sources:
-        source_url_by_claim.setdefault(str(s.get('claim_id', '')), set()).add(
-            str(s.get('url', '')))
-    weak_verified = [
-        c.get('id') for c in claims
-        if c.get('status') == 'verified'
-        and len(source_url_by_claim.get(c.get('id', ''), set())) < max(2, min_sources_per_claim)
-    ]
+    # 每条被引为结论的 verified claim 必须有 ≥2 独立来源（v6.4：转载指纹去重后）
+    try:
+        from similarity import effective_independent_count
+    except ImportError:
+        effective_independent_count = lambda srcs, **kw: len({s.get('url') for s in srcs})
+    weak_verified = []
+    for c in claims:
+        if c.get('status') != 'verified':
+            continue
+        claim_srcs = [s for s in sources if str(s.get('claim_id', '')) == str(c.get('id', ''))]
+        n_indep = effective_independent_count(
+            [{'title': s.get('title', ''), 'url': s.get('url', ''), 'tier': s.get('tier')}
+             for s in claim_srcs])
+        if n_indep < max(2, min_sources_per_claim):
+            weak_verified.append(c.get('id'))
     report.stats['weak_verified_claims'] = len(weak_verified)
     if total_claims and weak_verified:
         report.issues.append(

@@ -30,6 +30,11 @@ except ImportError:  # 独立运行/测试无 tier 时降级
     domain_tier = None  # type: ignore
     tier_label = lambda t: str(t)  # type: ignore
 
+try:
+    from similarity import effective_independent_count  # v6.4 转载指纹去重
+except ImportError:
+    effective_independent_count = lambda srcs, **kw: len(srcs)  # type: ignore
+
 VALID_STATUS = {'pending', 'searching', 'verified', 'conflict', 'supplementing', 'completed'}
 
 
@@ -254,22 +259,30 @@ class ResearchLedger:
         result = {}
         for t, s in topics.items():
             n = max(s['claims'], 1)
-            # sufficient 判据（v6.3 修正）：claim 级严格——
-            # ≥1 条 verified claim 且每条 verified claim 均有 ≥2 独立来源 URL，
-            # 不再用 topic 级 URL 并集（旧判据会被多条单源 claim 虚假满足）
+            # v6.4：独立来源用语义指纹去重（同一通稿跨站转载只算 1），
+            # 取代 URL 并集计数——旧法把 N 个转载站当作 N 个独立来源
             verified_claims = [e for e in self.claims(t)
                                if e.get('status') == 'verified']
-            insufficient = [
-                c['id'] for c in verified_claims
-                if len(src_map.get(c['id'], set())) < 2
-            ]
+            insufficient = []
+            for c in verified_claims:
+                srcs = [{'title': src.get('title', ''), 'url': src.get('url', ''),
+                         'tier': src.get('tier')}
+                        for src in self.sources_for_claim(c['id'])]
+                if effective_independent_count(srcs) < 2:
+                    insufficient.append(c['id'])
             result[t] = {
                 'claims': s['claims'],
                 'verified': s['verified'],
                 'conflict': s['conflict'],
                 'supplementing': s['supplementing'],
                 'pending': s['pending'],
-                'independent_sources': len(s['source_urls']),
+                'independent_sources': len(s['source_urls']),   # 原始 URL 数（参考）
+                'effective_sources': sum(
+                    effective_independent_count(
+                        [{'title': src.get('title', ''), 'url': src.get('url', ''),
+                          'tier': src.get('tier')}
+                         for src in self.sources_for_claim(c['id'])])
+                    for c in self.claims(t)),
                 'coverage': round(s['verified'] / n, 2),
                 'sufficient': (s['verified'] >= 1 and not insufficient
                                and len(s['source_urls']) >= 2),
