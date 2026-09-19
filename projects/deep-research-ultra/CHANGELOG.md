@@ -50,11 +50,20 @@ v6.6 在 ledger 里开了档 B（`verify_primary` 打 `evidence_tier=B` + `verif
 
 副作用立即见效：误报消失后，同一次校验暴露出执行摘要 1239 字 > 1200 上限这条**一直被忽略的真告警**。
 
+### G5 claim 原文无法就地更正（D11）
+`set_status()` 只能改状态与 note。实测反查 argparse 时发现 claim 原文里有一句是错的
+（"color 从 False 翻到 True"——两分支签名都是 `color=True`，错的是 docstring），
+而账本没有任何途径改正原文：错误结论会作为 verified 永久留在交付物里，note 只会被读者当作附注跳过。
+现 `set_status(..., text=...)` / CLI `--text` 支持就地改写并记 `amended_at`；不传 `--note` 时保留既有反查留痕。
+
 ### 顺带完成
 用逐字反查（curl_cffi 取页面比对原文）真实解决了 G1 检出的那条违规 claim：
 GitHub Copilot CLI responsible-use 文档。反查同时纠正了 claim 本身的一处**错归**——
 "生成内容可能看似正确"那句在同页属于 Copilot **code review** 条目，不是 CLI 命令生成的告诫；
 报告 §8.4 已按逐字原文重写并标明语境差异。
+另按同一方法完成 Q4 剩余两条被引 claim 的一手源码复核（git `help.c` 延时换算 + `help.adoc` 的
+`help.autoCorrect` deciseconds；CPython 3.14 与 main 的 `argparse.py` `__init__` 签名），
+两条由 conflict 消解为 verified，报告覆盖率 42.3% → 43.4%、正文引用的 Q4 claim 清零。
 
 ### 迁移说明
 - 无需重建账本。旧账本没有 `evidence_tier` 字段 → 2b 仍按档 A 的 ≥2 来源要求，行为不变。

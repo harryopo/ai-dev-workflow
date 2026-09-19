@@ -307,7 +307,7 @@ Lead（主 Agent）
 >
 > | 档 | 适用 claim | 判据 | 命令 |
 > |----|-----------|------|------|
-> | **A · 跨域三角验证** | 「世界事实」类（某机制的行为、某统计数字） | ≥2 个不同注册域来源 | `ledger.py set-status --claim-id <ids> --status verified --note "交叉验证 N 独立来源"` |
+> | **A · 跨域三角验证** | 「世界事实」类（某机制的行为、某统计数字） | ≥2 个不同注册域来源 | `ledger.py set-status --claim-id <ids> --status verified --note "交叉验证 N 独立来源"`（发现原文写错时加 `--text` 就地更正） |
 > | **B · 一手来源 + 反查** | **归属型**（"某仓库 README 现状是 X"/"某论文原文说 Y"）——对象就是单个制品，要求第二个域名来验证它自身是判据错配 | 反查 URL 与既有来源同注册域，且反查动作真实发生 | `ledger.py verify-primary --claim-id <ids> --check-url <URL> --check-title <t> --method repo_health` |
 >
 > 档 B 不是后门：命令会**拒绝**反查域与 claim 既有来源域不一致的情况（拿一篇无关博客"验证"某仓库是升不上去的），并把 `verify_method` 与反查 URL 写进账本留痕。实测一次调研有 ~110 条归属型 claim 因只有档 A 一条路而全卡在 pending，导致发布门覆盖率虚低。**反查必须真实发生**（读页面/源码/API 比对内容），不允许只把 URL 再填一遍。

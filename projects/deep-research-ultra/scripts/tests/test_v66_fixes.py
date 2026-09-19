@@ -516,3 +516,37 @@ class TestGateCitationNumberConflict:
         r = validate_report(self._report(reg), ledger=self._led(tmp_path))
         assert r.stats['citation_number_conflicts'] == 1
         assert any('编号' in w and '不同来源' in w for w in r.warnings), r.warnings
+
+
+# ============================================================
+# D11 claim 文本无法就地更正
+# ============================================================
+class TestLedgerAmendClaimText:
+    """反查时发现 claim 原文有一句写错，只能改文本，不能只加 note。
+
+    实测：argparse 那条 claim 写"color 从 False 翻到 True"，逐行读两个分支的
+    `__init__` 签名都是 `color=True`（翻的是 docstring 与代码不一致，不是版本）。
+    账本只有 set_status 改状态，错误原文会作为 verified 结论永久留在交付物里。
+    """
+
+    def test_set_status_can_amend_text_and_keeps_note(self, tmp_path):
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c = L.add_claim('argparse color 从 False 翻到 True', '参数层')
+        L.set_status([c['id']], 'verified', note='Lead 反查（source-read）：u')
+        n = L.set_status([c['id']], 'verified',
+                         text='argparse 两分支签名均 color=True，docstring 仍写 False')
+        assert n == 1
+        got = [e for e in L.export_json()['claims'] if e['id'] == c['id']][0]
+        assert '两分支签名均 color=True' in got['text']
+        assert '翻到 True' not in got['text']
+        assert got['note'].startswith('Lead 反查'), '不传 --note 时应保留反查留痕'
+        assert got.get('amended_at')
+
+    def test_text_only_amend_leaves_status_untouched(self, tmp_path):
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        c = L.add_claim('原文', '参数层', 'conflict')
+        L.set_status([c['id']], 'conflict', text='改后原文')
+        got = [e for e in L.export_json()['claims'] if e['id'] == c['id']][0]
+        assert got['status'] == 'conflict' and got['text'] == '改后原文'

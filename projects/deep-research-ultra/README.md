@@ -399,7 +399,7 @@ deep-research-ultra/
 ## 🧪 测试
 
 ```bash
-# 运行单元测试（216 个用例）
+# 运行单元测试（218 个用例）
 cd scripts && python -m pytest tests/ -v
 
 # 端到端测试（dry-run）

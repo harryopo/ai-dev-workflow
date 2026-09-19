@@ -172,12 +172,16 @@ class ResearchLedger:
     # Lead 归并：原地改状态
     # ------------------------------------------------------------------
     def set_status(self, claim_ids: List[str], status: str,
-                   note: str = '', extra: Optional[Dict[str, Any]] = None) -> int:
+                   note: str = '', extra: Optional[Dict[str, Any]] = None,
+                   text: str = '') -> int:
         """Lead 在归并阶段把达标 claim 升 verified（或降 pending）。
 
         必须原地改写而非追加：status() 按条目计数、不做 id 去重，
         追加同 id 新行会让该 claim 被数两次。
         整文件重写 → 只能在全部子 Agent 退出后调用。
+
+        text 非空时同时就地更正 claim 原文：反查常会发现"有一句写错了"，
+        只加 note 会让错误原文作为 verified 结论永久留在交付物里。
         """
         if status not in VALID_STATUS:
             return 0
@@ -192,6 +196,9 @@ class ResearchLedger:
                 e['promoted_at'] = _now()
                 if note:
                     e['note'] = note
+                if text:
+                    e['text'] = text
+                    e['amended_at'] = _now()
                 for k, v in (extra or {}).items():
                     e[k] = v
                 changed += 1
@@ -497,6 +504,7 @@ def _main(argv: Optional[List[str]] = None) -> int:
                     [--title <t>] [--tier <1-4>] [--craap <score>]
   python ledger.py status --session <dir> [--topic <t>]
   python ledger.py set-status --session <dir> --claim-id <id>[,<id>...] --status <s> [--note <n>]
+                    [--text <就地更正后的 claim 原文>]
   python ledger.py verify-primary --session <dir> --claim-id <id>[,<id>...] \
       --check-url <一手制品URL> [--check-title <t>] [--method repo_health]
   python ledger.py merge --session <dir> --dir <src_dir>
@@ -572,8 +580,10 @@ def _main(argv: Optional[List[str]] = None) -> int:
         if not ids or not status:
             print('缺少 --claim-id / --status', file=sys.stderr)
             return 2
-        changed = ledger.set_status(ids, status, note=_opt('--note'))
-        print(f'已更新 {changed} 条 claim → {status}')
+        changed = ledger.set_status(ids, status, note=_opt('--note'),
+                                    text=_opt('--text'))
+        print(f'已更新 {changed} 条 claim → {status}'
+              + ('（原文已就地更正）' if _opt('--text') else ''))
         return 0 if changed else 1
 
     if cmd == 'status':
