@@ -394,6 +394,7 @@ def cmd_plan_only(args):
         topic=args.query,
         goal=args.goal or '',
         depth=args.depth,
+        effort=args.effort,
         dimensions=args.dimensions.split(',') if args.dimensions else None,
         time_range=args.time_range or '',
         language=args.language or 'auto',
@@ -471,7 +472,9 @@ def cmd_plan_only(args):
         print()
 
     # v6.0：待确认清单（计划确认门输入，供用户增删子问题/调整深度）
-    effort = args.effort or (args.depth if args.depth != 'extreme' else 'exhaustive')
+    from plan import resolve_preset_key, DEPTH_TO_EFFORT
+    preset_key = resolve_preset_key(args.effort, args.depth)
+    effort = DEPTH_TO_EFFORT[preset_key]
     breadth = args.breadth or {'quick': 2, 'standard': 4, 'deep': 8, 'exhaustive': 12}.get(effort, 4)
     print("─" * 60)
     print("📋 待确认清单（计划确认门）：")
@@ -636,6 +639,7 @@ def cmd_search(args, registry):
             topic=args.query,
             goal=getattr(args, 'goal', '') or '',
             depth=args.depth,
+            effort=args.effort,
             dimensions=(args.dimensions.split(',')
                         if getattr(args, 'dimensions', None) else None),
             time_range=getattr(args, 'time_range', '') or '',

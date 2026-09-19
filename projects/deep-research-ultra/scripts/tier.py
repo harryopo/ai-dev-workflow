@@ -37,6 +37,13 @@ ACADEMIC_DOMAINS = {
     'ieeexplore.ieee.org': 1, 'springer.com': 1, 'sciencedirect.com': 1,
     'wiley.com': 1, 'nature.com': 1, 'science.org': 1, 'cell.com': 1,
     'acm.org': 1,
+    # 同行评审正式出版物：缺这些条目会让 ACL/PMLR 论文落到默认 Tier 3，
+    # 而预印本 arxiv.org 是 Tier 1 —— 实测分级方向性颠倒。
+    'aclanthology.org': 1, 'aclweb.org': 1,
+    'proceedings.mlr.press': 1, 'jmlr.org': 1,
+    'direct.mit.edu': 1, 'plos.org': 1,
+    'biomedcentral.com': 1, 'annualreviews.org': 1,
+    'ijcai.org': 1, 'aaai.org': 1, 'openreview.net': 2,
 }
 
 # 权威媒体白名单（Tier 2；知名媒体为 Tier 2，旗舰学术刊物并入 ACADEMIC_DOMAINS）

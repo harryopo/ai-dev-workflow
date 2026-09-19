@@ -1,4 +1,4 @@
-# Deep Research Ultra — 超级深度调研工具 v6.5
+# Deep Research Ultra — 超级深度调研工具 v6.7
 
 > **Plan-Execute-Synthesize-Reflect 四阶段深度调研范式**
 > **Lead 内联编排 + 子 Agent 并行检索 + 深度调研专家团 + 证据账本与分级**
@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![Claude Code](https://img.shields.io/badge/Claude%20Code-Skill-orange.svg)](https://claude.ai/code)
-[![Version](https://img.shields.io/badge/version-6.5.0-brightgreen.svg)]()
+[![Version](https://img.shields.io/badge/version-6.7.0-brightgreen.svg)]()
 
 
 ---
@@ -23,11 +23,12 @@
 | 🧑‍⚖️ **深度调研专家团（v6.0）** | 多视角提问（域专家/怀疑者/实践者/记者/成本）+ 红蓝对抗 + 审稿人闭环 |
 | 📒 **证据账本（v6.0）** | claim→source 可溯源，多子 Agent 并发写，`ledger.py` 审计导出 |
 | 🏷️ **来源 Tier 分级（v6.0）** | Tier 1-4 域名判定，CRAAP 集成加权，报告附录 D 展示 |
-| ✅ **发布前校验门（v6.0）** | 引用一致性 / 覆盖率 / 必需章节 / 低质源占比 / 摘要长度 |
+| ✅ **发布前校验门（v6.7）** | **主指标＝引用-证据对齐**（被报告引用立论的 claim 必须已 verified/conflict）/ 独立来源强度 / 必需章节 / 低质源占比 / 摘要长度；全量覆盖率降为告警 |
 | 🎚️ **effort 分级 + breadth 旋钮（v6.0）** | quick/standard/deep/exhaustive + 并行子主题数 |
 | 🔬 **引擎功能自检 `--probe`（v6.5）** | 探针查询实测每个引擎今天出不出得来数据，区分「0 结果 / 401 缺配置 / 406 限流」，杜绝 `--list` 假绿 |
 | 📦 **文件化交付契约（v6.5）** | 报告一律落盘 `.research/<session>/report.md`，返回值只给 ≤25 行短摘要（长正文塞返回值会被截断） |
 | 🖥️ **Windows 控制台自适应（v6.5）** | CLI 强制 UTF-8 输出，GBK 代码页不再 UnicodeEncodeError |
+| 🧪 **两档 verified 判据（v6.6/6.7）** | 跨域三角验证（档 A）与「一手来源 + Lead 反查」（档 B）分开，归属型 claim 不再被卡在 pending；`verify-primary` 拒绝跨域伪反查；发布门 2b 对带反查记录的档 B 豁免"≥2 独立来源" |
 | 🎯 **相关性过滤（v6.5）** | 无关结果不再靠"权威/时效"加权混进报告；高相关结果不足时保留并显式告警 |
 | 🏗️ **四层数据源** | MCP 服务器 → 全局 Skill → Claude 内置 → 降级引擎 |
 | 🌲 **MECE 问题树** | 麦肯锡 MECE 原则拆解主题，互斥穷尽不遗漏 + 多视角注入 |
@@ -398,7 +399,7 @@ deep-research-ultra/
 ## 🧪 测试
 
 ```bash
-# 运行单元测试（176 个用例）
+# 运行单元测试（214 个用例）
 cd scripts && python -m pytest tests/ -v
 
 # 端到端测试（dry-run）
@@ -517,4 +518,4 @@ class NewEngine(SearchEngine):
 
 ---
 
-*v6.5 · 2026-09-18 · 四阶段范式 + Lead 内联编排 + 引擎功能自检 + 文件化交付契约；更新历史见 CHANGELOG.md*
+*v6.7 · 2026-09-19 · 四阶段范式 + Lead 内联编排 + 引擎功能自检 + 文件化交付契约 + 两档 verified 判据（跨域三角 / 一手反查）+ 发布门改按引用-证据对齐判定；更新历史见 CHANGELOG.md*

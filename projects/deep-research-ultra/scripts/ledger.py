@@ -17,6 +17,7 @@ ledger.py — 证据账本（Research Ledger）  [v6.0 新增]
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import uuid
@@ -36,6 +37,24 @@ except ImportError:
     effective_independent_count = lambda srcs, **kw: len(srcs)  # type: ignore
 
 VALID_STATUS = {'pending', 'searching', 'verified', 'conflict', 'supplementing', 'completed'}
+
+
+def _registered_domain(url: str) -> str:
+    """取注册域（近似）：github.com 与 api.github.com 同属 github.com。
+
+    档 B 判据依赖它——同一制品的不同检索通道（仓库页 / REST API）算一个域。
+    GitHub 的同一份内容有三个合法入口（blob 页 / REST API / raw 字节流），
+    它们的注册域并不相同（github.com vs githubusercontent.com），按纯注册域
+    判同会把「拿 raw 链接复核 blob 链接」这种真实反查误拒，故整个家族归一。
+    """
+    m = re.match(r'https?://([^/]+)', str(url or ''))
+    if not m:
+        return ''
+    host = m.group(1).lower().split(':')[0]
+    if host.endswith('githubusercontent.com') or host.endswith('github.com'):
+        return 'github.com'
+    parts = host.split('.')
+    return '.'.join(parts[-2:]) if len(parts) >= 2 else parts[0]
 
 
 def _now() -> str:
@@ -94,6 +113,18 @@ class ResearchLedger:
             self.entries_path.write_text('', encoding='utf-8')
         return self
 
+    def require(self) -> 'ResearchLedger':
+        """升/降级前置门：账本必须已存在。
+
+        init() 幂等建目录，路径写错时会让 set-status/verify-primary
+        静默建出空账本再返回"0 条"，调用方无从发现 --session 指错了层。
+        """
+        if not self.entries_path.exists():
+            raise FileNotFoundError(
+                f'账本不存在: {self.entries_path}'
+                f'（--session 应指向 ledger 目录；先执行 init 或用 research.py 的默认路径）')
+        return self
+
     # ------------------------------------------------------------------
     # 写入
     # ------------------------------------------------------------------
@@ -136,6 +167,92 @@ class ResearchLedger:
         }
         _atomic_append(self.entries_path, json.dumps(entry, ensure_ascii=False))
         return entry
+
+    # ------------------------------------------------------------------
+    # Lead 归并：原地改状态
+    # ------------------------------------------------------------------
+    def set_status(self, claim_ids: List[str], status: str,
+                   note: str = '', extra: Optional[Dict[str, Any]] = None) -> int:
+        """Lead 在归并阶段把达标 claim 升 verified（或降 pending）。
+
+        必须原地改写而非追加：status() 按条目计数、不做 id 去重，
+        追加同 id 新行会让该 claim 被数两次。
+        整文件重写 → 只能在全部子 Agent 退出后调用。
+        """
+        if status not in VALID_STATUS:
+            return 0
+        wanted = {c.strip() for c in claim_ids if c and c.strip()}
+        if not wanted:
+            return 0
+        entries = list(_iter_entries(self.entries_path))
+        changed = 0
+        for e in entries:
+            if e.get('type') == 'claim' and e.get('id') in wanted:
+                e['status'] = status
+                e['promoted_at'] = _now()
+                if note:
+                    e['note'] = note
+                for k, v in (extra or {}).items():
+                    e[k] = v
+                changed += 1
+        if changed:
+            tmp = self.entries_path.with_suffix('.jsonl.tmp')
+            with open(tmp, 'w', encoding='utf-8') as f:
+                for e in entries:
+                    f.write(json.dumps(e, ensure_ascii=False) + '\n')
+            os.replace(tmp, self.entries_path)
+        return changed
+
+    def verify_primary(self, claim_ids: List[str], check_url: str,
+                       check_title: str = '', method: str = '') -> int:
+        """档 B 验证：一手来源 + Lead 反查，用于归属型 claim。
+
+        归属型 claim（"某仓库 README 现状是 X"/"某论文原文说 Y"）的对象就是那
+        一个制品，要求第二个注册域来"交叉验证"它自身是判据错配——实测本次调研
+        有 ~110 条这样的 claim 全被卡在 pending。
+
+        为防止它变成"想升就升"的后门，这里硬性要求：
+        1. claim 必须已有至少一条来源；
+        2. 反查 URL 的注册域必须与既有来源之一相同（反查要打在同一个制品上）。
+        """
+        wanted = {c.strip() for c in claim_ids if c and c.strip()}
+        if not wanted or not check_url.strip():
+            return 0
+        entries = list(_iter_entries(self.entries_path))
+        claims = {e['id']: e for e in entries
+                  if e.get('type') == 'claim' and e.get('id')}
+        src_hosts: Dict[str, set] = {}
+        for e in entries:
+            if e.get('type') == 'source' and e.get('claim_id'):
+                src_hosts.setdefault(e['claim_id'], set()).add(
+                    _registered_domain(e.get('url', '')))
+        check_host = _registered_domain(check_url)
+        targets = []
+        for cid in wanted:
+            c = claims.get(cid)
+            if not c or c.get('type') != 'claim':
+                continue
+            hosts = src_hosts.get(cid, set())
+            if not hosts:
+                print(f"拒绝 verify-primary：claim {cid} 无任何来源，"
+                      f"归属型断言也必须指向一个制品", file=sys.stderr)
+                continue
+            if check_host not in hosts:
+                print(f"拒绝 verify-primary：claim {cid} 的反查域 "
+                      f"{check_host!r} 不在其来源域 {sorted(hosts)} 内 —— "
+                      f"反查必须打在同一个制品上", file=sys.stderr)
+                continue
+            targets.append(cid)
+        if not targets:
+            return 0
+        changed = self.set_status(targets, 'verified',
+                                  note=f'Lead 反查（{method or "unspecified"}）：'
+                                       f'{check_url}',
+                                  extra={'evidence_tier': 'B',
+                                         'verify_method': method})
+        for cid in targets:
+            self.add_source(cid, check_url, title=check_title, tier=1)
+        return changed
 
     # ------------------------------------------------------------------
     # 合并（子 Agent 产物）
@@ -379,6 +496,9 @@ def _main(argv: Optional[List[str]] = None) -> int:
   python ledger.py add-source --session <dir> --claim-id <id> --url <u>
                     [--title <t>] [--tier <1-4>] [--craap <score>]
   python ledger.py status --session <dir> [--topic <t>]
+  python ledger.py set-status --session <dir> --claim-id <id>[,<id>...] --status <s> [--note <n>]
+  python ledger.py verify-primary --session <dir> --claim-id <id>[,<id>...] \
+      --check-url <一手制品URL> [--check-title <t>] [--method repo_health]
   python ledger.py merge --session <dir> --dir <src_dir>
   python ledger.py export --session <dir> [--format json|md] [--out <path>]''')
         return 0
@@ -400,7 +520,7 @@ def _main(argv: Optional[List[str]] = None) -> int:
         entry = ledger.add_claim(
             claim=args[args.index('--text') + 1],
             topic=_opt('--topic', 'general'),
-            status=_opt('--status', 'verified'),
+            status=_opt('--status', 'pending'),
             perspective=_opt('--perspective', 'general'),
             confidence=float(_opt('--confidence', '0.5')),
             claim_id=_opt('--id', '') or None,
@@ -423,6 +543,38 @@ def _main(argv: Optional[List[str]] = None) -> int:
         )
         print(json.dumps(entry, ensure_ascii=False))
         return 0
+
+    if cmd == 'verify-primary':
+        try:
+            ledger.require()
+        except FileNotFoundError as e:
+            print(str(e), file=sys.stderr)
+            return 2
+        ids = [i.strip() for i in _opt('--claim-id').split(',') if i.strip()]
+        check_url = _opt('--check-url')
+        if not ids or not check_url:
+            print('缺少 --claim-id / --check-url', file=sys.stderr)
+            return 2
+        changed = ledger.verify_primary(
+            ids, check_url, check_title=_opt('--check-title'),
+            method=_opt('--method'))
+        print(f'档 B 升级 {changed} 条 claim（反查：{check_url}）')
+        return 0 if changed else 1
+
+    if cmd == 'set-status':
+        try:
+            ledger.require()
+        except FileNotFoundError as e:
+            print(str(e), file=sys.stderr)
+            return 2
+        ids = [i.strip() for i in _opt('--claim-id').split(',') if i.strip()]
+        status = _opt('--status')
+        if not ids or not status:
+            print('缺少 --claim-id / --status', file=sys.stderr)
+            return 2
+        changed = ledger.set_status(ids, status, note=_opt('--note'))
+        print(f'已更新 {changed} 条 claim → {status}')
+        return 0 if changed else 1
 
     if cmd == 'status':
         topic = _opt('--topic', '') or None

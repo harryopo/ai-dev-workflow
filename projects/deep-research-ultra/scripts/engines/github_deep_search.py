@@ -21,7 +21,9 @@ API 文档：
 """
 
 import json
+import sys
 import os
+import re
 import time
 import urllib.parse
 from typing import Dict, List, Optional, Any
@@ -33,6 +35,36 @@ from .fallback import _http_get, _json_loads, _decode_html
 # ============================================================
 # GitHub 深度搜索引擎
 # ============================================================
+
+# GitHub repository search 把多词查询按 AND 同时匹配 name/description/readme，
+# 因此一条长自然语言查询几乎必然 0 命中。仓库搜索的有效查询长度 <= 3 个词。
+MAX_QUERY_TOKENS = 3
+_QUERY_NOISE = {
+    'the', 'a', 'an', 'for', 'with', 'and', 'or', 'of', 'to', 'in', 'on',
+    'how', 'what', 'why', 'that', 'this', 'it', 'is', 'are', 'from', 'by',
+    'all', 'can', 'do', 'does', 'you', 'your', 'i', 'we', 'best', 'top',
+    'please', 'some', 'any', 'used', 'using', 'use',
+}
+
+
+def normalize_repo_query(query: str, max_tokens: int = MAX_QUERY_TOKENS) -> str:
+    """把过长的自然语言查询压成 GitHub 能用的高信号短查询。
+
+    词数已 <= max_tokens 时原样返回（不干扰调用方精心构造的查询）；
+    超长时按词长降序挑词、再按原顺序拼回——词长是本文件可用且无依赖的
+    信息量代理（'correction' 比 'with' 更可能是仓库主题词）。
+    """
+    raw = ' '.join(str(query).split())
+    if not raw:
+        return ''
+    tokens = [t for t in re.split(r"[\s,;|]+", raw) if t]
+    kept = [t for t in tokens
+            if len(t) > 1 and t.lower() not in _QUERY_NOISE and ':' not in t]
+    if len(kept) <= max_tokens:
+        return raw.lower()
+    order = sorted(range(len(kept)), key=lambda i: (-len(kept[i]), i))[:max_tokens]
+    return ' '.join(kept[i].lower() for i in sorted(order))
+
 
 class GitHubDeepSearchEngine(SearchEngine):
     """
@@ -149,6 +181,15 @@ class GitHubDeepSearchEngine(SearchEngine):
         exclude_forks = kwargs.get('exclude_forks', True)
         deep = kwargs.get('deep', False)
         seed_repos = kwargs.get('seed_repos', [])
+
+        # 首轮就归一，不做"先按原查询打满 4 个桶、失败再重试"——
+        # 长 AND 查询必然 0 命中，那样只是把搜索配额白烧一倍。
+        normalized = normalize_repo_query(query)
+        if normalized != query.strip().lower():
+            print(f"\u26a0\ufe0f github-deep-search 查询已归一："
+                  f"{query[:60]!r} \u2192 {normalized!r}"
+                  f"（GitHub 仓库搜索按 AND 匹配，长查询恒 0 命中）", file=sys.stderr)
+            query = normalized
 
         # 分桶搜索：每桶分配 1/4 的结果配额
         per_bucket = max(5, max_results // len(self.STAR_BUCKETS))

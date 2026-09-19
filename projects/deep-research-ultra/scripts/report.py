@@ -61,6 +61,24 @@ except ImportError:
     RecommendationScore = None
 
 
+def as_reflection_history(reflections: Any) -> Optional[Any]:
+    """把 List[Reflection] 归一为 ReflectionHistory（幂等）。
+
+    research.py 的反思循环累积的是 list，而本模块按 ReflectionHistory 读取
+    .final_coverage / .total_rounds / .to_dict()；这个边界从未被定义，
+    于是 --format html 在 --reflect-rounds ≥ 1 时必然 AttributeError 崩溃。
+    """
+    if reflections is None:
+        return None
+    from reflect import ReflectionHistory
+    if isinstance(reflections, ReflectionHistory):
+        return reflections
+    hist = ReflectionHistory()
+    for r in reflections:
+        hist.add(r)
+    return hist
+
+
 # ============================================================
 # Mermaid 图表生成
 # ============================================================
@@ -1287,11 +1305,9 @@ class ReportGenerator:
     ) -> str:
         """调研质量自评"""
         # 覆盖率
-        coverage = 0
-        rounds = 0
-        if reflections:
-            coverage = reflections.final_coverage
-            rounds = reflections.total_rounds
+        hist = as_reflection_history(reflections)
+        coverage = hist.final_coverage if hist else 0
+        rounds = hist.total_rounds if hist else 0
 
         # 验证率
         verification_rate = verification.verification_rate if verification else 0
@@ -1472,8 +1488,9 @@ class ReportGenerator:
                 'verification_rate': verification.verification_rate,
             }
 
-        if reflections:
-            report['reflections'] = reflections.to_dict()
+        hist = as_reflection_history(reflections)
+        if hist:
+            report['reflections'] = hist.to_dict()
 
         return json.dumps(report, ensure_ascii=False, indent=2)
 

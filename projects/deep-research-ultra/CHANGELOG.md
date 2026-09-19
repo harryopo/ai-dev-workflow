@@ -5,6 +5,95 @@
 
 ---
 
+## v6.7.0（2026-09-19）— 发布门主指标换口径（dogfooding v6.6 后暴露的 3 处）
+
+### 背景
+v6.6 修完 6 个缺陷后，用真实产物（`.research/linux-cmd-correction/report.md`，182 claims / 373 sources）
+继续走门，门自己又暴露 3 处问题。全部按"先红测试、再改生产码"处理，新增 6 个回归测试（208 → 214 全绿）。
+
+### G1 门的主指标错配（本次核心变更）
+
+| 项 | 变更前 | 变更后 |
+|----|--------|--------|
+| 阻断条件 | `verified / 账本全部 claim ≥ 0.6` | **校验 2c：被报告引用其来源来立论的 claim，必须已 `verified` 或已 `conflict`** |
+| 全量覆盖率 | 阻断（issue） | 降级为告警（warning），仍打数字 |
+| 实测结果 | `passed=false`（42% < 60%），而报告本身可用 | `passed=true`，69 条被引 claim 0 条未验证 |
+
+**为什么换**：账本分母里混着子 Agent 的过程记录（未写进报告的观察、归属型单源陈述），用它阻断交付会做出
+"报告可用但门不过"的自相矛盾判定；真正该拦的是**报告据以下结论、却没完成证据评估**的 claim。
+
+**新校验怎么算**：`cited_claim_ids()` 从正文（跳过 `## 来源` 整节与登记表行）提取 `[N]`，
+按 `export_json()` 的 `primary_index` 反查回 claim；引用行含 `⚠` 的归入"已明示降级"集合，
+只告警不阻断。新增 stats：`cited_claims` / `unverified_cited_claims` / `cited_pending_marked`。
+
+**一处设计自我更正**：2c 初版把 `conflict` 也判违规，等于**禁止报告矛盾**——方向反了。
+已改为 `graded = ('verified','conflict')`（两者都算"已完成证据评估"），并加回归测试钉住。
+该修正让真实报告的违规数从 6 降到 1（那 1 条是真缺陷，见 G3）。
+
+### G2 `ledger.py` 写命令静默建空账本（D8）
+`--session` 少写一层（传报告目录而非 `.../ledger`）时，`set-status`/`verify-primary` 分支的
+`init()` 会顺手建出空 `ledger.jsonl` + `claims/` + `sources/`，然后返回"升级 0 条"——
+调用方完全看不到是路径错了。新增 `ResearchLedger.require()`：账本不存在即 `FileNotFoundError`
+→ CLI stderr 打印并 `exit 2`；不创建任何文件。（这个坑是我本次实跑亲手踩到的。）
+
+### G3 校验 2b 与「档 B」判据自相矛盾（D9）
+v6.6 在 ledger 里开了档 B（`verify_primary` 打 `evidence_tier=B` + `verify_method`），
+但 v6.3 的校验 2b 不认识它：刚被逐字反查升级的归属型 claim，立刻又被"≥2 独立来源"拦成 issue。
+现 2b 豁免 `evidence_tier == 'B'` **且** `verify_method` 非空的 claim；缺反查记录不豁免，
+防止档 B 变成"想升就升"的后门（两条路径各一个测试）。
+
+### 顺带完成
+用逐字反查（curl_cffi 取页面比对原文）真实解决了 G1 检出的那条违规 claim：
+GitHub Copilot CLI responsible-use 文档。反查同时纠正了 claim 本身的一处**错归**——
+"生成内容可能看似正确"那句在同页属于 Copilot **code review** 条目，不是 CLI 命令生成的告诫；
+报告 §8.4 已按逐字原文重写并标明语境差异。
+
+### 迁移说明
+- 无需重建账本。旧账本没有 `evidence_tier` 字段 → 2b 仍按档 A 的 ≥2 来源要求，行为不变。
+- 想让归属型 claim 过门：走 `ledger.py verify-primary`（真实反查），不要退回 `set-status` 硬标。
+- `min_coverage` 参数保留，但只影响告警阈值，不再影响 `passed`。
+
+### 遗留
+- `--env-check` 仍不提示 OpenAlex 需配 `mailto` 才进 polite pool（8 路并发会 429）。
+- arXiv `export.arxiv.org` 在本环境 406，论文存在性反查只有 `arxiv.org/abs` 页面通道可用。
+- `cited_claim_ids()` 以"行"为粒度判 ⚠：同一行内多条引用共享该行的标注状态。
+
+---
+
+## v6.6.0（2026-09-19）— 调研实跑暴露的六项缺陷修复（含一处自我更正）
+
+### 背景
+第一次全程实跑「Linux 命令纠错技术与算法」深度调研（8 子 Agent / 182 claims / 205 来源）
+后，逐项核对工具在真实链路里的行为，发现 6 个缺陷。全部按"先根因、再写失败测试、再修"的顺序处理，
+新增 23 个回归测试（179 → 202 全绿）。
+
+### P0 影响结论正确性
+
+| # | 缺陷 | 根因（取证所得） | 修复 |
+|---|------|------------------|------|
+| D1 | `--effort deep` 不生效，8 个维度静默截为 5 个子问题 | `research.py` 两条 `generate_plan` 路径只传 `args.depth`，`args.effort` 从未参与；`plan.py` 再按 `DEPTH_PRESETS[depth].max_sub_questions` 切片。连带：effort 词表的 `exhaustive` 在 `DEPTH_PRESETS` 里根本没有键，`.get(depth, standard)` 会把极深档悄悄降为标准档 | 新增 `resolve_preset_key(effort, depth)`（effort 优先，`exhaustive`→`extreme`），未知档位抛 `ValueError` 而非回落 standard；两条路径都接上；截断改为 stderr 告警 + `plan.dropped_dimensions` 留痕 |
+| D2 | `--format html` 崩溃 `'list' object has no attribute 'final_coverage'` | `research.py` 反思循环累积 `reflections=[]`（`List[Reflection]`），`report.py` 契约是 `ReflectionHistory`（`.final_coverage`/`.total_rounds`/`.to_dict()`）；这个边界从未定义，非空 list 过了真值检查后属性访问必崩 | 新增 `report.as_reflection_history()` 在边界归一（幂等），`_html_quality` 与 JSON 导出两处消费 |
+| D6 | 归属型 claim（"某仓库 README 现状是 X"）无合规升级通道，实测 ~110 条全卡 pending，发布门覆盖率虚低 | 账本只有「≥2 独立注册域」一条 verified 判据，而这类断言的对象就是单个制品，要求第二个域名来验证它自身是**判据错配** | `ledger.py` 新增 `verify-primary`（档 B：一手来源 + Lead 反查）。防后门设计：反查 URL 的注册域必须与 claim 既有来源一致、claim 必须已有来源，`verify_method` 与反查 URL 写入账本留痕。SKILL.md 写清 A/B 两档适用边界 |
+
+### P1 影响数据获取
+
+| # | 缺陷 | 根因（取证所得） | 修复 |
+|---|------|------------------|------|
+| D3 | ~~OpenAlex 429 无退避~~ → **原描述被证伪**：`fallback.py:106-110` 确有指数退避 | 真实根因是**重试放大**：curl_cffi 拿到 HTTP 状态码后不 return，控制流贯穿到 urllib 再跑一轮 `max_retries`。实测一次 429 请求被 urllib 补打 3 次（共 6 次打到已限流端点），且末次尝试还白睡一觉（睡眠序列 `2,4,8,1,2`） | 服务端已回状态码即终止（`server_responded`），仅传输层异常才降级 urllib；末次不再 sleep。**保留** TLS 被拦时走 urllib 的降级路径（有测试锁住，防止一起砍掉） |
+| D4 | `aclanthology.org`（ACL 同行评审论文集）判 Tier 3，而 `arxiv.org` 预印本判 Tier 1，分级方向性颠倒 | `ACADEMIC_DOMAINS` 白名单缺项，未命中即落默认 3 | 补 aclanthology/aclweb/proceedings.mlr.press/jmlr/direct.mit.edu/plos/biomedcentral/annualreviews/ijcai/aaai → 1，openreview → 2；加 `PRESET_KEYS` 与 `DEPTH_PRESETS` 防漂移测试 |
+| D5 | `github-deep-search` 长查询恒 0 命中 | `q_parts=[query, star_range]` 把整条自然语言查询交给 GitHub `search/repositories`，多词按 AND 匹配 name/description/readme | 新增 `normalize_repo_query()`（>3 词时按词长取高信号词）。**不做"先失败再重试"**——长 AND 查询必然 0 命中，先打满 4 桶再回落等于把搜索配额白烧一倍（与 D3 同一课）；首轮即归一并 stderr 告警。实测原 0 命中的查询恢复到 5 条 |
+
+### 迁移指南
+- `--effort` 现在会改变 plan 产物：同样的 `--dimensions` 数量，`--effort deep/exhaustive` 不再被截到 5。依赖旧行为的脚本需显式传 `--depth standard`。
+- 拼错的 `--effort/--depth` 值在编程调用 `generate_plan` 时会抛 `ValueError`（CLI 侧 argparse 早已限制 choices）。
+- Lead 归并阶段的 verified 升级命令：跨域三角验证用 `set-status`，一手制品反查用 `verify-primary`（不可互换）。
+
+### 本次调研遗留（未修，已在报告内披露）
+- 发布门覆盖率阈值 0.6 对「8 路并行子 Agent + 大量归属型观察」的调研形态仍偏严；档 B 缓解了一半（生态主题 0 → 17 verified），未重设阈值。
+- `export.arxiv.org` 在本环境 HTTP 406，论文存在性反查只能走 `arxiv.org/abs` 页面通道。
+
+---
+
 ## v6.5.0（2026-09-18）— 执行模型纠偏 + 引擎真实性自检（实跑失败驱动修复）
 
 ### 背景（真实故障现场）

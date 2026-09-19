@@ -217,14 +217,17 @@ class TestValidateReport:
         assert any('越界' in i for i in r.issues)
 
     def test_low_coverage_warns(self, tmp_path):
+        """v6.7 口径变更：全量覆盖率不再阻断交付，只告警。
+        真正阻断的是「报告引用了但没验证」的 claim，见 test_v66_fixes
+        ::TestGateCitationEvidenceAlignment。"""
         from validate_report import validate_report
-        from ledger import ResearchLedger
-        L = ResearchLedger(str(tmp_path / 'ledger')).init()
-        c = L.add_claim('未验证', '主题X', 'pending', 'general', 0.5)  # 无 verified
-        L.add_source(c['id'], 'https://arxiv.org/1')
+        L = self._ledger_with_sources(tmp_path)          # 被引用的两条都 verified
+        for i in range(5):                                # 过程记录压低全量覆盖率
+            L.add_claim(f'过程记录{i}，报告未引用', '主题A', 'pending', 'general', 0.5)
         r = validate_report(self._good_report(), ledger=L, min_coverage=0.6)
-        assert r.passed is False
-        assert any('覆盖率' in i for i in r.issues)
+        assert r.stats['coverage'] < 0.6, r.stats['coverage']
+        assert r.passed is True, r.issues
+        assert any('覆盖率' in w for w in r.warnings), r.warnings
 
     def test_low_quality_warning(self, tmp_path):
         from validate_report import validate_report
@@ -613,6 +616,47 @@ class TestDocConsistency:
         assert m and skill_version() == m.group(1)
 
 
+class TestLedgerSetStatus:
+    """Lead 归并阶段的状态升级通道。
+
+    SKILL 要求"达标 claim 由 Lead 升 verified"，但没有命令可执行；
+    又因 status() 按条目计数（不做 id 去重），绝不能用"追加同 id 新行"实现，
+    否则该 claim 会被数两次。故 set-status 必须原地改写。
+    """
+
+    def _mk(self, tmp_path):
+        from ledger import ResearchLedger
+        led = ResearchLedger(str(tmp_path / 's')).init()
+        c1 = led.add_claim('换位零代价最贴合命令 typo', topic='算法', status='pending')
+        c2 = led.add_claim('flag 纠错没有现成地基', topic='参数层', status='pending')
+        led.add_source(c1['id'], 'https://git.example/help.c')
+        led.add_source(c1['id'], 'https://zsh.example/lex.c')
+        led.add_source(c2['id'], 'https://gnu.example/getopt.c')
+        return led, c1['id'], c2['id']
+
+    def test_promote_rewrites_in_place_without_double_counting(self, tmp_path):
+        from ledger import ResearchLedger
+        led, c1, _c2 = self._mk(tmp_path)
+        changed = led.set_status([c1], 'verified', note='交叉验证 2 独立来源')
+        assert changed == 1
+        algo = led.status()['算法']          # status() 无参 → 按主题嵌套
+        assert algo['claims'] == 1, '同一条 claim 不得被计两次'
+        assert algo['verified'] == 1
+
+    def test_source_links_survive_promotion(self, tmp_path):
+        from ledger import ResearchLedger
+        led, c1, _ = self._mk(tmp_path)
+        led.set_status([c1], 'verified')
+        assert len(led.sources_for_claim(c1)) == 2
+
+    def test_batch_and_illegal_status(self, tmp_path):
+        from ledger import ResearchLedger
+        led, c1, c2 = self._mk(tmp_path)
+        assert led.set_status([c1, c2], 'supplementing') == 2
+        assert led.set_status([c1], 'not-a-status') == 0
+        assert led.status()['参数层']['supplementing'] == 1
+
+
 # ============================================================
 # repo_health.py（v6.2 开源仓库健康/合规/风险扫描）
 # ============================================================
@@ -863,3 +907,73 @@ class TestVerifyV64:
         cons = v._detect_numeric_contradictions(claims)
         assert len(cons) == 1
         assert '数值矛盾' in cons[0].possible_reason
+
+# ============================================================
+# v6.6：--effort 与 DEPTH_PRESETS 的映射（实测缺陷 D1）
+# ============================================================
+
+class TestEffortPresetMapping:
+    """SKILL 约定「--effort 与 --depth 同时给出时以 --effort 为准」，
+    且 effort 词表用 exhaustive、depth 词表用 extreme。
+
+    实测 --effort deep --dimensions <8 个> 只得到 5 个子问题：
+    research.py 两条 generate_plan 路径只传 depth，effort 从未参与；
+    plan.py 再按 DEPTH_PRESETS[depth].max_sub_questions 静默切片。
+    """
+
+    DIMS8 = ['算法基础', 'shell 实现', '词典来源', '参数层', '工程约束',
+             '评测指标', '开源生态', 'LLM 路线']
+
+    def test_effort_deep_keeps_all_eight_dimensions(self):
+        from plan import PlanGenerator
+        plan = PlanGenerator().generate_plan(
+            topic='Linux 命令纠错', depth='standard', effort='deep',
+            dimensions=list(self.DIMS8))
+        assert len(plan.dimensions) == 8, '--effort deep 允许 7-10 个子问题，不得截为 5'
+        assert len(plan.issue_tree) == 8, 'issue_tree 数量须与 dimensions 一致'
+
+    def test_exhaustive_effort_maps_to_extreme_preset(self):
+        """effort 的 exhaustive 与 depth 的 extreme 是同一档；
+        不映射则 DEPTH_PRESETS 无 'exhaustive' 键、静默回落 standard。"""
+        from plan import resolve_preset_key
+        assert resolve_preset_key(effort='exhaustive') == 'extreme'
+        from plan import PlanGenerator
+        plan = PlanGenerator().generate_plan(
+            topic='x', effort='exhaustive', dimensions=[f'd{i}' for i in range(12)])
+        assert len(plan.dimensions) == 12
+
+    def test_effort_takes_precedence_over_depth(self):
+        from plan import resolve_preset_key
+        assert resolve_preset_key(effort='deep', depth='standard') == 'deep'
+        assert resolve_preset_key(effort=None, depth='extreme') == 'extreme'
+        assert resolve_preset_key(effort=None, depth=None) == 'standard'
+
+    def test_unknown_preset_key_raises_instead_of_silently_standard(self):
+        """静默回落 standard 是本类 bug 的架构性成因（typo 不报错）。"""
+        from plan import resolve_preset_key
+        import pytest
+        with pytest.raises(ValueError):
+            resolve_preset_key(effort='ultra')
+
+    def test_truncation_is_reported_not_silent(self):
+        from plan import PlanGenerator
+        plan = PlanGenerator().generate_plan(
+            topic='x', effort='deep', dimensions=[f'd{i}' for i in range(11)])
+        assert len(plan.dimensions) == 8, 'deep 上限 8'
+        assert plan.dropped_dimensions == ['d8', 'd9', 'd10'], \
+            '被丢弃的维度必须留痕，不能静默消失'
+
+    def test_plan_only_cli_honors_effort_deep(self):
+        """端到端：这是用户实际看到的症状（8 维只出 5 个子问题）。"""
+        import subprocess
+        cmd = [sys.executable, str(Path(__file__).parent.parent / 'research.py'),
+               'Linux 命令纠错', '--plan-only', '--effort', 'deep',
+               '--dimensions', ','.join(self.DIMS8)]
+        r = subprocess.run(cmd, capture_output=True, text=True,
+                           encoding='utf-8', errors='replace')
+        assert r.returncode == 0, r.stderr
+        import re
+        items = re.findall(r'^\s+(\d+)\.\s', r.stdout, re.M)
+        assert len(items) >= 8, \
+            f'--effort deep 下 8 个维度必须全部展开，实际 {len(items)}:\n{r.stdout[:2000]}'
+        assert 'LLM 路线' in r.stdout, '最后一个维度不得被截掉'

@@ -30,6 +30,7 @@ Deep Research Ultra v4.0 — Phase 1: Plan（MECE 问题树）
 """
 
 import json
+import sys
 import uuid
 from dataclasses import dataclass, field, asdict
 from datetime import datetime
@@ -68,6 +69,38 @@ STATUS_EMOJI = {
 
 # 模块级默认多视角（v6.0：深度调研专家团；--perspectives 0 可关闭注入）
 DEFAULT_PERSPECTIVES = ['domain_expert', 'skeptic', 'practitioner']
+
+
+# --effort 与 --depth 是同一档位的两套词表：effort 用 exhaustive，depth 用
+# extreme。必须先归一到 PlanGenerator.DEPTH_PRESETS 的键，否则
+# DEPTH_PRESETS.get('exhaustive', …['standard']) 会把极深档静默降为标准档。
+EFFORT_TO_DEPTH = {
+    'quick': 'quick',
+    'standard': 'standard',
+    'deep': 'deep',
+    'exhaustive': 'extreme',
+}
+PRESET_KEYS = ('quick', 'standard', 'deep', 'extreme')
+# 反查表：报告/计划打印时把预设键还原为 effort 词表，保持对外口径一致
+DEPTH_TO_EFFORT = {v: k for k, v in EFFORT_TO_DEPTH.items()}
+
+
+def resolve_preset_key(effort: Optional[str] = None,
+                       depth: Optional[str] = None) -> str:
+    """归一 effort/depth 为 DEPTH_PRESETS 键。effort 优先（SKILL 约定）。
+
+    未知档位抛 ValueError 而非回落 standard：回落是本类缺陷的架构性成因，
+    拼错的档位应当失败，不该悄悄换一套预设。
+    """
+    raw = effort or depth
+    if raw is None:
+        return 'standard'
+    key = EFFORT_TO_DEPTH.get(raw, raw)
+    if key not in PRESET_KEYS:
+        raise ValueError(
+            f'未知档位 {raw!r}；--effort 可用 '
+            f'{"|".join(EFFORT_TO_DEPTH)}，--depth 可用 {"|".join(PRESET_KEYS)}')
+    return key
 
 
 @dataclass
@@ -155,6 +188,8 @@ class ResearchPlan:
     estimated_sources: int = 0                          # 预估数据源数
     # v6.0 新增：待确认/未答问题清单（计划确认门 + 停止条件的输入）
     unanswered_questions: List[str] = field(default_factory=list)
+    # v6.6：因超出档位上限而被丢弃的维度（截断必须留痕，不得静默）
+    dropped_dimensions: List[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.created_at:
@@ -175,6 +210,7 @@ class ResearchPlan:
             'estimated_duration': self.estimated_duration,
             'estimated_sources': self.estimated_sources,
             'unanswered_questions': self.unanswered_questions,
+            'dropped_dimensions': self.dropped_dimensions,
         }
 
     def save(self, path: str) -> None:
@@ -208,6 +244,7 @@ class ResearchPlan:
             estimated_duration=data.get('estimated_duration', ''),
             estimated_sources=data.get('estimated_sources', 0),
             unanswered_questions=data.get('unanswered_questions', []),
+            dropped_dimensions=data.get('dropped_dimensions', []),
         )
 
     def get_all_questions(self) -> List[SubQuestion]:
@@ -680,6 +717,7 @@ class PlanGenerator:
         goal: str = '',
         depth: str = 'standard',
         dimensions: Optional[List[str]] = None,
+        effort: Optional[str] = None,
         time_range: str = '',
         language: str = 'auto',
         region: str = '',
@@ -711,7 +749,10 @@ class PlanGenerator:
         Returns:
             ResearchPlan 对象
         """
-        preset = self.DEPTH_PRESETS.get(depth, self.DEPTH_PRESETS['standard'])
+        # v6.6：effort 与 depth 归一后再取预设。此前两条调用路径只传 depth，
+        # --effort deep 被忽略、8 个维度静默截为 5。
+        preset_key = resolve_preset_key(effort, depth)
+        preset = self.DEPTH_PRESETS[preset_key]
 
         # v6.0: 多视角注入（深度调研专家团）。None=默认 3 视角；[]=关闭
         if perspectives is None:
@@ -723,9 +764,14 @@ class PlanGenerator:
             dimensions = (clarification['suggested_dimensions']
                           or self.GENERIC_DIMENSIONS)
 
-        # 按深度模式截取维度数量（保持 dimensions 与 issue_tree 数量一致）
+        # 按档位上限截取维度数量（保持 dimensions 与 issue_tree 数量一致）
         max_questions = preset['max_sub_questions']
+        dropped_dimensions = dimensions[max_questions:]
         dimensions = dimensions[:max_questions]
+        if dropped_dimensions:
+            print(f"⚠️ 档位 {preset_key} 上限 {max_questions} 个子问题，"
+                  f"已丢弃 {len(dropped_dimensions)} 个维度：{'、'.join(dropped_dimensions)}"
+                  f"（提高 --effort/--depth 或减少 --dimensions）", file=sys.stderr)
 
         # 构建问题树
         issue_tree = []
@@ -760,8 +806,9 @@ class PlanGenerator:
         plan = ResearchPlan(
             topic=topic,
             goal=goal,
-            depth=depth,
+            depth=preset_key,
             dimensions=dimensions,
+            dropped_dimensions=dropped_dimensions,
             time_range=time_range,
             language=language,
             region=region,

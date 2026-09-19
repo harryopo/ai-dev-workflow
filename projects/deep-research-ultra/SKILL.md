@@ -1,6 +1,6 @@
 ---
 name: deep-research-ultra
-version: 6.5.0
+version: 6.7.0
 description: |
   超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，由主 Agent 担任 Lead 编排子 Agent 并行检索（Orchestrator-Worker），配合深度调研专家团（多视角对抗/审稿人闭环）、证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验门；智能路由（三级级联）匹配 32 个数据源（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬），引擎真实可用性由 --probe 自检把关。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
@@ -218,6 +218,7 @@ pending → searching → verified | conflict | supplementing → completed
 > 决策规则：任务重要性高 / 结论将有决策用途 → 至少 `deep`；时间紧 / 快速浏览 → `quick`。
 > `--breadth N` 显式覆盖并行子 Agent 数；`--effort` 与 `--depth` 同时给出时以 `--effort` 为准。
 > **子问题数 = `--dimensions` 的个数**：想要 7-10 个子问题就要给 7-10 个维度，否则 breadth 空转。
+> **v6.6 起 `--effort` 真正生效**：此前 effort 只影响打印，plan 预设仍按 `--depth`（默认 standard，上限 5）取值，8 个维度会被静默截为 5。现在 effort 优先映射预设（exhaustive↔extreme），超出上限的维度会在 stderr 告警并记入 `plan.dropped_dimensions`。
 
 ### Phase 1.5: 计划确认门
 
@@ -302,7 +303,16 @@ Lead（主 Agent）
 约束: 你的全部产物写入 {ledger_dir}/{slug}.json 后退出；不写长篇报告。
 ```
 
-> **status 语义（真实性核心）**：子 Agent 一律写 `pending`——**verified 只能由 Lead 在归并阶段经交叉验证（≥2 独立来源）显式赋予**，禁止未验证即标 verified。
+> **status 语义（真实性核心）**：子 Agent 一律写 `pending`——**verified 只能由 Lead 在归并阶段显式赋予**，禁止未验证即标 verified。Lead 有两条合规升级通道，必须按 claim 的证据类型选用：
+>
+> | 档 | 适用 claim | 判据 | 命令 |
+> |----|-----------|------|------|
+> | **A · 跨域三角验证** | 「世界事实」类（某机制的行为、某统计数字） | ≥2 个不同注册域来源 | `ledger.py set-status --claim-id <ids> --status verified --note "交叉验证 N 独立来源"` |
+> | **B · 一手来源 + 反查** | **归属型**（"某仓库 README 现状是 X"/"某论文原文说 Y"）——对象就是单个制品，要求第二个域名来验证它自身是判据错配 | 反查 URL 与既有来源同注册域，且反查动作真实发生 | `ledger.py verify-primary --claim-id <ids> --check-url <URL> --check-title <t> --method repo_health` |
+>
+> 档 B 不是后门：命令会**拒绝**反查域与 claim 既有来源域不一致的情况（拿一篇无关博客"验证"某仓库是升不上去的），并把 `verify_method` 与反查 URL 写进账本留痕。实测一次调研有 ~110 条归属型 claim 因只有档 A 一条路而全卡在 pending，导致发布门覆盖率虚低。**反查必须真实发生**（读页面/源码/API 比对内容），不允许只把 URL 再填一遍。
+>
+> `--session` 传的是 **`{ledger_dir}` 本身**（里面有 `ledger.jsonl`），不是它的父目录：`set-status`/`verify-primary` 现在会先 `require()`，账本不存在直接报错退出，而不是静默建一个空账本再返回"升级 0 条"（v6.7）。
 
 - **并行派发**：Lead 对全部叶子子问题**一次性并行** `Agent` 调用（每子 Agent 独立上下文）；breadth = `--breadth` 值。**一次 turn 发完**，不要一个子问题一个 turn 串行派
 - **Lead 不吞原始结果**：子 Agent 的返回值只该是"写了哪几个分片文件 + 几条 claim/几个源"，
@@ -433,8 +443,9 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 |--------|----------|
 | 引用一致性：正文 [N] 都在账本有对应来源 | 回到 Phase 3.5 补引用 |
 | **引用反查（v6.3）**：编号 N 的来源 URL/标题须出现在报告中（数字在范围内≠可追溯） | 补附录来源映射 |
-| 覆盖率：verified claims / total ≥ 0.6 | 回到 Phase 2.5 补子主题 |
-| **独立来源强度（v6.3）**：每条 verified claim 独立来源 ≥2 | 补交叉验证或降级 pending |
+| **引用-证据对齐（v6.7，主指标）**：报告引用其来源来立论的 claim，必须已 verified 或已 conflict（矛盾是结论，不是缺陷） | 补 `set-status`/`verify-primary`，或在正文该引用处标 `⚠️` 明示待补证据（标了只告警不阻断） |
+| 全量覆盖率 verified/total ≥ 0.6（**v6.7 降级为告警**：分母含未写进报告的过程记录，用它阻断会与"报告可用"矛盾） | 参考告警补验证，不阻断交付 |
+| **独立来源强度（v6.3）**：每条 verified claim 独立来源 ≥2；**v6.7 起档 B（`evidence_tier=B` 且有 `verify_method`）豁免**——归属型断言不该被要求第二个域 | 补交叉验证或降级 pending |
 | **六维要素（v6.3）**：报告含仓库链接时，风险标签/许可证/维护/适配/落地/量化齐备 | 按 7.0b 六维质量门补写 |
 | 必需章节：执行摘要/方法/结论/来源 | 补写章节 |
 | 低质源占比：Tier4 < 30%（告警） | 建议补权威源后复核 |

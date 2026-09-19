@@ -3,7 +3,7 @@ validate_report.py — 调研报告质量校验门（Quality Gate）  [v6.0 新�
 
 发布前对"最终报告 md + 证据账本"执行确定性校验，作为闸门：
   校验 1 引用一致性：报告中每个 [N] 引用编号在账本中有对应来源
-  校验 2 覆盖充分性：每 topic 至少 1 条 verified claim；全局覆盖率 ≥ 阈值
+  校验 2 覆盖充分性：每 topic 至少 1 条 verified claim；全量覆盖率偏低仅告警（v6.7 降级）
   校验 3 必需章节：报告包含「执行摘要 / 方法 / 结论 / 来源」四部分
   校验 4 低质源占比：Tier 4 来源占比 < 30%（否则告警）
   校验 5 摘要精简：执行摘要篇幅 ≤ 上限（防空洞）
@@ -60,6 +60,37 @@ def extract_citations(report_md: str) -> List[int]:
     只统计正文引用。
     """
     return [int(x) for x in re.findall(r'\[(\d{1,3})\](?!\()(?!:)', report_md)]
+
+
+_HEADING = re.compile(r'^(#{1,6})\s*(.+?)\s*$')
+_REGISTRY_ROW = re.compile(r'^\s*\|?\s*\[\d{1,3}\]\s*\|')
+_CITATION = re.compile(r'\[(\d{1,3})\](?!\()(?!:)')
+
+
+def cited_claim_ids(report_md: str, sources: List[Dict[str, Any]]
+                    ) -> tuple:
+    """把正文引用映射回 claim，返回 (未标注集合, 带 ⚠️ 标注集合)。
+
+    来源登记表不算立论：附录里的 `[N] https://...` 行是在列证据，
+    把它当引用会让"列全了来源"反而触发拦截。同理，「## 来源」整节跳过。
+    """
+    idx_to_claim = {s.get('primary_index'): s.get('claim_id') for s in sources}
+    unmarked, marked = set(), set()
+    in_sources = False
+    for line in report_md.split('\n'):
+        h = _HEADING.match(line)
+        if h:
+            in_sources = bool(re.search(
+                r'来源|参考文献|参考资料|references', h.group(2), re.I))
+            continue
+        if in_sources or _REGISTRY_ROW.match(line):
+            continue
+        nums = [int(x) for x in _CITATION.findall(line)]
+        if not nums:
+            continue
+        (marked if '⚠' in line else unmarked).update(
+            idx_to_claim[n] for n in nums if idx_to_claim.get(n))
+    return unmarked, marked
 
 
 def _section_missing(md: str, section: str, keywords: List[str]) -> bool:
@@ -165,9 +196,42 @@ def validate_report(report_md: str,
     if total_claims == 0:
         report.issues.append('账本为空：无任何 claim，无法支撑报告')
     elif coverage < min_coverage:
+        # v6.7：全量覆盖率降级为告警。账本分母里混着子 Agent 的过程记录
+        # （未写进报告的观察、归属型单源陈述），用它阻断交付会让"报告可用但门不过"
+        # 自相矛盾。真正该阻断的是下面校验 2c：报告据以立论的 claim 没有验证。
+        report.warnings.append(
+            f'账本覆盖率偏低: {coverage:.0%} < 参考值 {min_coverage:.0%}'
+            f'（verified {verified_claims}/{total_claims}；含未写进报告的过程记录）')
+
+    # ---------- 校验 2c（v6.7）：引用-证据对齐 ----------
+    # 凡报告正文引用其来源以支撑结论的 claim，必须已完成证据评估：
+    #   verified = 通过验证；conflict = 两源互斥、已如实并陈（冲突本身是结论，
+    #   拦它等于禁止报告矛盾，方向反了）。
+    # pending/supplementing 才是"还没评估完"，必须补验证或在引用处标 ⚠️ 降级，
+    # 标注数量单独计数供复核——想省事只能少写结论，不能少写证据。
+    unmarked, marked = cited_claim_ids(report_md, sources)
+    status_by_id = {c.get('id'): c.get('status') for c in claims}
+    graded = ('verified', 'conflict')
+    unverified_cited = sorted(
+        cid for cid in unmarked if status_by_id.get(cid) not in graded)
+    report.stats.update({
+        'cited_claims': len(unmarked | marked),
+        'unverified_cited_claims': len(unverified_cited),
+        'cited_pending_marked': sum(
+            1 for cid in marked if status_by_id.get(cid) not in graded),
+    })
+    if unverified_cited:
         report.issues.append(
-            f'覆盖率不足: {coverage:.0%} < 阈值 {min_coverage:.0%}'
-            f'（verified {verified_claims}/{total_claims}）')
+            f'{len(unverified_cited)} 条 claim 被报告引用但没有验证：'
+            f'{"、".join(map(str, unverified_cited[:5]))}'
+            f'——补交叉验证（set-status）或一手反查（verify-primary），'
+            f'或在正文该引用处标 ⚠️ 明确降级为待补证据')
+    marked_pending = sorted(
+        cid for cid in marked if status_by_id.get(cid) not in graded)
+    if marked_pending:
+        report.warnings.append(
+            f'{len(marked_pending)} 处引用已标 ⚠️ 明示待补证据：'
+            f'{"、".join(map(str, marked_pending[:5]))}（不阻断交付，需后续补验证）')
 
     # 每 topic 至少 1 verified（v6.3：从 warning 升级为 issue——账本分主题后无已证实结论即拦截）
     for t, s in stats.items():
@@ -177,6 +241,10 @@ def validate_report(report_md: str,
 
     # ---------- 校验 2b（v6.3）：verified claim 独立来源强度 ----------
     # 每条被引为结论的 verified claim 必须有 ≥2 独立来源（v6.4：转载指纹去重后）
+    # v6.7 档 B 豁免：归属型断言（"某制品原文写着 X"）的对象就是那一个制品，
+    # 要第二个注册域来交叉验证它自身是判据错配。ledger.verify_primary() 会打上
+    # evidence_tier=B + verify_method，这里只认带反查记录的档 B——缺 method 即
+    # 无凭据，仍按档 A 的 ≥2 来源拦，防止档 B 变成"想升就升"的后门。
     try:
         from similarity import effective_independent_count
     except ImportError:
@@ -184,6 +252,8 @@ def validate_report(report_md: str,
     weak_verified = []
     for c in claims:
         if c.get('status') != 'verified':
+            continue
+        if c.get('evidence_tier') == 'B' and str(c.get('verify_method', '')).strip():
             continue
         claim_srcs = [s for s in sources if str(s.get('claim_id', '')) == str(c.get('id', ''))]
         n_indep = effective_independent_count(

@@ -88,6 +88,7 @@ def _http_get(
     _clear_http_error()
 
     # 优先使用 curl_cffi（TLS 指纹伪装）
+    server_responded = False          # 服务端已给出状态码 ≠ 传输失败，不得再走 urllib
     try:
         from curl_cffi import requests as cffi_requests
         last_error = None
@@ -105,10 +106,13 @@ def _http_get(
                     return r.content
                 elif r.status_code == 429:
                     # 限流，等待更长时间
-                    time.sleep(2.0 * (2 ** attempt))
+                    server_responded = True
                     last_error = f"HTTP 429 rate limited"
                     _note_http_error(last_error)
+                    if attempt < max_retries - 1:
+                        time.sleep(2.0 * (2 ** attempt))
                 else:
+                    server_responded = True
                     last_error = f"HTTP {r.status_code}"
                     _note_http_error(last_error)
                     if attempt < max_retries - 1:
@@ -118,7 +122,11 @@ def _http_get(
                 _note_http_error(f'{type(e).__name__}: {e}')
                 if attempt < max_retries - 1:
                     time.sleep(1.0 * (2 ** attempt))
-        # curl_cffi 全部重试失败，降级到 urllib
+        # curl_cffi 全部重试失败：仅当是传输层异常才降级到 urllib。
+        # 服务端已回过状态码（429/403/404…）时直接返回——换一条 TLS 指纹
+        # 重写同一请求只会把已限流的端点再打一遍（实测双倍请求量）。
+        if server_responded:
+            return None
     except ImportError:
         pass  # curl_cffi 未安装，使用 urllib
 
