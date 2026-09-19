@@ -164,7 +164,10 @@ class TavilyMcpEngine(SearchEngine):
         if "exclude_domains" in kwargs:
             arguments["exclude_domains"] = kwargs["exclude_domains"]
 
-        result = self._client.call_tool(self.TOOL_SEARCH, arguments)
+        result = self._client.call_tool(self.TOOL_SEARCH, arguments,
+                                  timeout=kwargs.get('mcp_timeout'))
+        if result is None:      # 会话没跑通＝这个源今天没有，不能报成"0 结果"
+            return None
         items = _parse_mcp_result(result)
         return [_build_search_result(item, "tavily", "tavily") for item in items if item.get('url') or item.get('title')]
 
@@ -250,7 +253,10 @@ class FirecrawlMcpEngine(SearchEngine):
         if "search_options" in kwargs:
             arguments["searchOptions"] = kwargs["search_options"]
 
-        result = self._client.call_tool(self.TOOL_SEARCH, arguments)
+        result = self._client.call_tool(self.TOOL_SEARCH, arguments,
+                                  timeout=kwargs.get('mcp_timeout'))
+        if result is None:      # 会话没跑通＝这个源今天没有，不能报成"0 结果"
+            return None
         items = _parse_mcp_result(result)
         return [_build_search_result(item, "firecrawl", "firecrawl") for item in items if item.get('url') or item.get('title')]
 
@@ -333,7 +339,10 @@ class OpenWebsearchMcpEngine(SearchEngine):
         if "engine" in kwargs:
             arguments["engine"] = kwargs["engine"]
 
-        result = self._client.call_tool(self.TOOL_SEARCH, arguments)
+        result = self._client.call_tool(self.TOOL_SEARCH, arguments,
+                                  timeout=kwargs.get('mcp_timeout'))
+        if result is None:      # 会话没跑通＝这个源今天没有，不能报成"0 结果"
+            return None
         items = _parse_mcp_result(result)
         engine_name = kwargs.get("engine", "open-websearch")
         return [_build_search_result(item, "open-websearch", f"open-websearch-{engine_name}")
@@ -398,7 +407,10 @@ class ArxivMcpEngine(SearchEngine):
         if "sort_order" in kwargs:
             arguments["sort_order"] = kwargs["sort_order"]
 
-        result = self._client.call_tool(self.TOOL_SEARCH, arguments)
+        result = self._client.call_tool(self.TOOL_SEARCH, arguments,
+                                  timeout=kwargs.get('mcp_timeout'))
+        if result is None:      # 会话没跑通＝这个源今天没有，不能报成"0 结果"
+            return None
         items = _parse_mcp_result(result)
         results = []
         for item in items:
@@ -489,7 +501,10 @@ class PaperSearchMcpEngine(SearchEngine):
         if "year_to" in kwargs:
             arguments["year_to"] = kwargs["year_to"]
 
-        result = self._client.call_tool(tool_name, arguments)
+        result = self._client.call_tool(tool_name, arguments,
+                                  timeout=kwargs.get('mcp_timeout'))
+        if result is None:      # 会话没跑通＝这个源今天没有，不能报成"0 结果"
+            return None
         items = _parse_mcp_result(result)
         source_label = source or "multi-source"
         return [_build_search_result(item, "paper-search", f"paper-search-{source_label}")
