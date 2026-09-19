@@ -56,7 +56,7 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         'commands': ['python'],
         'modules': ['engines'],
         'skills': ['sciverse', 'defuddle'],
-        'envs': ['UNPAYWALL_EMAIL', 'GITHUB_TOKEN'],
+        'envs': ['UNPAYWALL_EMAIL', 'GITHUB_TOKEN', 'OPENALEX_MAILTO'],
         'net': ['arxiv.org', 'api.semanticscholar.org', 'api.openalex.org', 'doi.org'],
     },
     'full': {
@@ -65,7 +65,7 @@ PROFILES: Dict[str, Dict[str, Any]] = {
         'modules': ['engines'],
         'skills': ['oss-finder', 'agent-reach', 'last30days', 'sciverse', 'defuddle', 'context7'],
         'envs': ['TAVILY_API_KEY', 'FIRECRAWL_API_KEY', 'GITHUB_TOKEN', 'UNPAYWALL_EMAIL',
-                 'CRAWL4AI_URL', 'CRAWL4AI_API_TOKEN'],
+                 'CRAWL4AI_URL', 'CRAWL4AI_API_TOKEN', 'OPENALEX_MAILTO'],
         'net': ['github.com', 'gitee.com', 'modelscope.cn', 'arxiv.org', 'api.semanticscholar.org',
                 'api.openalex.org', 'app.tavily.com', 'www.firecrawl.dev'],
     },
@@ -73,7 +73,13 @@ PROFILES: Dict[str, Dict[str, Any]] = {
 
 # 可选项目（缺失只警告，不阻断启动）
 OPTIONAL_ENVS = {'GITHUB_TOKEN', 'UNPAYWALL_EMAIL', 'CRAWL4AI_URL', 'CRAWL4AI_API_TOKEN',
-                 'TAVILY_API_KEY', 'FIRECRAWL_API_KEY'}
+                 'TAVILY_API_KEY', 'FIRECRAWL_API_KEY', 'OPENALEX_MAILTO'}
+
+# 缺失时要说清后果，否则用户只在并发撞限流后才知道有这档配置
+ENV_HINTS = {
+    'OPENALEX_MAILTO': ('OpenAlex 匿名请求不进 polite pool，多子 Agent 并发时极易 429；'
+                        '设为你的邮箱即可显著提升配额'),
+}
 OPTIONAL_SKILLS = {'agent-reach', 'last30days', 'sciverse', 'context7', 'defuddle',
                    'oss-finder'}
 OPTIONAL_COMMANDS = {'claude', 'npx', 'uvx', 'node', 'docker'}
@@ -148,7 +154,8 @@ def _check_env(name: str) -> Tuple[bool, str]:
     v = os.environ.get(name, '').strip()
     if v:
         return True, f'{name} 已配置（{v[:12]}...）' if len(v) > 12 else f'{name} 已配置'
-    return False, f'缺少环境变量 {name}'
+    hint = ENV_HINTS.get(name)
+    return False, (f'缺少环境变量 {name} — {hint}' if hint else f'缺少环境变量 {name}')
 
 
 def _check_skill(name: str) -> Tuple[bool, str]:

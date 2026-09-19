@@ -56,11 +56,26 @@ v6.6 在 ledger 里开了档 B（`verify_primary` 打 `evidence_tier=B` + `verif
 而账本没有任何途径改正原文：错误结论会作为 verified 永久留在交付物里，note 只会被读者当作附注跳过。
 现 `set_status(..., text=...)` / CLI `--text` 支持就地改写并记 `amended_at`；不传 `--note` 时保留既有反查留痕。
 
+### G6 verify-primary 只比注册域，批量升级会把别人的证据记到自己头上（D12）
+`--claim-id` 支持逗号批量，但只给一个 `--check-url`，而校验只比注册域：
+一次传 7 篇 arXiv 论文的 claim + 其中 1 个 abs URL，域全是 arxiv.org、7 条全过——
+6 条把"另一篇论文存在"记成了自己的反查凭据，账本与门同时被污染。
+改判据为**制品指纹** `_artifact_key()` = 注册域族 + 归一路径（去 `blob/tree` 段、
+GitHub REST 的 `/repos/` 前缀）：同一文件的不同检索通道算同一制品，
+**不同分支、不同文件即不同制品**。实测正是这条把「3.14 的源码不能当作 main 默认值的证据」挡下。
+
+### G7 --env-check 不提示 OpenAlex polite pool（D13）
+`OPENALEX_MAILTO` 引擎侧一直支持，但环境门从不提，用户只在 8 路并发撞 429 之后才知道有这档配置。
+现加入 academic/full profile 的可选清单，缺失时把后果写进提示（不进 polite pool → 易 429）。
+
 ### 顺带完成
 用逐字反查（curl_cffi 取页面比对原文）真实解决了 G1 检出的那条违规 claim：
 GitHub Copilot CLI responsible-use 文档。反查同时纠正了 claim 本身的一处**错归**——
 "生成内容可能看似正确"那句在同页属于 Copilot **code review** 条目，不是 CLI 命令生成的告诫；
 报告 §8.4 已按逐字原文重写并标明语境差异。
+另完成 §8.2 论文清单的存在性反查：10 篇逐篇取 arxiv.org/abs 页面标题与记录逐项比对（全部匹配），
+补上原先缺失的 [N] 锚点，附录 B 由 209 → 216 条；报告 verified 79 → 86、覆盖率 43.4% → 47.3%。
+（补锚点后门立刻拦出"引用编号在附录 B 里查不到"——说明这条反查在门里是被真的检查着的。）
 另按同一方法完成 Q4 剩余两条被引 claim 的一手源码复核（git `help.c` 延时换算 + `help.adoc` 的
 `help.autoCorrect` deciseconds；CPython 3.14 与 main 的 `argparse.py` `__init__` 签名），
 两条由 conflict 消解为 verified，报告覆盖率 42.3% → 43.4%、正文引用的 Q4 claim 清零。

@@ -57,6 +57,23 @@ def _registered_domain(url: str) -> str:
     return '.'.join(parts[-2:]) if len(parts) >= 2 else parts[0]
 
 
+def _artifact_key(url: str) -> str:
+    """制品指纹 = 注册域族 + 去掉浏览态路径段的路径。
+
+    档 B 只比注册域会被批量误用：一次传 7 篇论文的 claim + 1 个 check-url，
+    域全是 arxiv.org，但 6 条会把"另一篇论文存在"记成自己的反查凭据。
+    指纹要求反查打在**同一个制品**上：同一文件的不同检索通道（blob 页 / raw 字节流）
+    指纹相同；同仓库不同分支或不同文件视为不同制品。
+    """
+    u = str(url or '')
+    host = _registered_domain(u)
+    path = re.sub(r'^https?://[^/]+', '', u).lower()
+    path = re.sub(r'/(?:blob|tree)/', '/', path)          # 浏览态 → 内容态
+    if host == 'github.com':
+        path = re.sub(r'^/repos/', '/', path)             # REST API → 仓库页
+    return f'{host}:{path.rstrip("/")}'
+
+
 def _now() -> str:
     return datetime.now().isoformat(timespec='seconds')
 
@@ -220,7 +237,9 @@ class ResearchLedger:
 
         为防止它变成"想升就升"的后门，这里硬性要求：
         1. claim 必须已有至少一条来源；
-        2. 反查 URL 的注册域必须与既有来源之一相同（反查要打在同一个制品上）。
+        2. 反查 URL 必须与既有来源之一指向**同一个制品**（见 `_artifact_key`：
+           同域同路径，blob 页与 raw 字节流算同一个）。只比注册域会被批量误用——
+           一次传多篇论文的 claim + 一个 check-url，域全对却把别人的证据记到自己头上。
         """
         wanted = {c.strip() for c in claim_ids if c and c.strip()}
         if not wanted or not check_url.strip():
@@ -232,8 +251,8 @@ class ResearchLedger:
         for e in entries:
             if e.get('type') == 'source' and e.get('claim_id'):
                 src_hosts.setdefault(e['claim_id'], set()).add(
-                    _registered_domain(e.get('url', '')))
-        check_host = _registered_domain(check_url)
+                    _artifact_key(e.get('url', '')))
+        check_host = _artifact_key(check_url)
         targets = []
         for cid in wanted:
             c = claims.get(cid)
@@ -245,9 +264,10 @@ class ResearchLedger:
                       f"归属型断言也必须指向一个制品", file=sys.stderr)
                 continue
             if check_host not in hosts:
-                print(f"拒绝 verify-primary：claim {cid} 的反查域 "
-                      f"{check_host!r} 不在其来源域 {sorted(hosts)} 内 —— "
-                      f"反查必须打在同一个制品上", file=sys.stderr)
+                print(f"拒绝 verify-primary：claim {cid} 的反查制品 "
+                      f"{check_host!r} 不在其来源制品 {sorted(hosts)} 内 —— "
+                      f"反查必须打在同一个制品上（不同分支/不同文件算不同制品）",
+                      file=sys.stderr)
                 continue
             targets.append(cid)
         if not targets:

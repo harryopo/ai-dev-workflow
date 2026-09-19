@@ -550,3 +550,75 @@ class TestLedgerAmendClaimText:
         L.set_status([c['id']], 'conflict', text='改后原文')
         got = [e for e in L.export_json()['claims'] if e['id'] == c['id']][0]
         assert got['status'] == 'conflict' and got['text'] == '改后原文'
+
+
+# ============================================================
+# D12 verify-primary 批量升级会把一个制品的证据记到别的 claim 上
+# ============================================================
+class TestVerifyPrimaryArtifactBinding:
+    """只比注册域不够：一次传 7 个 arXiv claim + 1 个 check-url，域全对，
+    但其中 6 条会把"另一篇论文存在"当成自己的反查凭据——门与账本一起被污染。"""
+
+    def _L(self, tmp_path):
+        from ledger import ResearchLedger
+        return ResearchLedger(str(tmp_path / 'ledger')).init()
+
+    def test_batch_rejects_claims_whose_artifact_differs(self, tmp_path):
+        from ledger import ResearchLedger, ResearchLedger as R  # noqa: F401
+        L = self._L(tmp_path)
+        a = L.add_claim('NL2Bash 说了 X', 'LLM', 'pending')
+        b = L.add_claim('NaSh 说了 Y', 'LLM', 'pending')
+        L.add_source(a['id'], 'https://arxiv.org/abs/1802.08979')
+        L.add_source(b['id'], 'https://arxiv.org/abs/2506.13028')
+        changed = L.verify_primary(
+            [a['id'], b['id']], 'https://arxiv.org/abs/1802.08979',
+            check_title='NL2Bash', method='abs-page')
+        assert changed == 1, '只应升级真正反查过的那一条'
+        st = {c['id']: c['status'] for c in L.export_json()['claims']}
+        assert st[a['id']] == 'verified' and st[b['id']] == 'pending'
+
+    def test_github_blob_and_raw_are_same_artifact(self, tmp_path):
+        L = self._L(tmp_path)
+        c = L.add_claim('help.c 的延时换算', '参数层', 'pending')
+        L.add_source(c['id'], 'https://github.com/git/git/blob/master/help.c')
+        assert L.verify_primary([c['id']],
+                                'https://raw.githubusercontent.com/git/git/'
+                                'master/help.c', check_title='help.c',
+                                method='source-read') == 1
+
+    def test_different_branch_is_a_different_artifact(self, tmp_path):
+        """3.14 的源码不能当作 main 默认值的凭据——版本差异正是结论本身。"""
+        L = self._L(tmp_path)
+        c = L.add_claim('main 分支 argparse 默认开建议', '参数层', 'pending')
+        L.add_source(c['id'], 'https://github.com/python/cpython/blob/3.14/Lib/argparse.py')
+        assert L.verify_primary([c['id']],
+                               'https://raw.githubusercontent.com/python/cpython/'
+                               'main/Lib/argparse.py', check_title='argparse',
+                               method='source-read') == 0
+
+
+# ============================================================
+# D13 --env-check 不提示 OpenAlex polite pool
+# ============================================================
+class TestEnvCheckOpenAlexMailto:
+    """引擎早就支持 OPENALEX_MAILTO，但 --env-check 从不提，
+    用户只在 8 路并发撞 429 之后才知道有这档配置。"""
+
+    def test_openalex_mailto_is_declared_optional_env(self):
+        import env_check
+        assert 'OPENALEX_MAILTO' in env_check.OPTIONAL_ENVS
+        for profile in ('academic', 'full'):
+            assert 'OPENALEX_MAILTO' in env_check.PROFILES[profile]['envs'], profile
+
+    def test_missing_mailto_hint_names_the_consequence(self, monkeypatch):
+        import env_check
+        monkeypatch.delenv('OPENALEX_MAILTO', raising=False)
+        ok, detail = env_check._check_env('OPENALEX_MAILTO')
+        assert ok is False
+        assert 'polite pool' in detail and '429' in detail, detail
+
+    def test_configured_mailto_keeps_normal_detail(self, monkeypatch):
+        import env_check
+        monkeypatch.setenv('OPENALEX_MAILTO', 'me@example.org')
+        ok, detail = env_check._check_env('OPENALEX_MAILTO')
+        assert ok is True and 'me@example' in detail
