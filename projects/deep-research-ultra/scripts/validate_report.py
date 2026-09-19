@@ -93,6 +93,24 @@ def cited_claim_ids(report_md: str, sources: List[Dict[str, Any]]
     return unmarked, marked
 
 
+def registry_number_conflicts(report_md: str) -> Dict[int, List[str]]:
+    """来源登记表里同一编号映射到多个不同 URL 的情况。
+
+    正文重复引用同一编号是正常写作（实测一次调研 450 次引用只落在 209 个编号上），
+    按"编号有没有重复"告警会在任何真实报告里必亮且不携带信息。真正的缺陷是
+    **编号串了**：`[12]` 在附录里既指 arXiv 论文又指某博客，读者按编号溯源会拿错证据。
+    """
+    by_num: Dict[int, set] = {}
+    for line in report_md.split('\n'):
+        if not _REGISTRY_ROW.match(line):
+            continue
+        num = int(re.match(r'^\s*\|?\s*\[(\d{1,3})\]', line).group(1))
+        url_m = re.search(r'https?://[^\s|)\]]+', line)
+        if url_m:
+            by_num.setdefault(num, set()).add(url_m.group(0))
+    return {n: sorted(u) for n, u in by_num.items() if len(u) > 1}
+
+
 def _section_missing(md: str, section: str, keywords: List[str]) -> bool:
     """只有标题行（# 开头）参与章节关键词匹配，避免正文提及造成误判。"""
     heading = ' '.join(l for l in md.splitlines() if re.match(r'^#{1,4}\s', l))
@@ -162,8 +180,16 @@ def validate_report(report_md: str,
         if out_of_range:
             report.issues.append(
                 f'引用编号越界: {out_of_range[:10]}（账本来源数 {n_sources}）')
-        if len(set(refs)) < len(refs):
-            report.warnings.append('引用编号存在重复，请核对顺序')
+        # v6.7：不再因"正文重复引用同一编号"告警——那是正常写作（450 次引用落在
+        # 209 个编号上），必亮且不携带信息。改为查登记表里的编号是否串到不同 URL。
+        conflicts = registry_number_conflicts(report_md)
+        report.stats['citation_number_conflicts'] = len(conflicts)
+        if conflicts:
+            sample = sorted(conflicts.items())[:5]
+            report.warnings.append(
+                f'{len(conflicts)} 个引用编号在来源登记表里指向不同来源：'
+                + '；'.join(f'[{n}] → {len(u)} 个 URL' for n, u in sample)
+                + '（读者按编号溯源会拿错证据，请统一编号或拆分）')
         # v6.3 反查：编号 N 的来源，其 URL/标题须能在报告正文或附录中找到
         # （不止"数字在范围内"，而是引用→具体来源可追溯）
         source_by_index = {s.get('primary_index'): s for s in sources}

@@ -470,3 +470,49 @@ class TestGateTierBExemptsCrossSourceRule:
         r = validate_report(self._report(), ledger=self._led(tmp_path, verify_method=''))
         assert r.stats['weak_verified_claims'] == 1
         assert any('独立来源不足' in i for i in r.issues), r.issues
+
+
+# ============================================================
+# D10 「引用编号存在重复」必亮误报
+# ============================================================
+class TestGateCitationNumberConflict:
+    """重复引用同一编号是正常写作；编号在登记表里指向两个 URL 才是真缺陷。"""
+
+    def _led(self, tmp_path):
+        from ledger import ResearchLedger
+        L = ResearchLedger(str(tmp_path / 'ledger')).init()
+        for i, (url, dom) in enumerate(
+                [('https://arxiv.org/0', 'arxiv.org'),
+                 ('https://aclanthology.org/a0', 'aclanthology.org')]):
+            c = L.add_claim(f'结论{i}', '主题A', 'verified', 'general', 0.9)
+            L.add_source(c['id'], url, tier=1)
+            L.add_source(c['id'], f'https://{dom}/x{i}', tier=1)
+        return L
+
+    def _report(self, registry):
+        return f"""# 报告
+## 执行摘要
+同一来源反复引用 [1][1][2]。
+## 调研范围与方法
+多源检索。
+## 结论与建议
+结论良好。
+## 来源
+{registry}
+"""
+
+    def test_repeated_citation_of_same_number_no_longer_warns(self, tmp_path):
+        from validate_report import validate_report
+        reg = ('| [1] | https://arxiv.org/0 | arxiv.org | T1 | 论文一 |\n'
+               '| [2] | https://aclanthology.org/a0 | aclanthology.org | T1 | 论文二 |')
+        r = validate_report(self._report(reg), ledger=self._led(tmp_path))
+        assert not any('重复' in w for w in r.warnings), r.warnings
+        assert r.stats['citation_number_conflicts'] == 0
+
+    def test_number_mapped_to_two_urls_in_registry_warns(self, tmp_path):
+        from validate_report import validate_report
+        reg = ('| [1] | https://arxiv.org/0 | arxiv.org | T1 | 论文一 |\n'
+               '| [1] | https://blog.example.com/other | blog.example.com | T3 | 串号 |')
+        r = validate_report(self._report(reg), ledger=self._led(tmp_path))
+        assert r.stats['citation_number_conflicts'] == 1
+        assert any('编号' in w and '不同来源' in w for w in r.warnings), r.warnings

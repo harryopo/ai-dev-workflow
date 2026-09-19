@@ -42,6 +42,14 @@ v6.6 在 ledger 里开了档 B（`verify_primary` 打 `evidence_tier=B` + `verif
 现 2b 豁免 `evidence_tier == 'B'` **且** `verify_method` 非空的 claim；缺反查记录不豁免，
 防止档 B 变成"想升就升"的后门（两条路径各一个测试）。
 
+### G4 「引用编号存在重复」是必亮误报（D10）
+旧告警判 `len(set(refs)) < len(refs)`：正文重复引用同一来源本是正常写作（实测一次调研 450 次引用
+只落在 209 个编号上），所以它对任何真实报告都必亮、且不含任何可行动信息——更糟的是它把
+**真正的编号冲突**淹死在噪音里。改为 `registry_number_conflicts()`：查来源登记表里同一 `[N]`
+是否映射到不同 URL（读者按编号溯源会拿错证据），新增 stats `citation_number_conflicts`。
+
+副作用立即见效：误报消失后，同一次校验暴露出执行摘要 1239 字 > 1200 上限这条**一直被忽略的真告警**。
+
 ### 顺带完成
 用逐字反查（curl_cffi 取页面比对原文）真实解决了 G1 检出的那条违规 claim：
 GitHub Copilot CLI responsible-use 文档。反查同时纠正了 claim 本身的一处**错归**——
