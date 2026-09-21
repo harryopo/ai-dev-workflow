@@ -1,0 +1,11 @@
+# 本包唯一真值源是 projects/skill-workspace/。此处只归一本包，不动仓库其他目录。
+# 机械校验脚本与被校验文本必须是 LF：Windows 工作树在 core.autocrlf=true 下会检出 CRLF，
+# 带 \r 的 .sh/.py 会直接跑不起来，而 `bash -n` 查不出这种错误。
+*.sh  text eol=lf
+*.py  text eol=lf
+*.md  text eol=lf
+*.json text eol=lf
+*.yaml text eol=lf
+
+# 运行产物不参与导出与校验
+artifacts/ export-ignore
