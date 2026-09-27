@@ -83,7 +83,7 @@
       "expected_output": "Darwin 9 维度审查报告，总分 100 分",
       "assertions": [
         { "id": "a1", "text": "必须使用 Darwin 9 维度 100 分制" },
-        { "id": "a2", "text": "如果用户提到 120 分制，必须解释已统一为 Darwin 体系" }
+        { "id": "a2", "text": "如果用户提到 120 分制，必须说明该体系已废弃、统一为 Darwin 9 维度 100 分制" }
       ]
     },
     {

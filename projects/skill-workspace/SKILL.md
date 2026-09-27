@@ -36,7 +36,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 ## 评估体系
 
-本工作台统一使用 **Darwin 9 维度评估体系**（基于 SkillLens 论文实证验证），满分 100 分。
+本工作台统一使用 **Darwin 9 维度评估体系**，满分 100 分。其中维度 3/4/7（失败模式编码、可执行具体性、高风险行动黑名单）有 SkillLens 论文实证支持，其余维度与权重为本工作台自定。
 
 **详细评分标准：** `${SKILL_DIR}/references/darwin-rubric.md`
 

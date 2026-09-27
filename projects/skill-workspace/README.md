@@ -118,7 +118,6 @@ skill-workspace/
         ├── SKILL.md                      # 审查流程（Darwin 9 维度）
         ├── references/
         │   ├── official-spec.md          # 官方规范
-        │   ├── scoring-criteria.md      # 10 维度评分标准
         │   └── security.md              # 安全审查规则
         └── evals/
             ├── evals.json               # 审查评测集（5 条）
@@ -637,7 +636,6 @@ cp -r skill-workspace/subskills/review/ {全局skills目录}/skill-review/
 | 文件 | 说明 |
 |------|------|
 | `subskills/review/references/official-spec.md` | Agent Skill 规范 |
-| `subskills/review/references/scoring-criteria.md` | 10 维度评分标准（120 分制） |
 | `subskills/review/references/security.md` | 安全审查规则 |
 
 ***

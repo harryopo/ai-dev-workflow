@@ -2,7 +2,7 @@
 name: review
 version: 5.3.1
 description: |
-  Skill 审查评分工具 v5.3.1。基于 Darwin 9 维度评估体系（源自 SkillLens 论文实证验证），
+  Skill 审查评分工具 v5.3.1。基于 Darwin 9 维度评估体系（其中 3 个维度有 SkillLens 论文实证，其余维度与权重为自定），
   集成多评委独立审查机制、语义-行为一致性检测、组合攻击风险评估、开发记忆污染检测、
   PluginEval 11 种反模式检测、安全审计数据参考，
   对 Skill 进行全面质量审查和安全扫描，输出评分报告。
@@ -28,7 +28,7 @@ allowed-tools: Read Glob Grep
 
 ## 理论基础
 
-本工具基于微软 SkillLens (arXiv:2605.23899) 论文的实证验证：
+本工具引用 SkillLens (arXiv:2605.23899，Fudan / Microsoft Research / SJTU) 的实证结论，其中被论文实测验证的是维度 3/4/7：
 
 - **模型生成的技能平均有益，但存在非平凡的负面迁移**
 - **技能效用独立于模型规模或基线任务强度**
@@ -237,7 +237,7 @@ allowed-tools: Read Glob Grep
 
 ### 第四步：Darwin 9 维度质量评分
 
-> 基于 SkillLens 论文实证验证的 9 维度评估框架，满分 100 分。
+> 9 维度评估框架，满分 100 分；维度 3/4/7 有论文实证，其余维度与权重为自定（见 rubric 的实证边界说明）。
 
 #### 结构维度（维度 1-7）— 共 70 分
 

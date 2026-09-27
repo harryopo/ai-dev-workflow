@@ -321,15 +321,23 @@ def check_placeholders(add):
 
 
 # ---------- 7 评分体系唯一 ----------
+# 禁止某个分制不等于又定义了一套分制：evals 的反例断言、SKILL.md 的"不要混用 120 分制"
+# 都会被 SCHEME_RE 抓成第二套分制，所以按行看语境。
+NEG_RE = re.compile(r"(不要|不得|禁止|不使用|不用|已废弃|废弃|混用|如果用户提到|立即修正|旧的|而非)")
+
+
 def check_rubric(add):
     totals = {}
     for p in walk_text_files():
         if p.suffix.lower() not in BUDGET_EXT:
             continue
-        for m in SCHEME_RE.finditer(read(p)):
-            tot = m.group(1)
-            if tot:
-                totals.setdefault(tot, set()).add(p)
+        for line in read(p).splitlines():
+            if NEG_RE.search(line):
+                continue
+            for m in SCHEME_RE.finditer(line):
+                tot = m.group(1)
+                if tot:
+                    totals.setdefault(tot, set()).add(p)
     if len(totals) > 1:
         for t, ps in sorted(totals.items(), key=lambda kv: -int(kv[0])):
             add("rubric", "ERROR", next(iter(ps)),
