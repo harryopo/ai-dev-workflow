@@ -7,7 +7,6 @@
 set -euo pipefail
 
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-STAMP="$(date +%Y%m%d-%H%M%S)"
 
 TARGETS=(
   "$(dirname "$(dirname "$SRC")")/.agents/skills/skill-workspace"
@@ -15,6 +14,7 @@ TARGETS=(
 )
 
 APPLY=0
+FAIL=0
 for arg in "$@"; do
   case "$arg" in
     --apply)  APPLY=1 ;;
@@ -31,9 +31,18 @@ norm_eol() { # 目标目录内的文本统一成 LF，否则导出的 .sh 会带
 
 # pipefail 会让 `diff | grep` 的退出码被 diff 污染，直接 && / || 判断会得出反的结论。
 # 必须先接进变量再看字符串是否为空。
+# 排除项 = 导出时刻意不带的东西：artifacts/ 是历次运行产物，.gitattributes 只在 git 仓库里有意义。
 changes() {
   diff -rq --strip-trailing-cr "$SRC" "$1" 2>/dev/null \
-    | grep -v '^Only in .*artifacts' || true
+    | grep -v -e '^Only in .*artifacts' -e '\.gitattributes' || true
+}
+
+# 备份必须落在 skills/ 外面：宿主把 skills/ 下每个目录都当技能索引，
+# 实测在 skills/ 里留一个 skill-workspace.bak-* 就凭空多出一个同名技能。
+backup_dir_for() {
+  local base
+  base="$(dirname "$(dirname "$1")")"
+  echo "$base/.skill-workspace-backup/$(basename "$1")-$(date +%Y%m%d-%H%M%S)"
 }
 
 for tgt in "${TARGETS[@]}"; do
@@ -64,7 +73,8 @@ for tgt in "${TARGETS[@]}"; do
   fi
 
   if [ -d "$tgt" ]; then
-    bak="${tgt}.bak-${STAMP}"
+    bak="$(backup_dir_for "$tgt")"
+    mkdir -p "$(dirname "$bak")"
     cp -r "$tgt" "$bak"
     echo "已备份到：$bak"
     rm -rf "$tgt"
@@ -77,13 +87,19 @@ for tgt in "${TARGETS[@]}"; do
 
   v=$(changes "$tgt")
   if [ -n "$v" ]; then
-    echo "!! 导出后仍与源有差异："
+    echo "!! 导出后仍与源有差异（继续下一个目标）："
     printf '%s\n' "$v"
-    echo "   备份在：$( [ -d "${tgt}.bak-${STAMP}" ] && echo "${tgt}.bak-${STAMP}" || echo '无（新建）' )"
-    exit 1
+    echo "   备份在：$( [ -n "${bak:-}" ] && echo "$bak" || echo '无（新建）' )"
+    FAIL=1
+    continue
   fi
   echo "校验：一致"
 done
+
+if [ "$FAIL" = 1 ]; then
+  echo "有目标未对齐，见上面 !! 行" >&2
+  exit 1
+fi
 
 echo "=============================================="
 [ "$APPLY" = 1 ] || echo "未做任何修改。确认无误后加 --apply 才真正写入。"

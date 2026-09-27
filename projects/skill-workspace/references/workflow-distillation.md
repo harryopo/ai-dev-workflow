@@ -33,7 +33,7 @@
 | `description` 字段 | Claude.ai 限 **200 字符**；Agent Skills 规范允许 **1024 字符** | Anthropic 官方 |
 | Skill 描述预算 | 默认 context window 的 **1%**（约 2K token） | Claude Code v2.1.x |
 | 单个 Skill 描述最长 | **1536 字符** | Claude Code 实测 |
-| **SKILL.md 正文（Codex CLI）** | **8 KB 硬截断**，超出即静默丢失 | wshobson-agents/docs/authoring.md |
+| **SKILL.md 正文（Codex CLI）** | **8 KB 硬截断**，超出即静默丢失 | wshobson/agents 仓库 `.cursor/rules/020-agent-skill-authoring.mdc` 原文 |
 | **MUST/NEVER/ALWAYS 密度** | 建议 **< 15 条**，超出触发 OVER_CONSTRAINED 反模式 | PluginEval |
 
 > **⚠️ 跨平台可移植性关键约束：** 跨平台 Skill 必须按最严格约束设计——SKILL.md 正文 ≤ 8 KB（Codex 截断线）且 ≤ 500 行（Claude 甜区），超出部分一律拆入 references/。
@@ -302,17 +302,17 @@ Phase 3 (独立 sub-Agent)
 
 **拆分原则：**
 
-| 内容类型 | 放在哪里 | 原因 |
+| 内容类型 | 放在哪里（`{新技能}` = 蒸馏出来的技能根目录） | 原因 |
 |----------|----------|------|
 | 触发条件、路由逻辑 | SKILL.md | 始终需要 |
 | 核心工作流步骤概要 | SKILL.md | 始终需要 |
-| 决策树 | SKILL.md 或 references/decision-trees.md | 简单的放 SKILL.md，复杂的放 references |
-| 阶段详情 | references/phase-N-xxx.md | 按需加载 |
-| 领域知识 | references/domain-knowledge.md | 按需加载 |
+| 决策树 | SKILL.md 或 `{新技能}/references/decision-trees.md` | 简单的放 SKILL.md，复杂的放 references |
+| 阶段详情 | `{新技能}/references/phase-N-xxx.md` | 按需加载 |
+| 领域知识 | `{新技能}/references/domain-knowledge.md` | 按需加载 |
 | 确定性逻辑（数据处理、格式验证） | scripts/ | 代码不进上下文 |
 | 可复用模板 | templates/ | 按需加载 |
 | 独立子流程 | subskills/ | 独立加载 |
-| 错误处理 | references/error-handling.md | 按需加载 |
+| 错误处理 | `{新技能}/references/error-handling.md` | 按需加载 |
 
 ### 第三步：薄入口设计
 

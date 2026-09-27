@@ -304,7 +304,7 @@ allowed-tools: Read Glob Grep
 
 #### 5.3 PluginEval 11种反模式检测（v5.3.1新增）
 
-> **来源：** wshobson-agents/docs/plugin-eval.md（2026-07 调研发现）
+> **来源：** 上游 wshobson/agents 仓库的 plugin-eval 插件（2026-07 调研）。11 条反模式定义在该插件静态层的 Python 源码里；该仓库没有 docs 目录，下载的副本在本仓库 opensource-reference 下，不随本技能包发布。
 > **背景：** PluginEval 提供三层质量评估（静态分析 + LLM Judge + Monte Carlo），覆盖 10 个质量维度，检测 11 种反模式。
 
 **PluginEval 反模式清单（必须逐项检测）：**
@@ -394,18 +394,18 @@ uvx skilllint@latest check <skill-path>
 
 ```bash
 # 1) 先查看占用
-bash "${SKILL_DIR}/scripts/source-cleanup.sh" list
+bash "../../scripts/source-cleanup.sh" list
 
 # 2) 标记本次审查用到的源码工作区为可释放
-bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
+bash "../../scripts/source-cleanup.sh" release "{工作区名}"
 
 # 3) 回收（移入 .trash，7 天冷静期内可 restore）
-bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+bash "../../scripts/source-cleanup.sh" auto
 ```
 
 ⚠️ **审查场景必须先询问用户再回收** —— 用户可能要基于报告继续追问源码细节。与部署流程（自动回收）不同，此处不自动执行。
 
-详见 `${SKILL_DIR}/references/source-lifecycle.md`。
+详见 `../../references/source-lifecycle.md`。
 
 #### 6.1 评分汇总
 
@@ -540,7 +540,7 @@ bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
 
 **目标：** 检测被审查 Skill 的主文档是否被开发记忆污染，并将审查发现的问题及改进建议沉淀到 `.dev-memory.md`。
 
-**详细指南：** `${SKILL_DIR}/../references/dev-memory-guide.md`
+**详细指南：** `../../references/dev-memory-guide.md`
 
 #### 7.1 主文档污染检测
 
@@ -782,10 +782,10 @@ bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
 
 ## 参考资料
 
-- Darwin 评分标准：`${SKILL_DIR}/references/darwin-rubric.md`
-- 多评委机制：`${SKILL_DIR}/references/multi-judge.md`
-- 反模式清单：`${SKILL_DIR}/references/anti-patterns.md`
-- Agent 中立指南：`${SKILL_DIR}/references/agent-neutral-guide.md`
+- Darwin 评分标准：`../../references/darwin-rubric.md`
+- 多评委机制：`../../references/multi-judge.md`
+- 反模式清单：`../../references/anti-patterns.md`
+- Agent 中立指南：`../../references/agent-neutral-guide.md`
 - 官方规范：`${SKILL_DIR}/references/official-spec.md`
 - 评测集：`${SKILL_DIR}/evals/evals.json`（5 条：2 core + 1 boundary + 2 edge）
 

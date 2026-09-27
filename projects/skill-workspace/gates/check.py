@@ -34,6 +34,8 @@ CODE_PATH_RE = re.compile(
 )
 
 SKIP_DIRS = {".git", "__pycache__", "node_modules", ".research"}
+# 与 tools/export.sh 的排除项一一对应，两边不一致就会产出假红/假绿
+EXPORT_SKIP = {"artifacts", ".gitattributes"}
 SCAN_EXT = {".md", ".py", ".sh", ".ps1", ".json", ".yaml", ".yml", ".txt"}
 BUDGET_EXT = {".md"}
 # 只有 "N 分制" 才算一套分制声明。"9 维度总分：85 分" 是示例得分，不是分制。
@@ -167,18 +169,36 @@ def _resolves(base, rel):
     return target.exists(), False
 
 
+def _skill_anchor(p):
+    """${SKILL_DIR} 的第二种可能含义：最近的含 SKILL.md 的祖先目录（不是文件自己所在的目录）。
+
+    references/deploy.md 属于包根技能，锚点就该是包根；用 deploy.md 自己的目录判，
+    会把一堆本来正确的 ${SKILL_DIR}/scripts/... 误判成含糊。
+    """
+    d = p.parent
+    while d != ROOT.parent:
+        if (d / "SKILL.md").is_file():
+            return d
+        d = d.parent
+    return ROOT
+
+
 def check_refs(add):
     for p in walk_text_files():
         if p.suffix.lower() not in BUDGET_EXT:
             continue
         if p.relative_to(ROOT).parts[0] == "gates":
             continue
+        # artifacts/ 是历次运行的产出报告，里面的路径按当时的布局写，改它等于改历史；
+        # ``` 围栏内是引用的示例代码或目录清单；├── 树形图描述"要生成的结构"。
+        # 三类都降为 WARN：照样报出来，但不当成包内死链阻断。
+        soft_file = p.relative_to(ROOT).parts[0] == "artifacts"
         seen = set()
         text = read(p)
         fenced = _fenced_lines(text)
         for lineno, line in enumerate(text.splitlines(), 1):
-            if any(c in line for c in TREE_CHARS):
-                continue
+            lvl = "WARN" if (soft_file or lineno in fenced or
+                             any(c in line for c in TREE_CHARS)) else "ERROR"
             for m in list(MD_LINK_RE.finditer(line)) + list(CODE_PATH_RE.finditer(line)):
                 raw = m.group(1).strip()
                 var = VAR_ANCHOR_RE.match(raw)
@@ -189,26 +209,35 @@ def check_refs(add):
                     # ${SKILL_DIR} 无官方定义，两种宿主两种含义：包根 or 本技能目录。
                     # 只在"两种锚定都落空"时判死链——变量该用哪套由 placeholder 管。
                     hit_root, _ = _resolves(ROOT, rel)
-                    hit_self, _ = _resolves(p.parent, rel)
-                    if not (hit_root or hit_self):
-                        add("refs", "WARN" if lineno in fenced else "ERROR", p,
-                            f"L{lineno} 断链：{raw}（锚定为包根或本技能目录都找不到目标）")
+                    hit_self, _ = _resolves(_skill_anchor(p), rel)
+                    if hit_root == hit_self:
+                        if not hit_root:
+                            add("refs", lvl, p,
+                                f"L{lineno} 断链：{raw}（锚定为包根或本技能目录都找不到目标）")
+                    else:
+                        # 只有一种锚定能命中：换宿主就断，静默放过等于假绿
+                        add("refs", "WARN", p,
+                            f"L{lineno} 锚定含糊：{raw}（只有"
+                            f"{'包根' if hit_root else '本技能目录'}能命中）")
                     continue
                 if _ref_skippable(line, m, raw):
                     continue
                 target, escaped = _resolves(p.parent, raw)
                 if escaped:
-                    add("refs", "ERROR", p, f"L{lineno} 引用逃逸出包根：{raw}")
+                    add("refs", lvl, p, f"L{lineno} 引用逃逸出包根：{raw}")
                     continue
                 if target:
                     continue
                 if (ROOT / raw.split("#")[0]).exists():
+                    # 只在包根存在、在本技能目录下不存在：链接能通，但锚定含糊
+                    add("refs", "WARN", p,
+                        f"L{lineno} 锚定含糊：{raw}（按包根存在，按本技能目录找不到）")
                     continue
                 key = (lineno, raw)
                 if key in seen:
                     continue
                 seen.add(key)
-                add("refs", "ERROR", p, f"L{lineno} 断链：{raw}")
+                add("refs", lvl, p, f"L{lineno} 断链：{raw}")
 
 
 # ---------- 2 frontmatter 合规 ----------
@@ -337,7 +366,11 @@ def check_copies(add):
         if not t.is_dir():
             add("copies", "WARN", t, "安装位不存在（未导出）")
             continue
-        src = {q.relative_to(ROOT).as_posix() for q in walk_text_files()}
+        # 比对集合必须等于导出集合，否则门会永远报假红：
+        # artifacts/ 是历次运行产物、.gitattributes 只在 git 仓库里有意义，两者都不导出。
+        skip = EXPORT_SKIP
+        src = {q.relative_to(ROOT).as_posix() for q in walk_text_files()
+               if not (skip & {q.relative_to(ROOT).parts[0], q.name})}
         dst = {q.relative_to(t).as_posix() for q in
                (x for x in t.rglob("*") if x.is_file() and x.suffix.lower() in SCAN_EXT
                 and not (SKIP_DIRS & set(x.relative_to(t).parts)))}
