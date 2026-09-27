@@ -286,8 +286,9 @@ score = (relevance * 0.4) + (downloads * 0.3) + (stars * 0.3)
 
 3. **安全审查**
    - 调用安全审查流程（4 步协议）
-   - 评级 ≥ B → 继续
-   - 评级 ≤ C → 询问用户是否继续
+   - 评级 SAFE / WARNING → 继续
+   - 评级 DANGER → 询问用户是否继续
+   - 评级 BLOCK → 停止（四值词表只在 `../subskills/review/references/security.md` 定义一份）
 
 4. **分析完成后释放**
    - 分析/提取完成 → 执行 `release {工作区名}` 标记为可释放
@@ -357,11 +358,7 @@ Skill: {name}
 - Typosquat: ✅ 无 / ⚠️ 可疑命名
 ```
 
-**评级规则：**
-- SAFE：无风险标记
-- WARNING：仅 ℹ️ 级别
-- DANGER：有 🟡 级别
-- BLOCK：有 🔴 级别（停止，不进入质量评分）
+**评级规则：** 见 `../subskills/review/references/security.md`（全仓唯一定义处）。
 
 ## 增强搜索能力
 

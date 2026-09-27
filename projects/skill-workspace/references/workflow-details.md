@@ -241,7 +241,7 @@ npx clawhub@latest search {关键词}
      "{repo-url}" "{skill名}" "$(date -Iseconds)" > "$SRC/.skill-workspace-source"
    ```
 
-3. **安全审查**（强制）— 评级 ≥ B → 继续；评级 ≤ C → 询问用户是否继续
+3. **安全审查**（强制）— 评级 SAFE/WARNING → 继续；DANGER → 询问用户是否继续；BLOCK → 停止（词表定义见 `../subskills/review/references/security.md`）
 4. **安装到工作区**
    ```bash
    cp -r {skill目录}/ "./{skill名}/"

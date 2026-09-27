@@ -1697,11 +1697,7 @@ Skill: {name}
 - Typosquat: ✅ 无 / ⚠️ 可疑命名
 ```
 
-**评级规则：**
-- SAFE：无风险标记 → 继续
-- WARNING：仅 ℹ️ 级别 → 继续
-- DANGER：有 🟡 级别 → 询问用户是否继续
-- BLOCK：有 🔴 级别 → 停止，不进入下一步
+**评级规则：** 见 `../review/references/security.md`（全仓唯一定义处）。
 
 ### ⚠️ 本地交付后必须暂停
 

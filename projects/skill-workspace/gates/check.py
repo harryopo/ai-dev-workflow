@@ -40,6 +40,9 @@ SCAN_EXT = {".md", ".py", ".sh", ".ps1", ".json", ".yaml", ".yml", ".txt"}
 BUDGET_EXT = {".md"}
 # 只有 "N 分制" 才算一套分制声明。"9 维度总分：85 分" 是示例得分，不是分制。
 SCHEME_RE = re.compile(r"(\d{2,3})\s*分制")
+# 字母评级写法：A 级 / B级 / ≥ B / ≤ C。只在同一行讲"安全"时才算串台，
+# Darwin 质量评级的 A/B/C 是另一套东西，不该被这条误伤。
+GRADE_LETTER_RE = re.compile(r"([ABC]\s*级|[≥≤]\s*[ABC](?![A-Za-z]))")
 
 
 def findings():
@@ -364,6 +367,30 @@ def check_secwords(add):
         add("secwords", "ERROR", owners[0][0],
             f"安全清单散落在 {len(owners)} 个文件，必然漂移："
             + "；".join(f"{o.relative_to(ROOT)}（{len(h)} 条）" for o, h in owners))
+
+    # 四值评级词表（SAFE/WARNING/DANGER/BLOCK）只能有一处定义。
+    # 判据取"清单里出现了 `- SAFE：` 这一行"——只有真正定义规则的文件会写它，
+    # 报告模板里的 {SAFE / WARNING / DANGER / BLOCK} 占位符不算定义。
+    defs = []
+    for p in walk_text_files():
+        if p.suffix.lower() not in BUDGET_EXT:
+            continue
+        body = read(p)
+        if any(ln.lstrip().startswith(("- SAFE：", "- SAFE:")) for ln in body.splitlines()):
+            defs.append(p)
+    if len(defs) != 1:
+        add("secwords", "ERROR" if defs else "WARN", defs[0] if defs else ROOT,
+            "安全评级词表定义了 %d 处（应恰好 1 处）：%s" % (
+                len(defs), [str(d.relative_to(ROOT)).replace(chr(92), "/") for d in defs]))
+
+    # 同一行既讲"安全"又用字母评级，就是词表串台（Darwin 质量评级的 A/B/C 不带"安全"二字）
+    for p in walk_text_files():
+        if p.suffix.lower() not in BUDGET_EXT:
+            continue
+        for i, ln in enumerate(read(p).splitlines(), 1):
+            if "安全" in ln and GRADE_LETTER_RE.search(ln):
+                add("secwords", "ERROR", p,
+                    f"L{i} 安全评级用了字母评级，与四值词表串台：{ln.strip()[:50]}")
 
 
 # ---------- 9 副本内容一致 ----------
