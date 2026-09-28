@@ -58,20 +58,20 @@
 
    ```bash
    # Bash / Git Bash
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+   bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
+   bash "{技能目录}/scripts/source-cleanup.sh" auto
    ```
 
    ```powershell
    # Windows PowerShell
-   powershell -ExecutionPolicy Bypass -File "${SKILL_DIR}\scripts\source-cleanup.ps1" auto
+   powershell -ExecutionPolicy Bypass -File "{技能目录}\scripts\source-cleanup.ps1" auto
    ```
 
    - 只处理 `.cache/sources/` 下带标记文件的目录
    - 先移入 `.trash`（可 `restore` 恢复），7 天冷静期后才真正删除
    - 执行后向用户报告释放清单与回滚方式
 
-   详见 `${SKILL_DIR}/references/source-lifecycle.md`。
+   详见 `source-lifecycle.md`。
 
 ## 版本管理建议
 
@@ -175,7 +175,7 @@ workspace/                       # 工作区（"一主"）
 
 - [ ] SKILL.md 正文 ≤ 8 KB（Codex 硬截断线）
 - [ ] SKILL.md 行数 ≤ 500 行（Claude 甜区）
-- [ ] 使用 `${CLAUDE_SKILL_DIR}` 变量引用资源（非硬编码路径）
+- [ ] 资源引用用相对技能目录的裸相对路径（非硬编码绝对路径）
 - [ ] description ≤ 1024 字符（Agent Skills 规范）
 - [ ] 无二进制文件
 - [ ] 无平台特定命令（如 Windows 路径用 `$env:USERPROFILE`）
@@ -225,7 +225,7 @@ cp -r $SOURCE_PATH/* ~/.skills/$SKILL_NAME/
 ## 设计原则
 
 1. **按最严格约束设计** — SKILL.md 正文 ≤ 8 KB（Codex 截断线），确保跨平台可移植
-2. **平台差异最小化** — 使用 `${CLAUDE_SKILL_DIR}` 变量，避免硬编码路径
+2. **平台差异最小化** — 资源引用用相对技能目录的裸相对路径，不用宿主私有变量
 3. **scripts/ 跨平台** — Python/Node.js 优先，shell 脚本提供 .sh 和 .ps1 双版本
 4. **AGENTS.md 跟随部署** — 每个部署目标都有 AGENTS.md，记录该平台的特定配置
 5. **单一数据源** — 工作区是唯一源，部署目标是副本，禁止反向修改

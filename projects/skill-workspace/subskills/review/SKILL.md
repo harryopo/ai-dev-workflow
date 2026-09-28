@@ -155,7 +155,7 @@ allowed-tools: Read Glob Grep
    - 使用 $ARGUMENTS 获取参数
    - 如果参数是目录路径 → 直接使用
    - 如果参数是 skill 名称 → 在以下位置搜索：
-     - `${SKILL_DIR}/`（当前 Agent 的全局 skills 目录）
+     - `{全局skills目录}/`（当前 Agent 的全局 skills 目录）
      - `./skills/<name>/`（项目级目录）
      - 当前工作区目录下的子目录
 
@@ -243,7 +243,7 @@ allowed-tools: Read Glob Grep
 
 | 维度 | 满分 | 权重 | 检查项 | 优(≥90%) | 良(75-89%) | 中(60-74%) | 差(<60%) |
 |------|------|------|--------|----------|------------|------------|----------|
-| D1. 结构完整性 | 10 | 1.0 | SKILL.md 标准格式、元数据完整、目录结构、正文≤500行、用 ${SKILL_DIR} 引用 | 9-10 | 7-8 | 4-6 | 0-3 |
+| D1. 结构完整性 | 10 | 1.0 | SKILL.md 标准格式、元数据完整、目录结构、正文≤500行、资源引用用裸相对路径 | 9-10 | 7-8 | 4-6 | 0-3 |
 | D2. 指令具体性 | 10 | 1.0 | 指令具体可执行、有步骤/命令/示例、避免模糊词汇、有输入输出示例、针对特定场景 | 9-10 | 7-8 | 4-6 | 0-3 |
 | D3. 失败模式编码 | 10 | 1.0 | 含"不要做"警告、列出常见错误和反模式、错误识别修复方法、边界情况处理、失败案例示例 | 9-10 | 7-8 | 4-6 | 0-3 |
 | D4. 可执行具体性 | 10 | 1.0 | 可直接复制执行的命令/代码、完整执行上下文、步骤编号清晰、有验证步骤、有回滚方案 | 9-10 | 7-8 | 4-6 | 0-3 |
@@ -318,7 +318,7 @@ allowed-tools: Read Glob Grep
 | PE-05 | VAGUE_INSTRUCTIONS | 指令模糊不清 | -5% | 具体化指令 |
 | PE-06 | REDUNDANT_KNOWLEDGE | 包含 AI 已知内容 | -5% | 删除已知内容 |
 | PE-07 | UNSAFE_SCRIPTS | scripts/ 含危险操作 | -15% | 移除或沙箱化 |
-| PE-08 | HARDcoded_PATHS | 硬编码绝对路径 | -5% | 使用 ${SKILL_DIR} 变量 |
+| PE-08 | HARDcoded_PATHS | 硬编码绝对路径 | -5% | 改用相对技能目录的裸相对路径 |
 | PE-09 | MISSING_EVALS | 无 evals.json | -5% | 创建评测集 |
 | PE-10 | POOR_TRIGGERING | 触发词过窄或过宽 | -10% | 优化触发词 |
 | PE-11 | MONOLITHIC_SKILL | 全家桶型 Skill | -10% | 拆分为多个专业 Skill |
@@ -768,7 +768,7 @@ bash "../../scripts/source-cleanup.sh" auto
 ### 必需输入
 - **Skill 路径或名称**：从 $ARGUMENTS 获取
   - 目录路径（如 `./my-skill/`）→ 直接使用
-  - Skill 名称（如 `code-review`）→ 按优先级搜索：工作区子目录 → `${SKILL_DIR}/` → `./skills/`
+  - Skill 名称（如 `code-review`）→ 按优先级搜索：工作区子目录 → `{全局skills目录}/` → `./skills/`
 
 ### 可选输入
 - 无额外参数时，审查完整 SKILL.md 及其目录结构
@@ -786,8 +786,8 @@ bash "../../scripts/source-cleanup.sh" auto
 - 多评委机制：`../../references/multi-judge.md`
 - 反模式清单：`../../references/anti-patterns.md`
 - Agent 中立指南：`../../references/agent-neutral-guide.md`
-- 官方规范：`${SKILL_DIR}/references/official-spec.md`
-- 评测集：`${SKILL_DIR}/evals/evals.json`（5 条：2 core + 1 boundary + 2 edge）
+- 官方规范：`references/official-spec.md`
+- 评测集：`evals/evals.json`（8 条：2 core + 1 boundary + 2 edge + 3 专项）
 
 ---
 

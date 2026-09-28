@@ -34,11 +34,19 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 >
 > **防递归硬约束：子 Agent prompt 中禁止出现父 Skill 的触发词，避免无限循环。**
 
+## 路径约定
+
+- 资源引用一律写**相对技能目录的裸相对路径**：`references/xxx.md`、`scripts/xxx.sh`；子技能目录（`subskills/{名}/`）视为独立技能目录，引用工作台父级资源写 `../../references/xxx.md`。
+- 不使用宿主私有的路径变量：`SKILL_DIR` 不见于 Agent Skills 开放标准，`CLAUDE_SKILL_DIR` 只在 Claude Code 展开、装成 plugin 时失效（官方 issue #81588）——同一个包在不同宿主下会指向不同位置。
+- 执行脚本命令时，把宿主加载技能时给出的技能目录绝对路径填进 `{技能目录}`，如 `bash "{技能目录}/scripts/source-cleanup.sh" list`。
+
+---
+
 ## 评估体系
 
 本工作台统一使用 **Darwin 9 维度评估体系**，满分 100 分。其中维度 3/4/7（失败模式编码、可执行具体性、高风险行动黑名单）有 SkillLens 论文实证支持，其余维度与权重为本工作台自定。
 
-**详细评分标准：** `${SKILL_DIR}/references/darwin-rubric.md`
+**详细评分标准：** `references/darwin-rubric.md`
 
 **评级标准：** A（90-100 强烈推荐）/ B（75-89 值得一试）/ C（60-74 仍需改进）/ D（<60 建议重写）
 
@@ -75,8 +83,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **子技能加载：**
 ```
-开发 → Read ${SKILL_DIR}/subskills/dev/SKILL.md
-审查 → Read ${SKILL_DIR}/subskills/review/SKILL.md
+开发 → Read subskills/dev/SKILL.md
+审查 → Read subskills/review/SKILL.md
 ```
 
 ---
@@ -87,8 +95,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **原则：** 先检查，后执行。缺失依赖自动提示并提供安装方案。**先问清环境，再动手检查。**
 
-**详细指南：** `${SKILL_DIR}/references/workflow-details.md`（环境检查详细步骤）
-**环境检查参考：** `${SKILL_DIR}/references/environment-check.md`
+**详细指南：** `references/workflow-details.md`（环境检查详细步骤）
+**环境检查参考：** `references/environment-check.md`
 
 ### 执行流程
 
@@ -121,8 +129,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 在线查找用户需要的 Skill，避免重复造轮子。
 
-**详细策略：** `${SKILL_DIR}/references/search-strategy.md`
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（搜索详细步骤）
+**详细策略：** `references/search-strategy.md`
+**详细步骤：** `references/workflow-details.md`（搜索详细步骤）
 
 ### 搜索前问话（必问）
 
@@ -152,7 +160,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 从各种来源安全安装 Skill。
 
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（安装详细步骤）
+**详细步骤：** `references/workflow-details.md`（安装详细步骤）
 
 ### 安装前问话（必问）
 
@@ -169,7 +177,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 3. **安全审查**（强制）— 评级 >= B → 继续；评级 <= C → 询问用户
 4. **安装到工作区** — `cp -r {skill目录}/ ~/.skills/{skill名}/`
 5. **确认安装结果**
-6. **释放源码工作区**（如执行过 clone）— `release` + `auto`，详见 `${SKILL_DIR}/references/source-lifecycle.md`
+6. **释放源码工作区**（如执行过 clone）— `release` + `auto`，详见 `references/source-lifecycle.md`
 7. **生成安装报告** → `./artifacts/install/install-report-{date}-{skill-name}.md`
 
 ---
@@ -178,7 +186,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 对 Skill 进行安全扫描，识别风险。基于 SkillProbe 研究成果，包含语义-行为一致性检测和组合攻击风险评估。
 
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（安全审查详细步骤）
+**详细步骤：** `references/workflow-details.md`（安全审查详细步骤）
 
 ### 审查前问话（必问）
 
@@ -220,9 +228,9 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 改进现有 Skill 的质量，解决具体问题。
 
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（优化详细步骤）
-**棘轮机制：** `${SKILL_DIR}/references/ratchet-mechanism.md`
-**多评委评估：** `${SKILL_DIR}/references/multi-judge.md`
+**详细步骤：** `references/workflow-details.md`（优化详细步骤）
+**棘轮机制：** `references/ratchet-mechanism.md`
+**多评委评估：** `references/multi-judge.md`
 
 ### 优化前问话（必问）
 
@@ -251,8 +259,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 将本地测试通过的 Skill 安装到全局目录，支持多平台部署。
 
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（部署详细步骤）
-**Agent 中立指南：** `${SKILL_DIR}/references/agent-neutral-guide.md`
+**详细步骤：** `references/workflow-details.md`（部署详细步骤）
+**Agent 中立指南：** `references/agent-neutral-guide.md`
 
 ### 部署前问话（必问）
 
@@ -315,17 +323,17 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 9. **同步MCP配置（如需要）** — 检查并更新对应平台的MCP配置文件
 10. **释放源码工作区（自动执行）** — 步骤 8 验证通过后立即执行，无需询问用户
     ```bash
-    bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
-    bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+    bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
+    bash "{技能目录}/scripts/source-cleanup.sh" auto
     ```
     ```powershell
-    powershell -ExecutionPolicy Bypass -File "${SKILL_DIR}\scripts\source-cleanup.ps1" auto
+    powershell -ExecutionPolicy Bypass -File "{技能目录}\scripts\source-cleanup.ps1" auto
     ```
     - 只清理 `.cache/sources/` 下带标记的第三方源码，**不碰 `projects/{skill名}/` 源文件**
     - 两段式：先移入 `.trash`（可 `restore`），7 天冷静期后才真正删除
     - 必须向用户报告：释放了哪些、释放多少空间、如何回滚
 
-    详见 `${SKILL_DIR}/references/source-lifecycle.md`
+    详见 `references/source-lifecycle.md`
 
 **⚠️ 永远用 `cp`/`Copy-Item`，不用 `mv`，保留源文件。**
 
@@ -343,7 +351,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 管理已安装的 Skill。
 
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（管理详细步骤）
+**详细步骤：** `references/workflow-details.md`（管理详细步骤）
 
 ### 管理前问话（必问）
 
@@ -367,8 +375,8 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 将多个相关 Skill 整合为一个更强大、更完整的 Skill。
 
-**详细指南：** `${SKILL_DIR}/references/merge-workflow.md`
-**详细步骤：** `${SKILL_DIR}/references/workflow-details.md`（合并详细步骤）
+**详细指南：** `references/merge-workflow.md`
+**详细步骤：** `references/workflow-details.md`（合并详细步骤）
 
 ### 合并流程
 
@@ -498,7 +506,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 
 **目标：** 将一整套工作流程蒸馏成一个大型 Skill（含知识库、代码、模板）。适用于复杂业务流程、多阶段工作流、领域专家经验沉淀。
 
-**详细指南：** `${SKILL_DIR}/references/workflow-distillation.md`
+**详细指南：** `references/workflow-distillation.md`
 
 ### 蒸馏前问话（必问）
 
@@ -527,7 +535,7 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
 第四步：Token优化
   ├── 薄入口只保留路由信息和决策树
   ├── references/ 文件控制在 200-500 行
-  └── 使用 ${CLAUDE_SKILL_DIR} 变量引用资源
+  └── 资源引用用相对技能目录的裸相对路径
 第五步：评测集构建
   ├── 核心样本（覆盖主流程）
   ├── 边界样本（决策点、异常路径）
@@ -568,7 +576,7 @@ your-workflow-skill/
 **关键约束：**
 - SKILL.md 主文档 ≤ 500 行（官方建议），超过 30KB 后 AI 任务理解能力显著下降
 - references/ 单文件控制在 200-500 行，按需加载
-- 使用 `${CLAUDE_SKILL_DIR}` 变量引用资源，避免硬编码路径
+- 资源引用一律用相对技能目录的裸相对路径，不用宿主私有的路径变量
 - 工作流蒸馏完成后，必须按流程十沉淀开发记忆
 
 ---
@@ -577,7 +585,7 @@ your-workflow-skill/
 
 **目标：** 防止开发记忆污染主 SKILL.md，确保发布产物纯净。开发期记忆沉淀到 `.dev-memory.md`，发布/开源前自动清洗。
 
-**详细指南：** `${SKILL_DIR}/references/dev-memory-guide.md`
+**详细指南：** `references/dev-memory-guide.md`
 
 ### 核心机制
 
@@ -663,8 +671,8 @@ LLM 识别以下关键词时，必须主动询问是否执行清洗：
 
 **目标：** 释放「搜索 / 开发 / 审查 / 合并」过程中 git clone 下来的第三方源码，安全回收磁盘空间。
 
-**详细指南：** `${SKILL_DIR}/references/source-lifecycle.md`
-**清理工具：** `${SKILL_DIR}/scripts/source-cleanup.sh` 与 `.ps1`
+**详细指南：** `references/source-lifecycle.md`
+**清理工具：** `{技能目录}/scripts/source-cleanup.sh` 与 `.ps1`
 
 ### 触发时机
 
@@ -681,15 +689,15 @@ LLM 识别以下关键词时，必须主动询问是否执行清洗：
 
 1. **查看占用**
    ```bash
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" list
+   bash "{技能目录}/scripts/source-cleanup.sh" list
    ```
 2. **标记可释放**
    ```bash
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
+   bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
    ```
 3. **回收（移入 .trash，可恢复）**
    ```bash
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+   bash "{技能目录}/scripts/source-cleanup.sh" auto
    ```
 4. **报告用户** — 释放了哪些、释放多少空间、回滚命令
 
@@ -704,14 +712,14 @@ LLM 识别以下关键词时，必须主动询问是否执行清洗：
 ### 回滚
 
 ```bash
-bash "${SKILL_DIR}/scripts/source-cleanup.sh" restore "{staged-name}"
+bash "{技能目录}/scripts/source-cleanup.sh" restore "{staged-name}"
 ```
 
 ---
 
 ## 上下文管理
 
-**详细指南：** `${SKILL_DIR}/references/context-management.md`
+**详细指南：** `references/context-management.md`
 
 ### 核心原则
 
@@ -764,18 +772,18 @@ bash "${SKILL_DIR}/scripts/source-cleanup.sh" restore "{staged-name}"
 ## 参考资料
 
 **本工作台：**
-- 工作流程详细指南：`${SKILL_DIR}/references/workflow-details.md`
-- Darwin 评估体系：`${SKILL_DIR}/references/darwin-rubric.md`
-- 棘轮机制：`${SKILL_DIR}/references/ratchet-mechanism.md`
-- 多评委评估：`${SKILL_DIR}/references/multi-judge.md`
-- 反例黑名单：`${SKILL_DIR}/references/anti-patterns.md`
-- Agent 中立指南：`${SKILL_DIR}/references/agent-neutral-guide.md`
-- MCP整合指南：`${SKILL_DIR}/references/mcp-integration.md`
-- 其他参考：`${SKILL_DIR}/references/` 目录下的 requirements.md、search-strategy.md、proposal-template.md、optimize.md、deploy.md、merge-workflow.md、context-management.md、environment-check.md、artifacts.md
+- 工作流程详细指南：`references/workflow-details.md`
+- Darwin 评估体系：`references/darwin-rubric.md`
+- 棘轮机制：`references/ratchet-mechanism.md`
+- 多评委评估：`references/multi-judge.md`
+- 反例黑名单：`references/anti-patterns.md`
+- Agent 中立指南：`references/agent-neutral-guide.md`
+- MCP整合指南：`references/mcp-integration.md`
+- 其他参考：`references/` 目录下的 requirements.md、search-strategy.md、proposal-template.md、optimize.md、deploy.md、merge-workflow.md、context-management.md、environment-check.md、artifacts.md
 
 **子技能：**
-- 开发子技能：`${SKILL_DIR}/subskills/dev/SKILL.md`
-- 审查子技能：`${SKILL_DIR}/subskills/review/SKILL.md`
+- 开发子技能：`subskills/dev/SKILL.md`
+- 审查子技能：`subskills/review/SKILL.md`
 
 **全局技能（如已安装）：** find-skills、skill-creation-guide、skill-vetter、cocoloop、deep-research-pro、multi-search-engine、mcp-builder
 
@@ -804,7 +812,7 @@ bash "${SKILL_DIR}/scripts/source-cleanup.sh" restore "{staged-name}"
 - 合并时假设用户意图而不确认
 - **MCP与Skill职责混淆** — 不要把外部工具连接逻辑硬编码在Skill里，应使用MCP
 - **忽略组合攻击风险** — 单个权限看似安全，但组合起来可能有风险
-- 反例黑名单 AP-01 到 AP-08（详见 `${SKILL_DIR}/references/anti-patterns.md`）
+- 反例黑名单 AP-01 到 AP-08（详见 `references/anti-patterns.md`）
 
 ---
 

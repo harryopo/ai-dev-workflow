@@ -159,7 +159,15 @@ def _ref_skippable(line, m, raw):
         return True
     # CODE_PATH_RE 吃不下 scheme，只会从 `https://host/a/b.md` 的 host 起匹配，
     # 所以要看匹配前两个字符是不是 `//`，否则会把 URL 尾巴当成本地相对路径。
-    return line[max(0, m.start() - 2):m.start()] == "//"
+    if line[max(0, m.start() - 2):m.start()] == "//":
+        return True
+    # 同一类误抓：`bash "$SCRIPTS/x.sh"` 里 `$` 不是路径字符，正则从 SCRIPTS 起匹配，
+    # 于是把 shell 变量当成了目录名（Windows 大小写不敏感还会让 SCRIPTS/ 假装命中 scripts/）。
+    if line[max(0, m.start() - 1):m.start()] == "$":
+        return True
+    # `{技能目录}/scripts/x.sh`：中文占位名不在 _CODE_SEG 里，匹配从 `scripts` 起，
+    # 前一个字符是 `}` —— 这是"待替换占位"，不是字面路径（ASCII 占位名走 VAR_ANCHOR_RE）。
+    return line[max(0, m.start() - 1):m.start()] == "}"
 
 
 def _resolves(base, rel):

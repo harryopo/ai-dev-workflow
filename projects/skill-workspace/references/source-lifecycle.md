@@ -174,7 +174,7 @@ Agent 在以下四个时机**必须**主动处理源码释放，无需用户手�
 ### Bash / Git Bash
 
 ```bash
-SCRIPTS="${SKILL_DIR}/scripts"
+SCRIPTS="{技能目录}/scripts"
 
 # 查看所有受管源码工作区及占用
 bash "$SCRIPTS/source-cleanup.sh" list
@@ -204,7 +204,7 @@ bash "$SCRIPTS/source-cleanup.sh" restore {staged-name}
 ### Windows PowerShell
 
 ```powershell
-$SCRIPTS = "${SKILL_DIR}\scripts"
+$SCRIPTS = "{技能目录}\scripts"
 
 powershell -ExecutionPolicy Bypass -File "$SCRIPTS\source-cleanup.ps1" list
 powershell -ExecutionPolicy Bypass -File "$SCRIPTS\source-cleanup.ps1" auto

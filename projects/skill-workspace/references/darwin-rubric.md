@@ -32,7 +32,7 @@
 - [ ] 包含必要的元数据字段（name、description、version）
 - [ ] 目录结构完整（references/、scripts/、evals/ 等）
 - [ ] 正文 ≤500 行，避免过度冗长
-- [ ] 使用 ${SKILL_DIR} 引用文件
+- [ ] 资源引用用相对技能目录的裸相对路径
 
 **评分标准**：
 | 分数段 | 标准 |
@@ -221,7 +221,7 @@
 | PE-05 | VAGUE_INSTRUCTIONS | 指令模糊不清 | -5% | 具体化指令 |
 | PE-06 | REDUNDANT_KNOWLEDGE | 包含 AI 已知内容 | -5% | 删除已知内容 |
 | PE-07 | UNSAFE_SCRIPTS | scripts/ 含危险操作 | -15% | 移除或沙箱化 |
-| PE-08 | HARDcoded_PATHS | 硬编码绝对路径 | -5% | 使用 ${SKILL_DIR} 变量 |
+| PE-08 | HARDcoded_PATHS | 硬编码绝对路径 | -5% | 改用相对技能目录的裸相对路径 |
 | PE-09 | MISSING_EVALS | 无 evals.json | -5% | 创建评测集 |
 | PE-10 | POOR_TRIGGERING | 触发词过窄或过宽 | -10% | 优化触发词 |
 | PE-11 | MONOLITHIC_SKILL | 全家桶型 Skill | -10% | 拆分为多个专业 Skill |

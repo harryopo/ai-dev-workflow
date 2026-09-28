@@ -292,7 +292,7 @@ score = (relevance * 0.4) + (downloads * 0.3) + (stars * 0.3)
 
 4. **分析完成后释放**
    - 分析/提取完成 → 执行 `release {工作区名}` 标记为可释放
-   - 详见 `${SKILL_DIR}/references/source-lifecycle.md`
+   - 详见 `source-lifecycle.md`
    - 安装到全局后 → 直接执行 `auto` 回收
 
 ## 安全审查

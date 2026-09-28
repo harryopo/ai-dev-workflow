@@ -1278,7 +1278,7 @@ description: |
 3. 确认理解
 
 ### 第二步：核心处理
-1. 读取参考资料：${SKILL_DIR}/references/xxx.md
+1. 读取参考资料：{新技能}/references/xxx.md
 2. 执行核心逻辑
 3. 生成结果
 
@@ -1430,7 +1430,7 @@ echo "{'last_run': '$(date)'}" > "${CLAUDE_PLUGIN_DATA}/state.json"
 
 ## 参考资料
 
-- 文件1：${SKILL_DIR}/references/file1.md - {说明}
+- 文件1：{新技能}/references/file1.md - {说明}
 
 ## 输入规范
 
@@ -1938,14 +1938,14 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 
 ### 文件路径引用
 
-使用 `${SKILL_DIR}` 引用 skill 目录内的文件：
+本技能目录内的文件写裸相对路径：
 
 ```markdown
-- 官方规范：${SKILL_DIR}/references/official-spec.md
-- 模板文件：${SKILL_DIR}/references/template.md
+- 官方规范：references/official-spec.md
+- 模板文件：references/template.md
 ```
 
-使用 `${SKILL_DIR}/../` 引用父级目录的文件：
+引用工作台父级的资源时上跳两级（`subskills/dev/` 是一个独立技能目录）：
 
 ```markdown
 - 需求深挖指南：../../references/requirements.md
@@ -1956,11 +1956,11 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 ## 参考资料
 
 **本子技能：**
-- 官方规范：`${SKILL_DIR}/references/official-spec.md`
-- 模板文件：`${SKILL_DIR}/references/template.md`
-- 示例文件：`${SKILL_DIR}/references/example.md`
-- 实战方法论：`${SKILL_DIR}/references/methodology.md`
-- 评测集：`${SKILL_DIR}/evals/evals.json`
+- 官方规范：`references/official-spec.md`
+- 模板文件：`references/template.md`
+- 示例文件：`references/example.md`
+- 实战方法论：`references/methodology.md`
+- 评测集：`evals/evals.json`
 
 **父级参考资料：**
 - 需求深挖指南：`../../references/requirements.md`
@@ -2006,7 +2006,7 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 - description 前 250 字符必须包含触发词
 - 正文控制在 500 行以内
 - 参考资料放 references/ 目录
-- 使用 ${SKILL_DIR} 引用文件路径
+- 资源引用用相对技能目录的裸相对路径
 
 ### 禁止行为
 - 不要跳过需求澄清直接开发
@@ -2051,7 +2051,7 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 **A:** 了解用户想法，调整方案，确认后开始开发
 
 ### Q: 参考资料太多怎么办
-**A:** 正文 ≤500 行，长资料放 references/，用 ${SKILL_DIR} 引用
+**A:** 正文 ≤500 行，长资料放 references/，用相对技能目录的裸相对路径引用
 
 ### Q: 怎么判断 Skill 是否成熟
 **A:** 用弱模型验收。如果更便宜、更弱的模型也能按流程产出稳定结果，说明 Skill 真的把经验写进了流程。如果跑偏，说明约束还不够明确。

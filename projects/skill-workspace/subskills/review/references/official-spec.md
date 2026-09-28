@@ -100,7 +100,7 @@ shell: bash                       # bash | powershell
 | `$ARGUMENTS` | 用户传入的所有参数 |
 | `$ARGUMENTS[N]` | 按索引访问第 N 个参数 |
 | `$N` | `$ARGUMENTS[N]` 的简写 |
-| `${SKILL_DIR}` | SKILL.md 所在目录绝对路径 |
+| CLAUDE_SKILL_DIR（花括号形式，Claude Code 私有） | SKILL.md 所在目录绝对路径；**非 Agent Skills 开放标准字段，跨宿主不通用，本工作台不采用** |
 | `${SESSION_ID}` | 当前会话 ID |
 
 ---
@@ -147,5 +147,5 @@ find . -name "*.md" | head -20
 - description 前 250 字符包含触发词
 - 正文 ≤500 行
 - 参考资料放 references/
-- 用 ${SKILL_DIR} 引用文件
+- 用相对技能目录的裸相对路径引用文件
 - 复杂任务用 context: fork

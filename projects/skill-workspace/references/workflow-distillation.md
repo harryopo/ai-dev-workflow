@@ -15,7 +15,7 @@
 1. **SKILL.md 是入口，不是百科全书** — 官方建议 ≤500 行，超过 30KB 后 AI 任务理解能力显著下降
 2. **渐进式披露（Progressive Disclosure）是唯一正解** — 三层加载：元数据 → SKILL.md 主体 → references/scripts/assets
 3. **Skill 描述预算是隐藏硬约束** — 默认是 context window 的 1%（约 2K token）
-4. **${CLAUDE_SKILL_DIR} 变量是关键基础设施** — 让 SKILL.md 便携地引用同目录下的 scripts/templates/references
+4. **可移植的资源引用方式是关键基础设施** — 让 SKILL.md 便携地引用同目录下的 scripts/templates/references，本工作台统一用相对技能目录的裸相对路径（见 §3.3）
 5. **工作流蒸馏的成熟模式** — 薄入口 + references/ 承载详情 + subskills/ 拆分子流程 + scripts/ 封装确定性逻辑
 
 ---
@@ -120,9 +120,9 @@ your-workflow-skill/
 - **脚本代码本身永远不进入上下文**，只有输出结果进入
 - 实测：一个典型会话平均只加载 2-3 个完整 Skill，消耗约 5-8KB 上下文空间
 
-### 3.3 ${CLAUDE_SKILL_DIR} 变量
+### 3.3 宿主私有的路径变量（本工作台不采用）
 
-**Claude Code v2.1.69（2026 年 3 月）引入**，是大型 Skill 的关键基础设施。
+**Claude Code v2.1.69（2026 年 3 月）引入**，仅在单一宿主生效，本工作台不采用（原因见下方宿主行为）。
 
 **可用变量：**
 
@@ -130,20 +130,13 @@ your-workflow-skill/
 |------|---------|
 | `$ARGUMENTS` | 用户输入的参数文本 |
 | `$ARGUMENTS[N]` / `$N` | 按 0 基索引访问特定参数 |
-| `${CLAUDE_SKILL_DIR}` | Skill 所在目录的绝对路径 |
+| CLAUDE_SKILL_DIR（Claude Code 私有的花括号变量） | Skill 所在目录的绝对路径；**仅在 Claude Code 展开，装成 plugin 时不展开（官方 issue #81588）** |
 | `${CLAUDE_SESSION_ID}` | 当前会话 ID |
 
-**使用示例：**
-```markdown
----
-name: session-logger
-description: Log activity for this session
----
-Log the following activity to ${CLAUDE_SKILL_DIR}/logs/session.log:
-- Timestamp: current time
-- Session: ${CLAUDE_SESSION_ID}
-- Activity: $ARGUMENTS
-```
+**宿主行为**：Claude Code 在把技能正文注入上下文之前，会对花括号形式的变量做**文本替换**，
+指向技能所在目录与当前会话；装成 plugin 时不替换（官方 issue #81588），路径原样留在文本里。
+所以本工作台的 SKILL.md 不写这类变量：资源引用一律用相对技能目录的裸相对路径，
+命令里用 `{技能目录}` 占位（见工作台 SKILL.md 的路径约定）。
 
 ### 3.4 编排者哲学（Orchestrator Philosophy）
 
@@ -333,21 +326,21 @@ description: |
 一句话目标说明。
 
 ## 执行上下文
-- 完整流程定义：${SKILL_DIR}/references/workflow-overview.md
-- 阶段详情：${SKILL_DIR}/references/phase-1-xxx.md, phase-2-xxx.md, ...
-- 决策树：${SKILL_DIR}/references/decision-trees.md
-- 错误处理：${SKILL_DIR}/references/error-handling.md
-- 领域知识：${SKILL_DIR}/references/domain-knowledge.md
+- 完整流程定义：{新技能}/references/workflow-overview.md
+- 阶段详情：{新技能}/references/phase-1-xxx.md, phase-2-xxx.md, ...
+- 决策树：{新技能}/references/decision-trees.md
+- 错误处理：{新技能}/references/error-handling.md
+- 领域知识：{新技能}/references/domain-knowledge.md
 
 ## 工作流程
 ### Step 1: {阶段名}
 - 前置条件：...
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-1-xxx.md
+- 处理逻辑：详见 {新技能}/references/phase-1-xxx.md
 - 输出物：...
 
 ### Step 2: {阶段名}
 - 前置条件：Step 1 通过
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-2-xxx.md
+- 处理逻辑：详见 {新技能}/references/phase-2-xxx.md
 - 输出物：...
 
 ### Step N: ...
@@ -360,8 +353,8 @@ A:
   └─ 条件 C → 走流程 Z
 
 ## 子技能路由
-- {子流程 A} → 加载 ${SKILL_DIR}/subskills/sub-flow-a/SKILL.md
-- {子流程 B} → 加载 ${SKILL_DIR}/subskills/sub-flow-b/SKILL.md
+- {子流程 A} → 加载 {新技能}/subskills/sub-flow-a/SKILL.md
+- {子流程 B} → 加载 {新技能}/subskills/sub-flow-b/SKILL.md
 ```
 
 ### 第四步：references/ 拆分
@@ -489,7 +482,7 @@ if __name__ == '__main__':
 
 # ✅ 正确：引用外部文件（按需加载）
 ## 示例
-详见 ${CLAUDE_SKILL_DIR}/templates/example.md
+详见 {新技能}/templates/example.md
 ```
 
 ### 6.2 脚本封装确定性
@@ -503,14 +496,14 @@ if __name__ == '__main__':
 请生成一个 Python 脚本来校验 JSON 格式...
 
 # ✅ 正确：调用脚本（代码不进上下文，只有输出进入）
-执行：python ${CLAUDE_SKILL_DIR}/scripts/validate.py input.json
+执行：python {新技能}/scripts/validate.py input.json
 ```
 
 **脚本 I/O 通信规范（推荐 stdin/stdout JSON）：**
 
 ```bash
 # 输入通过 stdin
-echo '{"file":"data.json"}' | python ${CLAUDE_SKILL_DIR}/scripts/validate.py
+echo '{"file":"data.json"}' | python {新技能}/scripts/validate.py
 
 # 输出通过 stdout（JSON 格式）
 {"valid": true, "errors": []}
@@ -596,7 +589,7 @@ allowed-tools: Read, Grep, Bash
 |--------|------|----------|
 | SKILL.md 超过 500 行 | token 浪费 + 注意力稀释 | 拆分到 references/ |
 | 把所有知识塞进 SKILL.md | 超过 30KB 后理解能力下降 | 三层加载架构 |
-| 硬编码文件路径 | 跨平台不可移植 | 使用 ${CLAUDE_SKILL_DIR} |
+| 硬编码文件路径 | 跨平台不可移植 | 用相对技能目录的裸相对路径 |
 | 让 Claude 现场生成确定性代码 | 消耗 token + 不稳定 | 封装为 scripts/ |
 | 安装太多 Skill | 描述预算被打爆 | 核心 10-15 个 |
 | 不写 evals | 无法验证质量 | 评估先行 |
@@ -670,36 +663,36 @@ description: |
 从原始数据到结构化洞察报告的端到端数据分析流程。
 
 ## 执行上下文
-- 完整流程：${SKILL_DIR}/references/workflow-overview.md
-- 阶段详情：${SKILL_DIR}/references/phase-1-data-collection.md ~ phase-5-insight-generation.md
-- 决策树：${SKILL_DIR}/references/decision-trees.md
-- 错误处理：${SKILL_DIR}/references/error-handling.md
+- 完整流程：{新技能}/references/workflow-overview.md
+- 阶段详情：{新技能}/references/phase-1-data-collection.md ~ phase-5-insight-generation.md
+- 决策树：{新技能}/references/decision-trees.md
+- 错误处理：{新技能}/references/error-handling.md
 
 ## 工作流程
 
 ### Step 1: 数据收集
 - 前置条件：用户提供数据源
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-1-data-collection.md
+- 处理逻辑：详见 {新技能}/references/phase-1-data-collection.md
 - 输出物：原始数据集
 
 ### Step 2: 数据清洗
 - 前置条件：Step 1 完成
-- 处理逻辑：执行 `python ${SKILL_DIR}/scripts/clean_data.py`
+- 处理逻辑：执行 `python {新技能}/scripts/clean_data.py`
 - 输出物：清洗后数据集
 
 ### Step 3: 统计分析
 - 前置条件：Step 2 通过校验
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-3-statistical-analysis.md
+- 处理逻辑：详见 {新技能}/references/phase-3-statistical-analysis.md
 - 输出物：统计结果 JSON
 
 ### Step 4: 可视化
 - 前置条件：Step 3 完成
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-4-visualization.md
+- 处理逻辑：详见 {新技能}/references/phase-4-visualization.md
 - 输出物：图表文件
 
 ### Step 5: 洞察生成
 - 前置条件：Step 3、4 完成
-- 处理逻辑：详见 ${SKILL_DIR}/references/phase-5-insight-generation.md
+- 处理逻辑：详见 {新技能}/references/phase-5-insight-generation.md
 - 输出物：洞察报告
 
 ## 决策树
@@ -716,7 +709,7 @@ A:
 
 ## 输出规范
 - 格式：Markdown 报告
-- 模板：${SKILL_DIR}/templates/report-template.md
+- 模板：{新技能}/templates/report-template.md
 - 编码：UTF-8
 ```
 
@@ -757,5 +750,5 @@ A:
 - Anthropic 官方 Skill 编写最佳实践指南
 - GitHub anthropics/skills 官方仓库
 - Agent Skills 开放标准（agentskills.io，2025-12-18 发布）
-- Claude Code v2.1.69 ${CLAUDE_SKILL_DIR} 变量文档
+- Claude Code v2.1.69 的 CLAUDE_SKILL_DIR 变量文档（核实后不采用：仅单宿主生效）
 - skill-creator evals 框架（2026 年 3 月升级）

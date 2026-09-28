@@ -319,7 +319,7 @@
       "assertions": [
         { "id": "a1", "text": "必须按最严格约束设计 SKILL.md（≤8KB Codex 截断线）" },
         { "id": "a2", "text": "每个部署目标必须有 AGENTS.md 记录平台特定配置" },
-        { "id": "a3", "text": "必须使用 ${CLAUDE_SKILL_DIR} 变量引用资源" },
+        { "id": "a3", "text": "资源引用用相对技能目录的裸相对路径，不写宿主私有变量" },
         { "id": "a4", "text": "Windows 必须使用 $env:USERPROFILE 而非 ~" },
         { "id": "a5", "text": "必须提供跨平台兼容性检查清单" },
         { "id": "a6", "text": "工作区是唯一源，部署目标是副本，禁止反向修改" }
@@ -336,7 +336,7 @@
         { "id": "a2", "text": "必须按三层加载架构设计（SKILL.md + references/ + subskills/）" },
         { "id": "a3", "text": "SKILL.md 必须是薄入口（≤200行，理想≤80行）" },
         { "id": "a4", "text": "确定性逻辑必须封装到 scripts/" },
-        { "id": "a5", "text": "必须使用 ${CLAUDE_SKILL_DIR} 变量引用资源" },
+        { "id": "a5", "text": "资源引用用相对技能目录的裸相对路径，不写宿主私有变量" },
         { "id": "a6", "text": "必须生成蒸馏报告 md 文件" },
         { "id": "a7", "text": "完成后必须按流程十沉淀开发记忆" }
       ]

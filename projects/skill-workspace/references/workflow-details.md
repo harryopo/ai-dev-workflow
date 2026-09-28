@@ -251,8 +251,8 @@ npx clawhub@latest search {关键词}
 5. **确认安装结果**
 6. **释放源码工作区**（如执行过 git clone）
    ```bash
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
-   bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+   bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
+   bash "{技能目录}/scripts/source-cleanup.sh" auto
    ```
    安装到全局后源码副本即冗余，必须回收。详见 `references/source-lifecycle.md`。
 7. **生成安装报告**
@@ -582,8 +582,8 @@ npx clawhub@latest search {关键词}
    - 标记所有 `skill_name={skill名}` 的受管工作区为 releasable
    - 执行回收：
      ```bash
-     bash "${SKILL_DIR}/scripts/source-cleanup.sh" release "{工作区名}"
-     bash "${SKILL_DIR}/scripts/source-cleanup.sh" auto
+     bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
+     bash "{技能目录}/scripts/source-cleanup.sh" auto
      ```
    - 向用户报告释放了哪些、释放多少空间、如何回滚
 
@@ -734,7 +734,7 @@ npx skills check
 
 ## 流程八：MCP整合详细步骤
 
-**详细指南：** `${SKILL_DIR}/references/mcp-integration.md`
+**详细指南：** `mcp-integration.md`
 
 ### MCP整合前问话结果
 
@@ -791,7 +791,7 @@ npx skills check
 
 ## 流程九：工作流蒸馏详细步骤
 
-**详细指南：** `${SKILL_DIR}/references/workflow-distillation.md`
+**详细指南：** `workflow-distillation.md`
 
 ### 蒸馏前问话结果
 
@@ -840,7 +840,7 @@ npx skills check
 第四步：Token优化
   ├── 薄入口只保留路由信息和决策树
   ├── references/ 文件控制在 200-500 行
-  └── 使用 ${CLAUDE_SKILL_DIR} 变量引用资源
+  └── 资源引用用相对技能目录的裸相对路径
 
 第五步：评测集构建
   ├── 核心样本（覆盖主流程）
@@ -867,14 +867,14 @@ npx skills check
 
 - SKILL.md 主文档 ≤ 500 行（官方建议），超过 30KB 后 AI 任务理解能力显著下降
 - references/ 单文件控制在 200-500 行，按需加载
-- 使用 `${CLAUDE_SKILL_DIR}` 变量引用资源，避免硬编码路径
+- 资源引用一律用相对技能目录的裸相对路径，不用宿主私有的路径变量
 - 工作流蒸馏完成后，必须按流程十沉淀开发记忆
 
 ---
 
 ## 流程十：开发记忆与发布清洗详细步骤
 
-**详细指南：** `${SKILL_DIR}/references/dev-memory-guide.md`
+**详细指南：** `dev-memory-guide.md`
 
 ### 记忆沉淀流程
 
