@@ -405,7 +405,7 @@ bash "../../scripts/source-cleanup.sh" auto
 
 ⚠️ **审查场景必须先询问用户再回收** —— 用户可能要基于报告继续追问源码细节。与部署流程（自动回收）不同，此处不自动执行。
 
-详见 `../../references/source-lifecycle.md`。
+详见 `../../flows/source-lifecycle.md`。
 
 #### 6.1 评分汇总
 
@@ -540,7 +540,7 @@ bash "../../scripts/source-cleanup.sh" auto
 
 **目标：** 检测被审查 Skill 的主文档是否被开发记忆污染，并将审查发现的问题及改进建议沉淀到 `.dev-memory.md`。
 
-**详细指南：** `../../references/dev-memory-guide.md`
+**详细指南：** `../../flows/dev-memory-guide.md`
 
 #### 7.1 主文档污染检测
 
@@ -782,10 +782,10 @@ bash "../../scripts/source-cleanup.sh" auto
 
 ## 参考资料
 
-- Darwin 评分标准：`../../references/darwin-rubric.md`
-- 多评委机制：`../../references/multi-judge.md`
-- 反模式清单：`../../references/anti-patterns.md`
-- Agent 中立指南：`../../references/agent-neutral-guide.md`
+- Darwin 评分标准：`../../rubric/darwin-rubric.md`
+- 多评委机制：`../../rubric/multi-judge.md`
+- 反模式清单：`../../knowledge/anti-patterns.md`
+- Agent 中立指南：`../../knowledge/agent-neutral-guide.md`
 - 官方规范：`references/official-spec.md`
 - 评测集：`evals/evals.json`（8 条：2 core + 1 boundary + 2 edge + 3 专项）
 

@@ -254,7 +254,7 @@ npx clawhub@latest search {关键词}
    bash "{技能目录}/scripts/source-cleanup.sh" release "{工作区名}"
    bash "{技能目录}/scripts/source-cleanup.sh" auto
    ```
-   安装到全局后源码副本即冗余，必须回收。详见 `references/source-lifecycle.md`。
+   安装到全局后源码副本即冗余，必须回收。详见 `./source-lifecycle.md`。
 7. **生成安装报告**
 
 ### 安装报告模板
@@ -587,7 +587,7 @@ npx clawhub@latest search {关键词}
      ```
    - 向用户报告释放了哪些、释放多少空间、如何回滚
 
-   详见 `references/source-lifecycle.md`。
+   详见 `./source-lifecycle.md`。
 
 **⚠️ 永远用 `cp`，不用 `mv`，保留源文件。**
 

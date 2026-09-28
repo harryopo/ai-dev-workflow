@@ -116,7 +116,7 @@ allowed-tools: Read Write Edit Glob Bash WebFetch
 
 **目标：** 在任何操作开始之前，确保执行环境正常、依赖完整
 
-**参考资料：** `../../references/environment-check.md`
+**参考资料：** `../../flows/environment-check.md`
 
 ### 环境问话
 
@@ -202,7 +202,7 @@ ls {全局skills目录}/multi-search-engine/SKILL.md 2>/dev/null && echo "已安
 
 **生成环境检查报告** → 保存到 `./artifacts/env/env-check-{date}.md`
 
-报告模板详见父级 `../../references/artifacts.md`
+报告模板详见父级 `../../knowledge/artifacts.md`
 
 **安装命令模板（Windows）：**
 
@@ -283,7 +283,7 @@ sudo yum install -y git python3 python3-pip nodejs npm curl
 
 **目标：** 必须先问清楚用户需求，不能假设用户想要什么
 
-**参考资料：** `../../references/requirements.md`
+**参考资料：** `../../knowledge/requirements.md`
 
 ### "无需求不开发"强制检查
 
@@ -442,7 +442,7 @@ D. 功能完善（缺失功能）
 
 ### 生成 Plan 计划
 
-**参考资料：** `../../references/context-management.md`
+**参考资料：** `../../knowledge/context-management.md`
 
 **任务开始前，必须生成结构化的计划文档：**
 
@@ -527,7 +527,7 @@ D. 功能完善（缺失功能）
 
 **触发条件：** 用户说"合并skill"、"整合skill"、"把xxx和yyy合在一起"
 
-**参考资料：** `../../references/merge-workflow.md`
+**参考资料：** `../../flows/merge-workflow.md`
 
 ### 合并流程
 
@@ -783,7 +783,7 @@ D. 功能完善（缺失功能）
 
 **目标：** 全方位搜索，不遗漏任何有价值的信息源
 
-**参考资料：** `../../references/search-strategy.md`
+**参考资料：** `../../flows/search-strategy.md`
 
 ### 5 层搜索源并行搜索
 
@@ -910,7 +910,7 @@ bash "../../scripts/source-cleanup.sh" list     # 查看占用
 bash "../../scripts/source-cleanup.sh" auto     # 回收可释放的
 ```
 
-详见 `../../references/source-lifecycle.md`。
+详见 `../../flows/source-lifecycle.md`。
 
 **降级策略：**
 
@@ -1006,7 +1006,7 @@ score = (relevance * 0.4) + (downloads * 0.3) + (stars * 0.3)
 
 **目标：** 主推一个方案，附带 2-3 个备选，让用户选择
 
-**参考资料：** `../../references/proposal-template.md`
+**参考资料：** `../../knowledge/proposal-template.md`
 
 ### 生成推荐方案
 
@@ -1546,7 +1546,7 @@ echo "{'last_run': '$(date)'}" > "${CLAUDE_PLUGIN_DATA}/state.json"
 
 ### 审查标准
 
-统一走 Darwin 9 维度 100 分制，见 `../../references/darwin-rubric.md`；此处不再重复列维度表——两处各写一套正是分制漂移的根源。
+统一走 Darwin 9 维度 100 分制，见 `../../rubric/darwin-rubric.md`；此处不再重复列维度表——两处各写一套正是分制漂移的根源。
 
 ### 保存阶段记忆
 
@@ -1770,7 +1770,7 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 
 **目标：** 将本次 Skill 开发/优化/合并/MCP整合/工作流蒸馏的改进记忆沉淀到 `.dev-memory.md`，确保主 SKILL.md 保持纯净。
 
-**详细指南：** `../../references/dev-memory-guide.md`
+**详细指南：** `../../flows/dev-memory-guide.md`
 
 ### 触发时机（强制）
 
@@ -1948,7 +1948,7 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 引用工作台父级的资源时上跳两级（`subskills/dev/` 是一个独立技能目录）：
 
 ```markdown
-- 需求深挖指南：../../references/requirements.md
+- 需求深挖指南：../../knowledge/requirements.md
 ```
 
 ---
@@ -1963,15 +1963,15 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
 - 评测集：`evals/evals.json`
 
 **父级参考资料：**
-- 需求深挖指南：`../../references/requirements.md`
-- 搜索策略指南：`../../references/search-strategy.md`
-- 方案推送模板：`../../references/proposal-template.md`
-- 合并工作流：`../../references/merge-workflow.md`
-- 上下文管理：`../../references/context-management.md`
-- 环境检查指南：`../../references/environment-check.md`
-- 部署指南：`../../references/deploy.md`
-- 优化方法论：`../../references/optimize.md`
-- 工作产物管理：`../../references/artifacts.md`
+- 需求深挖指南：`../../knowledge/requirements.md`
+- 搜索策略指南：`../../flows/search-strategy.md`
+- 方案推送模板：`../../knowledge/proposal-template.md`
+- 合并工作流：`../../flows/merge-workflow.md`
+- 上下文管理：`../../knowledge/context-management.md`
+- 环境检查指南：`../../flows/environment-check.md`
+- 部署指南：`../../flows/deploy.md`
+- 优化方法论：`../../flows/optimize.md`
+- 工作产物管理：`../../knowledge/artifacts.md`
 
 **全局技能（如已安装）：**
 - Anthropic 官方创建指南（skill-creation-guide）

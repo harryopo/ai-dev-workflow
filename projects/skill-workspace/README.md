@@ -75,33 +75,40 @@
 
 ```
 skill-workspace/
-├── SKILL.md                              # 主入口（700+ 行）
+├── SKILL.md                              # 主入口：子命令路由表 + 三道门纪律 + 流程零～十一
 ├── README.md                             # 本文件
-├── references/
-│   ├── optimize.md                       # 优化方法论（棘轮机制）
-│   ├── deploy.md                         # 部署指南（多平台）
-│   ├── search-strategy.md                # 搜索策略
+├── flows/                                # 流程指南：执行某个流程时才读
+│   ├── workflow-details.md               # 全流程详细步骤（流程零～十一）
+│   ├── environment-check.md              # 环境检查（流程零）
+│   ├── search-strategy.md                # 搜索策略（流程一）
+│   ├── optimize.md                       # 优化方法论（流程四）
+│   ├── deploy.md                         # 部署指南（流程五，多平台）
+│   ├── merge-workflow.md                 # 合并流程（流程七）
+│   ├── mcp-integration.md                # MCP 整合指南（流程八）
+│   ├── workflow-distillation.md          # 工作流蒸馏指南（流程九）
+│   ├── dev-memory-guide.md               # 开发记忆与发布清洗（流程十）
+│   └── source-lifecycle.md               # 源码生命周期与磁盘回收（流程十一）
+├── knowledge/                            # 跨流程的规范、模板与清单
 │   ├── requirements.md                   # 需求深挖指南
 │   ├── proposal-template.md              # 方案推送模板
-│   ├── merge-workflow.md                 # 合并流程（v4.0，v5.0 优化）
-│   ├── context-management.md             # 上下文管理（v4.0）
-│   ├── environment-check.md              # 环境检查（v4.0）
-│   ├── workflow-details.md               # 工作流程详情（v5.3，含流程九/十）
-│   ├── darwin-rubric.md                  # Darwin 9 维度评估体系（v5.0）
-│   ├── ratchet-mechanism.md              # 棘轮机制（v5.0）
-│   ├── multi-judge.md                    # 多评委独立评估（v5.0）
-│   ├── anti-patterns.md                  # 反例黑名单（v5.0）
-│   ├── agent-neutral-guide.md            # Agent 中立指南（v5.0）
-│   ├── artifacts.md                      # 工作产物管理规范（v5.1）
-│   ├── mcp-integration.md                # MCP整合指南（v5.2）
-│   ├── workflow-distillation.md          # 工作流蒸馏指南（v5.3新增）
-│   ├── dev-memory-guide.md               # 开发记忆与发布清洗指南（v5.3新增）
-│   └── source-lifecycle.md               # 源码工作区生命周期与磁盘回收（v5.4新增）
+│   ├── context-management.md             # 上下文管理最佳实践
+│   ├── anti-patterns.md                  # 反例黑名单（11 条真实反模式）
+│   ├── agent-neutral-guide.md            # Agent 中立指南
+│   └── artifacts.md                      # 工作产物管理规范
+├── rubric/                               # 评分与判定口径（唯一一套）
+│   ├── darwin-rubric.md                  # Darwin 9 维度 100 分制，标注实证/自定边界
+│   ├── multi-judge.md                    # 多评委独立评估机制
+│   └── ratchet-mechanism.md              # 棘轮机制（分数只升不降）
+├── gates/                                # 门一 · 机械校验（Python 单份，0 token）
+│   ├── check.py                          # 引用/评分/词表/体积/frontmatter/副本 一致性
+│   └── test_check.py                     # 门自己的回归测试（跳过规则正反两侧断言）
+├── tools/
+│   └── export.sh                         # 真值源 → 两处安装位（--dry-run / --apply）
 ├── scripts/
 │   ├── source-cleanup.sh                 # 源码清理工具（Bash/Git Bash，v5.4新增）
 │   └── source-cleanup.ps1               # 源码清理工具（PowerShell 5.1+，v5.4新增）
 ├── evals/
-│   └── evals.json                        # 主技能评测集（18 条）
+│   └── evals.json                        # 主技能评测集（30 条）
 │
 └── subskills/
     ├── dev/                              # 开发子技能（完整包）
@@ -112,7 +119,7 @@ skill-workspace/
     │   │   ├── example.md               # 示例文件
     │   │   └── methodology.md           # 实战方法论
     │   └── evals/
-    │       └── evals.json               # 开发评测集（6 条）
+    │       └── evals.json               # 开发评测集（8 条）
     │
     └── review/                           # 审查子技能（完整包）
         ├── SKILL.md                      # 审查流程（Darwin 9 维度）
@@ -120,7 +127,7 @@ skill-workspace/
         │   ├── official-spec.md          # 官方规范
         │   └── security.md              # 安全审查规则
         └── evals/
-            ├── evals.json               # 审查评测集（5 条）
+            ├── evals.json               # 审查评测集（8 条）
             └── test-cases.json          # 测试用例
 ```
 
@@ -608,19 +615,19 @@ cp -r skill-workspace/subskills/review/ {全局skills目录}/skill-review/
 
 | 文件 | 说明 |
 |------|------|
-| `references/search-strategy.md` | 搜索策略（6 层搜索源） |
-| `references/requirements.md` | 需求深挖指南 |
-| `references/proposal-template.md` | 方案推送模板 |
-| `references/optimize.md` | 优化方法论（棘轮机制） |
-| `references/deploy.md` | 部署指南（Agent 中立） |
-| `references/merge-workflow.md` | 合并流程（v4.0） |
-| `references/context-management.md` | 上下文管理（v4.0） |
-| `references/environment-check.md` | 环境检查（v4.0） |
-| `references/darwin-rubric.md` | Darwin 9 维度评估体系（v5.0） |
-| `references/ratchet-mechanism.md` | 棘轮机制（v5.0） |
-| `references/multi-judge.md` | 多评委独立评估（v5.0） |
-| `references/anti-patterns.md` | 反例黑名单（v5.0） |
-| `references/agent-neutral-guide.md` | Agent 中立指南（v5.0） |
+| `flows/search-strategy.md` | 搜索策略（6 层搜索源） |
+| `knowledge/requirements.md` | 需求深挖指南 |
+| `knowledge/proposal-template.md` | 方案推送模板 |
+| `flows/optimize.md` | 优化方法论（棘轮机制） |
+| `flows/deploy.md` | 部署指南（Agent 中立） |
+| `flows/merge-workflow.md` | 合并流程（v4.0） |
+| `knowledge/context-management.md` | 上下文管理（v4.0） |
+| `flows/environment-check.md` | 环境检查（v4.0） |
+| `rubric/darwin-rubric.md` | Darwin 9 维度评估体系（v5.0） |
+| `rubric/ratchet-mechanism.md` | 棘轮机制（v5.0） |
+| `rubric/multi-judge.md` | 多评委独立评估（v5.0） |
+| `knowledge/anti-patterns.md` | 反例黑名单（v5.0） |
+| `knowledge/agent-neutral-guide.md` | Agent 中立指南（v5.0） |
 
 ### 开发子技能
 
@@ -687,7 +694,7 @@ cp -r skill-workspace/subskills/review/ {全局skills目录}/skill-review/
 ### 运行评测
 
 ```bash
-# 主技能评测（18 条）
+# 主技能评测（30 条）
 cat evals/evals.json | jq .
 
 # 开发子技能评测
@@ -721,8 +728,8 @@ cat subskills/review/evals/evals.json | jq .
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
-| v5.3.0 | 2026-07-30 | 新增工作流蒸馏流程（流程九）：三层加载架构、薄入口设计、知识库按需加载；新增开发记忆与发布清洗流程（流程十）：`.dev-memory.md` 沉淀开发记忆，发布前自动清洗；dev子技能新增第五阶段（记忆沉淀强制）；review子技能新增第七步（污染检测与沉淀建议）；新增 references/workflow-distillation.md 和 references/dev-memory-guide.md |
-| v5.2.0 | 2026-06-18 | 新增MCP整合流程（流程八）；增强安全审查（语义-行为一致性检测、组合攻击风险评估）；扩展多平台部署支持（TRAE、Windsurf、Gemini CLI）；新增references/mcp-integration.md；更新workflow-details.md |
+| v5.3.0 | 2026-07-30 | 新增工作流蒸馏流程（流程九）：三层加载架构、薄入口设计、知识库按需加载；新增开发记忆与发布清洗流程（流程十）：`.dev-memory.md` 沉淀开发记忆，发布前自动清洗；dev子技能新增第五阶段（记忆沉淀强制）；review子技能新增第七步（污染检测与沉淀建议）；新增 flows/workflow-distillation.md 和 flows/dev-memory-guide.md |
+| v5.2.0 | 2026-06-18 | 新增MCP整合流程（流程八）；增强安全审查（语义-行为一致性检测、组合攻击风险评估）；扩展多平台部署支持（TRAE、Windsurf、Gemini CLI）；新增flows/mcp-integration.md；更新workflow-details.md |
 | v5.1.2 | 2026-06-18 | Token 优化：移除 SKILL.md 中的版本更新概述、优势介绍等内容，统一放到 README.md |
 | v5.1.1 | 2026-06-18 | 自检补充：所有流程增加 LLM 对话问话环节；所有流程增加产物报告生成；新增安装/部署/管理操作报告类型 |
 | v5.1.0 | 2026-06-13 | 新增工作产物管理：所有调研/分析/方案都生成 md 文件，便于引用、优化和追溯 |

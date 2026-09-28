@@ -362,8 +362,8 @@
 **Q: references/ 中的正式参考文档可以包含版本信息吗？**
 
 A: 可以，但只能是"该参考文档自身的版本信息"，不能是"Skill 的开发记忆"。
-- ✅ `references/darwin-rubric.md` 中标注 "基于 SkillLens 论文 v2.0"
-- ❌ `references/darwin-rubric.md` 中记录 "v5.2 新增 D10 维度"
+- ✅ `../rubric/darwin-rubric.md` 中标注 "基于 SkillLens 论文 v2.0"
+- ❌ `../rubric/darwin-rubric.md` 中记录 "v5.2 新增 D10 维度"
 
 **Q: README.md 可以包含版本历史吗？**
 
