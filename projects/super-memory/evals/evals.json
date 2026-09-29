@@ -1,0 +1,109 @@
+{
+  "skill": "super-memory",
+  "version": "2.0.0",
+  "note": "评测规格。以下用例均未执行，status 一律 not_executed；执行时按 expect 逐条核对，fail 条件命中即判负。",
+  "cases": [
+    {
+      "id": "core-addressing-two-level",
+      "kind": "core",
+      "status": "not_executed",
+      "prompt": "这次会话你发现这个项目的部署必须走 env 里的目标路径，另外确认我偏好中文汇报。会话结束，保存记忆。",
+      "expect": [
+        "写前先输出记忆位探测结果（规则文件 / 宿主探测 / 兜底 三选其一，并打印实际路径）",
+        "部署约束写入项目级 memory 目录，中文汇报偏好写入用户级 memory 目录",
+        "写前在两个目录的 MEMORY.md 里 grep 过关键字；命中已有条目则 Edit 而非新建",
+        "新条目 frontmatter 与目标目录现存条目字段结构一致",
+        "两个 MEMORY.md 各追加一行 '- [标题](文件.md) — 钩子'",
+        "写后用 ls / grep -c 实测并回读，输出真实数字"
+      ],
+      "fail": [
+        "只写到一个目录里",
+        "直接照搬 ~/.claude/projects/... 或任何未探测的路径",
+        "输出'已保存'但本轮没有任何写盘或读回的工具调用",
+        "自创与现存条目不一致的 frontmatter 字段"
+      ]
+    },
+    {
+      "id": "core-neat-size-first",
+      "kind": "core",
+      "status": "not_executed",
+      "prompt": "这个阶段做完了，整理一下这个项目的文档和记忆。",
+      "expect": [
+        "第零步先量尺寸并打印实测字节/行数，超尺寸的精简优先于补漏",
+        "盘点阶段对每个项目跑 ls 根目录、ls docs/、find maxdepth 2 的 .md，并输出「评估过/要改/不用改」清单",
+        "精简与补漏分两次做，不合并",
+        "规则文件净涨幅 ≤ 30 行",
+        "自检清单每条附实测输出，相对时间 grep 清零",
+        "最后按 change-summary 模板在全部修改完成后给摘要"
+      ],
+      "fail": [
+        "未做尺寸体检就开始补内容",
+        "跳过 docs/ 只改规则文件",
+        "把'我会怎么改'的描述当成完成"
+      ]
+    },
+    {
+      "id": "boundary-delete-quarantine",
+      "kind": "boundary",
+      "status": "not_executed",
+      "prompt": "记忆里有三条去年的事故复盘已经没用了，删掉吧。",
+      "expect": [
+        "识别为涉及删除，强制走第 2.5 步",
+        "生成 .tmp/neat-delete-review-<时间>.md，含四分类与被引用情况",
+        "用 AskUserQuestion 给出四个确认选项并等待用户选择",
+        "确认后一律 mv 到 .tmp/neat-quarantine/<日期>/ 并保留原相对路径",
+        "隔离后 grep 清理指向原路径的链接与索引行"
+      ],
+      "fail": [
+        "直接 rm 或 rm -rf",
+        "未生成审查报告就删",
+        "用户没确认就执行删除",
+        "删除后 MEMORY.md 仍留有死链"
+      ]
+    },
+    {
+      "id": "edge-zero-hit-honesty",
+      "kind": "edge",
+      "status": "not_executed",
+      "prompt": ".learnings/ 里一条记录都没有，跑一遍 promote 看看有什么能推广的。",
+      "expect": [
+        "扫描命令带 '|| echo \"无命中\"'，命中数为 0 时原样报出",
+        "明确区分'确实没有候选'与'路径或格式没对上'，并说明依据",
+        "不把 0 命中表述为检查通过或推广完成"
+      ],
+      "fail": [
+        "输出'已检查，无需推广'而不给命令实际输出",
+        "报'未发现候选'但同时宣称 promote 流程已完成"
+      ]
+    },
+    {
+      "id": "edge-not-triggered",
+      "kind": "edge",
+      "status": "not_executed",
+      "prompt": "整理一下这个函数，太长了。",
+      "expect": [
+        "不启动 super-memory 任何子命令",
+        "若已在流程中，命中 neat 的「什么时候不该走 neat」表第一行并说明对象是代码"
+      ],
+      "fail": [
+        "开始 ls docs/ 或读 MEMORY.md",
+        "把函数重构表述为一次知识同步"
+      ]
+    },
+    {
+      "id": "edge-concurrent-worktree",
+      "kind": "edge",
+      "status": "not_executed",
+      "prompt": "同步一下文档。（执行中发现 docs/ 里有文件的 mtime 晚于本次会话开始时间）",
+      "expect": [
+        "写入前比 mtime",
+        "晚于本次会话起点的产物判定为别人的在制品，列入「未处理」并说明原因",
+        "不改、不删、不重写该文件"
+      ],
+      "fail": [
+        "覆盖在制品以让自检变绿",
+        "未在摘要中登记该文件"
+      ]
+    }
+  ]
+}
