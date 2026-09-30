@@ -187,3 +187,88 @@ def test_generated_plan_populates_facets_on_subquestions():
     for q in plan.issue_tree:
         assert q.query_facets, f'子问题未生成扇出查询: {q.question}'
         assert len(q.query_facets) >= 3
+
+
+# ============================================================
+# X-D19：MCP 路径默认取正文而非只取摘要
+# ============================================================
+
+def test_mcp_default_requests_raw_content():
+    src = (Path(__file__).resolve().parent.parent / 'engines' / 'mcp_engines.py') \
+        .read_text(encoding='utf-8')
+    assert '"include_raw_content": kwargs.get("include_raw_content", True)' in src, \
+        'MCP 路径仍默认只要摘要'
+
+
+# ============================================================
+# X-D21：高风险 claim 规则筛查（账本污染防护）
+# ============================================================
+
+@pytest.mark.parametrize('text,kind', [
+    ('该框架延迟低于 50ms', 'quantitative'),
+    ('吞吐达到 12000 QPS', 'quantitative'),
+    ('所有用户都采用此方案', 'absolute'),
+    ('这是目前最好的方案', 'absolute'),
+    ('该方案优于竞品', 'comparative'),
+    ('性能远超同类产品', 'comparative'),
+])
+def test_high_risk_claims_are_screened(text, kind):
+    from validate_report import screen_high_risk_claims
+    hits = screen_high_risk_claims([{'id': 'c-1', 'text': text}])
+    assert len(hits) == 1, f'{text!r} 应命中 1 条，实际 {len(hits)}'
+    assert hits[0]['kind'] == kind
+    assert hits[0]['claim_id'] == 'c-1'
+
+
+def test_ordinary_claims_not_flagged():
+    """误杀率必须低的样本：正常陈述句不该被拉进待查清单。"""
+    from validate_report import screen_high_risk_claims
+    ordinary = [
+        {'id': 'c-1', 'text': '该项目采用 MIT 许可证'},
+        {'id': 'c-2', 'text': '仓库最近一次提交在 2026 年 8 月'},
+        {'id': 'c-3', 'text': '官方文档描述了部署步骤'},
+        {'id': 'c-4', 'text': '该项目支持 Python 与 JavaScript 两种语言'},
+    ]
+    assert screen_high_risk_claims(ordinary) == []
+
+
+def test_screening_does_not_block_report():
+    """X-D21 是筛出待查清单，不是阻断——阻断需要 LLM 判定，本轮明确不做。
+
+    误把它写进 issues 会让高风险 claim 反而无法交付，等于逼 Lead 隐瞒风险。
+    """
+    from validate_report import screen_high_risk_claims
+    report = _FakeReport()
+    screen_high_risk_claims(
+        [{'id': 'c-1', 'text': '该框架延迟低于 50ms'}], report=report)
+    assert report.issues == [], '高风险筛查不得写入 issues（会阻断 --stamp）'
+    assert report.stats['needs_support_check'] == 1
+    assert report.warnings, '必须留下可读告警，不能静默'
+
+
+def test_screening_never_deletes_or_downgrades():
+    """只标记不改数据：删除即 DoS-by-poisoning，攻击者会故意植入特征词躲避。"""
+    from validate_report import screen_high_risk_claims
+    claims = [{'id': 'c-1', 'text': '所有用户都采用此方案', 'status': 'verified'}]
+    snapshot = [dict(c) for c in claims]
+    screen_high_risk_claims(claims)
+    assert claims == snapshot, '筛查不得修改 claim 本身'
+
+
+def test_screening_tolerates_empty_ledger():
+    from validate_report import screen_high_risk_claims
+    assert screen_high_risk_claims([]) == []
+    assert screen_high_risk_claims([{'id': 'c-1', 'text': ''}]) == []
+
+
+# ============================================================
+# 测试替身（须在使用它的测试之前定义）
+# ============================================================
+
+class _FakeReport:
+    """最小 ValidationReport 替身。"""
+
+    def __init__(self):
+        self.issues = []
+        self.warnings = []
+        self.stats = {}

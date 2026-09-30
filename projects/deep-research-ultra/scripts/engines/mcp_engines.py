@@ -155,7 +155,10 @@ class TavilyMcpEngine(SearchEngine):
             "search_depth": kwargs.get("search_depth", "basic"),
             "topic": kwargs.get("topic", "general"),
             "include_answer": kwargs.get("include_answer", True),
-            "include_raw_content": kwargs.get("include_raw_content", False),
+            # v6.15 X-D19：默认带正文。摘要会漏限定条件，会把"有研究显示"
+            # 读成"定论"——CRAAP 评分与 claim 支持度都建立在摘要上时，
+            # 整个证据链的地基是软的。仍可显式传 False 退回摘要模式。
+            "include_raw_content": kwargs.get("include_raw_content", True),
         }
         if "days" in kwargs:
             arguments["days"] = kwargs["days"]

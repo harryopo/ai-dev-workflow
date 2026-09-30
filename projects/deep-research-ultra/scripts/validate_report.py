@@ -56,6 +56,91 @@ class ValidationReport:
 
 
 # ---------------------------------------------------------------------------
+# v6.15 高风险 claim 规则筛查（X-D21）
+# ---------------------------------------------------------------------------
+#
+# 现有链路评的是"这个源可不可信"（CRAAP 五维 + Tier 分级），
+# 没有一步评"这句话是否真被这段文字支持"。Tier 高、CRAAP 高的来源，
+# 配上被过度引申的 claim，照样能全绿过门——这正是账本污染的入口：
+# 攻击者不改控制流，只让虚假断言带着可信来源的壳通过校验。
+#
+# **本函数只筛出待查清单，不做验证**。真要判定"支持/不支持"需要 LLM，
+# 那会让校验门从确定性脚本变成依赖模型调用的不确定环节，
+# 并破坏 --stamp 的可复现性（v6.11 建立的防伪机制）——本轮明确不做。
+# 漏检率不可控，SKILL.md 与 CHANGELOG 须如实声明，
+# 不得宣称"已实现支持度回查"。
+
+# 定量：数字 + 单位/量度。只看数字会误伤"2026 年"这类中性时间表述，
+# 因此要求数字与单位/量度词共现。
+HIGH_RISK_PATTERNS = {
+    'quantitative': [
+        re.compile(r'\d+(?:\.\d+)?\s*(?:%|％|倍|万|亿|千|ms|毫秒|秒|分钟|小时|天'
+                   r'|GB|MB|KB|TB|QPS|RPS|TPS)'),
+        re.compile(r'\d+(?:\.\d+)?\s*(?:万|亿)\s*(?:用户|次|条|个|家)'),
+    ],
+    'absolute': [
+        re.compile(r'(?:全部|所有|任何|总是|从不|永远|唯一|必然|彻底|绝对)'),
+        re.compile(r'(?:第一|最好|最强|最快|最高|最佳|最先进)'),
+    ],
+    'comparative': [
+        re.compile(r'(?:优于|胜过|远超|领先于|比.{0,12}更)'),
+        re.compile(r'(?:领先|优势明显|碾压|吊打)'),
+    ],
+}
+
+HIGH_RISK_LABELS = {
+    'quantitative': '定量断言（数字+单位）',
+    'absolute': '绝对化断言（全部/唯一/最…）',
+    'comparative': '比较级断言（优于/远超…）',
+}
+
+
+def screen_high_risk_claims(claims: List[Dict[str, Any]],
+                            report=None) -> List[Dict[str, Any]]:
+    """筛出定量/绝对化/比较级三类高风险 claim。
+
+    命中**不降级、不删除**，只标记为 needs_support_check 交 Lead 在
+    Phase 3.5 逐条定夺。理由与"不可信标记只降级不删除"同理：
+    攻击者或噪声故意植入特征词来躲避收录，删除即变成 DoS-by-poisoning。
+
+    Args:
+        claims: 账本 claim 列表（每项须含 id 与 text）
+        report: 可选 ValidationReport，写入 stats 与 warnings
+
+    Returns:
+        [{'claim_id', 'text', 'kind', 'label', 'matched'}]
+    """
+    hits: List[Dict[str, Any]] = []
+    for c in claims or []:
+        if not isinstance(c, dict):
+            continue
+        text = str(c.get('text', '') or '')
+        if not text:
+            continue
+        for kind, pats in HIGH_RISK_PATTERNS.items():
+            for pat in pats:
+                m = pat.search(text)
+                if m:
+                    hits.append({
+                        'claim_id': c.get('id'),
+                        'text': text,
+                        'kind': kind,
+                        'label': HIGH_RISK_LABELS[kind],
+                        'matched': m.group(0),
+                    })
+                    break   # 同一 claim 同一类只记一次，跨类可重复
+    if report is not None:
+        report.stats['needs_support_check'] = len(hits)
+        if hits:
+            preview = '、'.join(str(h.get('claim_id')) for h in hits[:8])
+            report.warnings.append(
+                f'{len(hits)} 条高风险 claim 需人工确认来源是否真的支持该表述'
+                f'（{preview}）——这是待查清单，不是已判定不支持；'
+                f'请在 Phase 3.5 逐条核对正文与来源，必要时改写或降级')
+    return hits
+
+
+# ---------------------------------------------------------------------------
 # 核心校验
 # ---------------------------------------------------------------------------
 
@@ -330,6 +415,11 @@ def validate_report(report_md: str,
             report.issues.append(
                 f'开源调研六维质量门缺失维度: {"、".join(missing_dims)}'
                 f'（报告含 {len(set(repo_links))} 个候选仓库链接）')
+
+    # ---------- 校验 7（v6.15 X-D21）：高风险 claim 筛查 ----------
+    # 只报 warning 不报 issue：这是"提醒 Lead 去查"，不是"证明 Lead 没查"。
+    # 真要阻断需要 LLM 语义判定，会破坏 --stamp 的可复现性。
+    screen_high_risk_claims(claims, report=report)
 
     # ---------- 校验 4：低质源占比 ----------
     if sources:
