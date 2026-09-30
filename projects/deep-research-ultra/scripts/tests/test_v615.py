@@ -62,3 +62,128 @@ def test_kwargs_strip_whitespace_in_domains():
     kw = _build_engine_kwargs(
         _Args(include_domain=[' arxiv.org ', '  ']), search_depth='')
     assert kw['include_domains'] == ['arxiv.org']
+
+
+# ============================================================
+# X-D17：主入口能控制 Tavily 检索深度
+# ============================================================
+
+@pytest.mark.parametrize('effort,depth,expected', [
+    (None,  'quick',    'fast'),
+    (None,  'standard', 'basic'),
+    ('deep', None,      'advanced'),
+    ('exhaustive', None, 'advanced'),
+    (None,  'extreme',  'advanced'),
+])
+def test_search_depth_derived_from_effort(effort, depth, expected):
+    """未显式指定时按档位推导——这是最便宜的一个准确度杠杆，不该让用户手填。"""
+    from research import _resolve_search_depth
+    assert _resolve_search_depth(_Args(effort=effort, depth=depth),
+                                 explicit=None) == expected
+
+
+def test_search_depth_explicit_overrides_effort():
+    from research import _resolve_search_depth
+    assert _resolve_search_depth(_Args(effort='deep'),
+                                 explicit='ultra-fast') == 'ultra-fast'
+
+
+def test_search_depth_never_depends_on_unknown_effort_word():
+    """exhaustive 归一为 extreme；直接拿 effort 原词查表会落空，此处防回归。"""
+    from research import _resolve_search_depth
+    assert _resolve_search_depth(_Args(effort='exhaustive'),
+                                 explicit=None) == 'advanced'
+
+
+def test_search_py_depth_accepts_four_tavily_levels():
+    """search.py 的 --depth 是 Tavily 检索深度，真实有 4 档，此前只给 2 档。"""
+    import re
+    src = (Path(__file__).resolve().parent.parent / 'search.py').read_text(
+        encoding='utf-8')
+    m = re.search(r"'--depth'.*?choices=\[([^\]]+)\]", src, re.S)
+    assert m, 'search.py 未找到 --depth 的 choices'
+    levels = set(re.findall(r"'([\w-]+)'", m.group(1)))
+    assert levels == {'ultra-fast', 'fast', 'basic', 'advanced'}
+
+
+# ============================================================
+# X-D18：每个子问题按信息需求类型扇出 3~5 条查询
+# X-D20：检索算子进查询生成层
+# ============================================================
+
+@pytest.mark.parametrize('preset', ['quick', 'standard', 'deep', 'extreme'])
+def test_each_subquestion_gets_3_to_5_faceted_queries(preset):
+    from plan import build_query_facets
+    n = len(build_query_facets('向量数据库选型', preset))
+    assert 3 <= n <= 5, f'{preset} 档产出 {n} 条，应为 3~5'
+
+
+def test_queries_are_typed_not_synonymous():
+    """同义改写等于白搜：多条必须落在不同信息需求类型上。"""
+    from plan import build_query_facets
+    facets = build_query_facets('RAG 框架选型', 'deep')
+    kinds = {f['facet'] for f in facets}
+    assert len(kinds) == len(facets), '存在同类型重复查询'
+
+
+def test_facet_queries_differ_from_each_other():
+    from plan import build_query_facets
+    qs = [f['query'] for f in build_query_facets('RAG 框架选型', 'deep')]
+    assert len(set(qs)) == len(qs), '生成了字面重复的查询'
+
+
+def test_only_primary_facet_uses_search_operators():
+    """算子只在原始文档类使用——加在 fact/data 上会收窄过头导致 0 结果。"""
+    from plan import build_query_facets
+    for f in build_query_facets('向量数据库', 'extreme'):
+        has_op = any(op in f['query'] for op in ('site:', 'filetype:', 'intitle:'))
+        assert has_op == (f['facet'] == 'primary'), \
+            f"{f['facet']} 类算子使用不当: {f['query']}"
+
+
+def test_at_most_one_operator_per_query():
+    """一条查询最多 1 个算子：两个以上会过度收窄，直接导致 0 结果。"""
+    from plan import build_query_facets
+    for f in build_query_facets('向量数据库', 'extreme'):
+        hits = sum(f['query'].count(op)
+                   for op in ('site:', 'filetype:', 'intitle:'))
+        assert hits <= 1, f'单条查询用了 {hits} 个算子: {f["query"]}'
+
+
+def test_legacy_plan_without_query_facets_still_loads():
+    """旧 session 的 plan.json 没有 query_facets，续跑不得崩。
+
+    ResearchPlan.from_dict() 走 SubQuestion(**q)，缺 key 会直接 TypeError，
+    所以必须验证白名单化之后旧数据能原样载入。
+    """
+    from plan import ResearchPlan
+    legacy = {
+        'topic': '旧主题', 'goal': '', 'depth': 'standard',
+        'dimensions': ['性能'], 'time_range': '', 'language': '', 'region': '',
+        'issue_tree': [{
+            'id': 'q-1', 'question': '旧子问题', 'hypothesis': 'h',
+            'data_sources': ['tavily'], 'depth': 0, 'parent_id': None,
+            'keywords': ['性能'], 'status': 'pending', 'search_count': 0,
+            'findings_count': 0, 'evidence': [], 'confidence': 0.0,
+            'search_queries': [], 'reflection_notes': [], 'perspectives': [],
+            'evidence_count': 0, 'children': [],
+            # 注意：没有 query_facets，正是 v6.14 存盘的形状
+        }],
+        'created_at': '2026-01-01T00:00:00', 'estimated_duration': '',
+        'estimated_sources': 0, 'unanswered_questions': [],
+        'dropped_dimensions': [],
+    }
+    plan = ResearchPlan.from_dict(legacy)
+    assert plan.issue_tree[0].query_facets == []
+
+
+def test_generated_plan_populates_facets_on_subquestions():
+    from plan import PlanGenerator
+    plan = PlanGenerator().generate_plan(
+        topic='向量数据库选型',
+        dimensions=['性能', '生态', '成本', '风险', '落地'],
+        effort='deep')
+    assert plan.issue_tree
+    for q in plan.issue_tree:
+        assert q.query_facets, f'子问题未生成扇出查询: {q.question}'
+        assert len(q.query_facets) >= 3

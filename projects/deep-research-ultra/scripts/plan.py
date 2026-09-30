@@ -32,7 +32,7 @@ Deep Research Ultra v4.0 — Phase 1: Plan（MECE 问题树）
 import json
 import sys
 import uuid
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field, asdict, fields
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Any
@@ -103,6 +103,87 @@ def resolve_preset_key(effort: Optional[str] = None,
     return key
 
 
+# ============================================================
+# v6.15 查询扇出（X-D18）与检索算子（X-D20）
+# ============================================================
+#
+# X-D18：此前"1 个子问题 = 1 条查询"，广度只有"子问题数"一维，
+# 单一表述只能命中一种信息需求——搜不出失败案例，也搜不出官方架构文档。
+# 报告表现为"每个点都提到了，但数据面/反方面/原始文档面普遍薄"。
+# 下面 5 类是**类型化**的（不是同义改写），各自治一种病。
+#
+# 条数依据：LangChain 开源 DR 的实证消融，其最优配置为每子问题 Nquery=3、
+# k=3、最大深度 6；查询更多是噪声。所以定 3~5 而不是越多越好。
+
+QUERY_FACETS = {
+    'fact': {
+        'suffix': '原理 是什么 机制',
+        'cures': '基础面缺失',
+    },
+    'data': {
+        'suffix': '2026 占比 排名 基准测试',
+        'cures': '缺量化数据',
+    },
+    'counter': {
+        'suffix': '失败 缺陷 批评 反例 踩坑',
+        'cures': '只搜到吹的',
+    },
+    'fresh': {
+        'suffix': '发布 更新 最新 版本',
+        'cures': '引用过期资料',
+    },
+    'primary': {
+        # 单条查询最多 1 个算子：多个算子叠加会过度收窄，直接导致 0 结果
+        # （--probe 的「⚠️ 0 结果」会明显上升）。要多个原始文档面就让
+        # 引擎分次搜，而不是把算子串在一条查询里。
+        'suffix': 'site:gov.cn 官方 原始报告 白皮书',
+        'cures': '二手转述污染',
+    },
+}
+
+# 各档位的扇出条数。extreme 与 deep 同为 5：极深档靠多轮加量，
+# 不靠单轮堆查询（堆多了主要是噪声）。
+FACET_COUNTS = {
+    'quick': 3,
+    'standard': 4,
+    'deep': 5,
+    'extreme': 5,
+}
+
+# 扇出顺序即优先级：先补最缺的（反方 → 量化 → 原始 → 最新 → 基础）
+FACET_ORDER = ('counter', 'data', 'primary', 'fresh', 'fact')
+
+# 检索算子白名单（X-D20）。此前全仓 site: 只出现在 cn_sources.py 的
+# 引擎失败兜底里，查询生成层根本不知道能用算子。
+SEARCH_OPERATORS = ('site:', 'filetype:', 'intitle:')
+
+
+def build_query_facets(subtopic: str,
+                       preset_key: str = 'standard') -> List[Dict[str, Any]]:
+    """为一个子问题生成类型化的检索查询集合（X-D18 + X-D20）。
+
+    Args:
+        subtopic: 子问题文本
+        preset_key: resolve_preset_key() 归一后的档位键
+
+    Returns:
+        [{'facet': 'counter', 'query': '...', 'cures': '...'}]
+    """
+    base = (subtopic or '').strip()
+    if not base:
+        return []
+    n = FACET_COUNTS.get(preset_key, FACET_COUNTS['standard'])
+    out: List[Dict[str, Any]] = []
+    for facet in FACET_ORDER[:n]:
+        spec = QUERY_FACETS[facet]
+        out.append({
+            'facet': facet,
+            'query': f"{base} {spec['suffix']}".strip(),
+            'cures': spec['cures'],
+        })
+    return out
+
+
 @dataclass
 class SubQuestion:
     """
@@ -134,6 +215,8 @@ class SubQuestion:
     # v6.0 新增
     perspectives: List[str] = field(default_factory=list)    # 多视角角色（专家团注入）
     evidence_count: int = 0                                  # 独立来源数（证据充分性判据）
+    # v6.15 X-D18：按信息需求类型扇出的检索查询（3~5 条，类型化非同义改写）
+    query_facets: List[Dict[str, Any]] = field(default_factory=list)
 
     def add_child(self, child: 'SubQuestion') -> None:
         """添加子问题"""
@@ -164,8 +247,14 @@ class SubQuestion:
             'reflection_notes': self.reflection_notes,
             'perspectives': self.perspectives,
             'evidence_count': self.evidence_count,
+            'query_facets': self.query_facets,
             'children': [c.to_dict() for c in self.children],
         }
+
+
+# v6.15：ResearchPlan.from_dict() 用 **q 展开构造 SubQuestion，
+# 白名单化后新增字段对历史 plan.json 天然向后兼容。
+_SUBQUESTION_FIELDS = frozenset(f.name for f in fields(SubQuestion))
 
 
 @dataclass
@@ -230,7 +319,18 @@ class ResearchPlan:
     def from_dict(cls, data: Dict) -> 'ResearchPlan':
         """从字典构建"""
         tree_data = data.get('issue_tree', [])
-        issue_tree = [SubQuestion(**q) if isinstance(q, dict) else q for q in tree_data]
+        # v6.15：SubQuestion(**q) 遇到未知/缺失 key 会 TypeError。
+        # 白名单化让新增字段对历史 plan.json 天然向后兼容——否则每加一个
+        # 字段，所有 v6.14 及更早的 session 都续跑不了。
+        issue_tree = [
+            SubQuestion(**{k: v for k, v in q.items() if k in _SUBQUESTION_FIELDS})
+            if isinstance(q, dict) else q
+            for q in tree_data
+        ]
+        for _q in issue_tree:
+            # 旧数据可能存了 null，兜成空列表免得下游遍历炸
+            if getattr(_q, 'query_facets', None) is None:
+                _q.query_facets = []
         return cls(
             topic=data.get('topic', ''),
             goal=data.get('goal', ''),
@@ -794,6 +894,12 @@ class PlanGenerator:
                     keywords=[dim.lower()],
                 )
                 issue_tree.append(q)
+
+        # v6.15 X-D18：给每个子问题生成分类型扇出查询。
+        # 放在两个构造分支之后统一回填，避免 issue_tree_data 分支漏掉。
+        for _q in issue_tree:
+            if not _q.query_facets:
+                _q.query_facets = build_query_facets(_q.question, preset_key)
 
         # 估算数据源数
         leaf_count = sum(1 for q in issue_tree for _ in [q])  # 简化估算
