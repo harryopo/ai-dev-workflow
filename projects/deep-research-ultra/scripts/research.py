@@ -40,7 +40,7 @@ import os
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
 # 添加 scripts 目录到路径
 SCRIPT_DIR = Path(__file__).parent.resolve()
@@ -418,6 +418,75 @@ def cmd_probe(registry, args):
 
 
 # ============================================================
+# v6.15 引擎 kwargs 构造（X-D16 / X-D17）
+# ============================================================
+#
+# X-D16：include_domains / exclude_domains / days / time_range 在
+# engines/mcp_engines.py:158-165 与 engines/fallback.py:653 早已被消费，
+# 但编排层从不传值——参数收得到、永远拿不到。这里补上传参路径。
+#
+# 落点说明：缺陷清单原文写的是 search.py:multi_search()，但 v6 主入口
+# research.py 走 Registry 直接调 engine.search()，不走 multi_search
+# （那是 v3 遗留路径，仅服务 search.py 自己的 CLI）。真正的断链点是
+# research.py 的 --all 与降级链两处调用。
+
+
+def _build_engine_kwargs(args, search_depth: str = '') -> Dict[str, Any]:
+    """把编排层参数转成引擎 kwargs。
+
+    铁律：**只在显式指定时才塞键**。传空值与不传对引擎语义不同
+    （如 time_range='' 可能被当成"不限时间"而非"用引擎默认值"），
+    所以未指定的键一律不出现，让引擎保持自己的默认行为。
+    """
+    kw: Dict[str, Any] = {}
+    if search_depth:
+        kw['search_depth'] = search_depth
+    tr = str(getattr(args, 'time_range', '') or '').strip()
+    if tr:
+        kw['time_range'] = tr
+    inc = [d.strip() for d in (getattr(args, 'include_domain', None) or [])
+           if str(d).strip()]
+    if inc:
+        kw['include_domains'] = inc
+    exc = [d.strip() for d in (getattr(args, 'exclude_domain', None) or [])
+           if str(d).strip()]
+    if exc:
+        kw['exclude_domains'] = exc
+    return kw
+
+
+# effort/depth 档位 → Tavily 检索深度。键是 plan.resolve_preset_key()
+# 归一**之后**的 preset key（注意 exhaustive → extreme）。
+SEARCH_DEPTH_BY_PRESET = {
+    'quick': 'fast',
+    'standard': 'basic',
+    'deep': 'advanced',
+    'extreme': 'advanced',
+}
+
+
+def _resolve_search_depth(args, explicit: Optional[str] = None) -> str:
+    """决定本次检索下发给 Tavily 的 search_depth。
+
+    X-D17：此前 research.py 全文 search_depth 出现 0 次，主入口所有调研
+    一律让 Tavily 走 basic——关键子问题（定量数据、争议核对）拿不到
+    advanced 的跨索引重排。这里把 effort 档位接到 search_depth 上。
+
+    显式值优先；未指定时按档位推导，让默认行为随档位变好，
+    而不是靠用户每次记得手填。
+    """
+    if explicit:
+        return explicit
+    try:
+        from plan import resolve_preset_key
+        key = resolve_preset_key(getattr(args, 'effort', None),
+                                 getattr(args, 'depth', None))
+    except Exception:
+        key = 'standard'
+    return SEARCH_DEPTH_BY_PRESET.get(key, 'basic')
+
+
+# ============================================================
 # 命令：--plan-only
 # ============================================================
 
@@ -677,6 +746,12 @@ def cmd_search(args, registry):
         ledger=bool(args.ledger), effort=args.effort,
         breadth=args.breadth, perspectives=getattr(args, 'perspectives', None),
         reflect_rounds=args.reflect_rounds,
+        # v6.15：改了检索条件却命中旧缓存 = 拿到上一次的结论（v6.3 踩过同类坑）
+        search_depth=_resolve_search_depth(
+            args, explicit=getattr(args, 'search_depth', None)),
+        time_range=getattr(args, 'time_range', None),
+        include_domain=getattr(args, 'include_domain', None),
+        exclude_domain=getattr(args, 'exclude_domain', None),
     )
     if not args.no_cache:
         cached = cache.get(cache_key)
@@ -802,6 +877,17 @@ def cmd_search(args, registry):
         except Exception:
             pass
 
+    # v6.15：Tavily 检索深度解析 + 引擎 kwargs 一次性构造，两处调用点共用
+    resolved_depth = _resolve_search_depth(
+        args, explicit=getattr(args, 'search_depth', None))
+    engine_kwargs = _build_engine_kwargs(args, search_depth=resolved_depth)
+    print(f"🔎 Tavily 检索深度: {resolved_depth}"
+          f"（{'用户指定' if getattr(args, 'search_depth', None) else '按档位推导'}）",
+          file=sys.stderr)
+    for k in ('time_range', 'include_domains', 'exclude_domains'):
+        if k in engine_kwargs:
+            print(f"🎛️  {k}: {engine_kwargs[k]}", file=sys.stderr)
+
     if args.all:
         # 搜索所有可用引擎
         for engine in chain:
@@ -813,7 +899,8 @@ def cmd_search(args, registry):
                 continue
             print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
-                results = engine.search(args.query, max_results=args.limit)
+                results = engine.search(args.query, max_results=args.limit,
+                                        **engine_kwargs)
                 if results is None:
                     # 基类契约：None = 引擎没取到数据（依赖/鉴权/契约变更）
                     _breaker_record(name, False)
@@ -840,7 +927,8 @@ def cmd_search(args, registry):
                 continue
             print(f"🔍 搜索中: {name}...", file=sys.stderr)
             try:
-                results = engine.search(args.query, max_results=args.limit)
+                results = engine.search(args.query, max_results=args.limit,
+                                        **engine_kwargs)
                 if results is None:
                     _breaker_record(name, False)
                     unavailable.append(name)
@@ -1181,6 +1269,22 @@ v3 兼容（自动降级到 Layer 4）:
     parser.add_argument('--time-range', help='时间范围（如：2024-2025, 近1年）')
     parser.add_argument('--language', help='查询语言（auto/zh/en）')
     parser.add_argument('--region', help='查询区域（cn/global）')
+
+    # v6.15 X-D17：Tavily 检索深度。注意与 --depth 语义不同——
+    # --depth 是"子问题数量档位"，--search-depth 是"检索深度"。
+    parser.add_argument('--search-depth', default=None,
+                        choices=['ultra-fast', 'fast', 'basic', 'advanced'],
+                        help='Tavily 检索深度（不填则按 --effort/--depth 推导：'
+                             'quick→fast, standard→basic, deep/exhaustive→advanced）')
+    # v6.15 X-D16：信源黑白名单，透传到 engines/mcp_engines.py 的
+    # include_domains / exclude_domains。前置排除比事后 Tier 降权有效——
+    # 被排除的源连 max_results 名额都不占。
+    parser.add_argument('--include-domain', action='append', default=None,
+                        metavar='DOMAIN',
+                        help='只采信这些域名（可重复，如 --include-domain arxiv.org）')
+    parser.add_argument('--exclude-domain', action='append', default=None,
+                        metavar='DOMAIN',
+                        help='排除这些域名（可重复，如 --exclude-domain csdn.net）')
 
     # 数据源
     parser.add_argument('--sources', '-s',

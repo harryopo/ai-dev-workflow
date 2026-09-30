@@ -1810,7 +1810,7 @@ def main():
     parser.add_argument('--sources', '-s', default=None,
                         help='搜索源，逗号分隔（不指定则自动根据查询语言选择）')
     parser.add_argument('--depth', '-d', default='basic',
-                        choices=['basic', 'advanced'],
+                        choices=['ultra-fast', 'fast', 'basic', 'advanced'],
                         help='搜索深度 (Tavily)')
     parser.add_argument('--limit', '-n', type=int, default=10,
                         help='每个源的最大结果数')
