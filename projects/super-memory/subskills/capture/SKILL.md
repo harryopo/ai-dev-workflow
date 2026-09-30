@@ -5,6 +5,8 @@
 
 ## 写之前
 
+`.learnings/` 是**暂存层**：装未升档的实时记录。已验证且跨模块通用的结论要升档到 `.ai/knowledge/`（见 handoff），归属划分见 `../../references/knowledge-tiers.md`。
+
 `.learnings/` 相对于**当前工作区根目录**。跨项目工作时，改了哪个项目就写哪个项目的 `.learnings/`，别全堆在一个目录里；拿不准就问一句。
 
 首次使用补齐目录与三个聚合文件，**已存在的绝不覆盖**：
@@ -28,7 +30,8 @@ mkdir -p .learnings
 | 发现更好做法 | `.learnings/LEARNINGS.md` | `LRN`，category `best_practice` |
 | 用户要一个不存在的能力 | `.learnings/FEATURE_REQUESTS.md` | `FEAT` |
 | 与已有条目相关 | 就地加 `- See Also: <ID>` | — |
-| 已验证且广泛适用 | 转 promote | — |
+| 已验证且跨模块通用 | 升档 `.ai/knowledge/`（见 handoff），原条目留指针并标已升档 | — |
+| 是必须每次看到的硬规则 | 转 promote 进规则文件 | — |
 
 ## ID 规则
 

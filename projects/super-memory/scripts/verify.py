@@ -71,3 +71,32 @@ print("=== 结构最小要求（项目 CLAUDE.md 第2节）==="
       )
 for need in ["SKILL.md", "evals/evals.json"]:
     print("  %-20s %s" % (need, "存在" if os.path.exists(need) else "缺失"))
+
+print("=== handoff 专项 ===")
+codes = ["[V]", "[W]", "[Q]", "[R]", "[F]"]
+hs = open("subskills/handoff/SKILL.md", encoding="utf-8").read()
+print("  五个置信度码齐且互不重复:", all(c in hs for c in codes),
+      "| 码数:", len(set(codes)), "| 无符号重叠:", len(set(c.split()[0] for c in codes)) == 5)
+
+tpl = open("references/handoff-template.md", encoding="utf-8").read()
+secs = re.findall(r"^## \*?\u2605?\*?(\d+)\.", tpl, re.M)
+print("  模板节数:", len(secs), "期望 10 ->", "ok" if len(secs) == 10 else "MISMATCH", secs)
+print("  必需节标记(★)出现次数:", tpl.count("★"), "(6 个必需节 + 1 处图例)")
+
+tiers = open("references/knowledge-tiers.md", encoding="utf-8").read()
+spots = [".learnings/", ".ai/HANDOFF.md", ".ai/knowledge/", "agent 记忆库", "规则文件"]
+missing = [s for s in spots if s not in tiers]
+print("  五处落点全覆盖:", "ok" if not missing else missing)
+
+parent = open("SKILL.md", encoding="utf-8").read()
+subs = sorted(glob.glob("subskills/*/SKILL.md"))
+print("  子命令目录数:", len(subs), [os.path.basename(os.path.dirname(p)) for p in subs])
+notrouted = [p for p in subs if norm(p) not in parent.replace(BS, "/")]
+print("  未在主入口路由表中出现的子技能:", notrouted or "无")
+for kw in ["handoff", "[V]", "knowledge-tiers"]:
+    print("  主入口提到 %s: %s" % (kw, kw in parent))
+
+print("=== evals 版本与 skill 版本一致 ===")
+skill_ver = re.search(r"^version:\s*([\d.]+)", open("SKILL.md", encoding="utf-8").read(), re.M).group(1)
+print("  SKILL.md:", skill_ver, "| evals:", d["version"], "| 一致:", skill_ver == d["version"])
+print("  用例总数:", len(d["cases"]))

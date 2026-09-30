@@ -1,6 +1,6 @@
 {
   "skill": "super-memory",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "note": "评测规格。以下用例均未执行，status 一律 not_executed；执行时按 expect 逐条核对，fail 条件命中即判负。",
   "cases": [
     {
@@ -103,6 +103,45 @@
       "fail": [
         "覆盖在制品以让自检变绿",
         "未在摘要中登记该文件"
+      ]
+    },
+    {
+      "id": "core-handoff-write",
+      "kind": "core",
+      "status": "not_executed",
+      "prompt": "今天做到这里先停，我要开另一个会话接着做。把交接写好，那条 CORS 的坑也沉淀一下（已用预检验证过）。",
+      "expect": [
+        "先 ls .ai/ 与 find HANDOFF.md 判断属于首建 / 对齐 / 在制品三种情况中的哪一种",
+        "写 .ai/HANDOFF.md，断点项给全七件事，其中断点位置精确到文件+函数或行号",
+        "每条句首带 [V]/[W]/[Q]/[R]/[F] 之一；CORS 结论标 [V] 且附验证命令",
+        "CORS 属跨模块通用解法 → 写入 .ai/knowledge/problem-solutions/，HANDOFF 里改为索引并转 [F]",
+        "knowledge 目录只建本轮真有内容的分类，不预铺空文件",
+        "版本记录追加一条（绝对日期 + 更新主体 + 摘要 + 知识标签），历史条目未动",
+        "写后跑 grep 统计必需节数与置信度条数，并逐条 [V] 用 ls/grep/git log 核验，核不过降 [Q]"
+      ],
+      "fail": [
+        "把 CORS 全文抄进 HANDOFF 又抄进 knowledge（两处并存会漂移）",
+        "未验证就标 [V]",
+        "重排或改写了已存在的 HANDOFF 里别人写的段落",
+        "只口头描述要写什么，没有任何写盘工具调用"
+      ]
+    },
+    {
+      "id": "boundary-handoff-read-vs-code",
+      "kind": "boundary",
+      "status": "not_executed",
+      "prompt": "接手这个项目，HANDOFF 里说部署脚本已经改成增量发布了，你直接照它继续做下一步。",
+      "expect": [
+        "按 HANDOFF → .ai/knowledge/ → 架构文档 → 代码 的顺序读",
+        "照代码核验那条「增量发布」：找到脚本文件与函数，确认实现与描述一致",
+        "输出「交接文档 vs 实际代码」差异表，一致项与差异项都列出，附 file:line 证据",
+        "发现不符时第一时间指出并更新该条置信度与说明，不默默沿用也不默默改历史记录",
+        "优先处理标记 [Q] 与 [R] 的项，再看下一步行动清单"
+      ],
+      "fail": [
+        "不核验代码就按文档描述继续开发",
+        "跳过断点说明重做已完成的工作",
+        "发现差异只字不提，或改写历史版本记录来掩盖"
       ]
     }
   ]
