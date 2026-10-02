@@ -1,8 +1,9 @@
 ---
 name: deep-research-ultra
-version: 6.14.0
+version: 6.15.0
 description: |
   超级深度调研工具，基于 Plan-Execute-Synthesize-Reflect 四阶段范式，由主 Agent 担任 Lead 编排子 Agent 并行检索（Orchestrator-Worker），配合深度调研专家团（多视角对抗/审稿人闭环）、证据账本（claim→source 溯源）、来源 Tier 分级与发布前校验门；智能路由（三级级联）匹配 32 个数据源（四层：MCP+学术直连 / Skill+GitHub+国内平台深搜 / 内置+浏览器 / 降级+反爬），引擎真实可用性由 --probe 自检把关。
+  每个子问题按信息需求类型扇出 3~5 条类型化查询（反方/量化/原始文档/时效/基础），检索参数（信源黑白名单、时间窗、Tavily 深度）可端到端下达到引擎，发布前另筛出定量/绝对化/比较级三类高风险断言交人工核对。
   当用户说"深度调研"、"deep research"、"帮我研究"、"全面分析"、"调研报告"时调用。
 allowed-tools: Read Write Bash Glob Grep AskUserQuestion Agent WebSearch WebFetch
 ---
@@ -234,15 +235,31 @@ pending → searching → verified | conflict | supplementing → completed
 3. 假设生成：每个子问题给出可验证假设
 4. 数据源匹配：用 Phase 0 `--probe` 的实际 ✅ 清单做 `--sources` 分配（路由只给建议）
 5. 多视角注入：每个子问题默认挂 3 个对抗视角（域专家-准确性 / 怀疑者-矛盾反例 / 实践者-可落地性），`--perspectives 0` 可关闭
+6. **检索算子（v6.15，可自由使用，但每条查询最多 1 个）**：
+
+   | 算子 | 用途 | 例 |
+   |------|------|---|
+   | `site:` | 限定站点 | `site:arxiv.org RAG 评测` |
+   | `filetype:` | 限定文档类型 | `filetype:pdf 检索规范` |
+   | `intitle:` | 标题精确命中 | `intitle:benchmark 向量` |
+
+   **硬约束：一条查询最多 1 个算子。** 两个以上会过度收窄，直接导致 0 结果
+   （`--probe` 的「⚠️ 0 结果」会明显上升）。算子优先用在「原始文档」类查询上；
+   事实/数据/反方类查询加算子会收窄过头。要覆盖多个站点就分次搜，不要把算子串成一条。
 
 **努力程度分级（effort）决策树**（对齐社区 depth/breadth 共识）：
 
-| effort | 子问题数 | breadth（并行子Agent数）| 数据源数 | 反思轮次 | 专家团 | 报告字数 |
-|--------|----------|------------------------|----------|----------|--------|----------|
-| `quick`（快速） | 2-3 | 2 | 2-3 | 0 | 跳过 | 1500-3000 |
-| `standard`（标准，默认） | 4-6 | 4 | 3-5 | 1 | 1 轮 3 视角 | 3000-6000 |
-| `deep`（深度） | 7-10 | 8 | 5-8 | 2-3 | 2 轮含冲突消解 | 6000-15000 |
-| `exhaustive`（极深） | 10+ | 12 | 8+ | 3+ | red-team 对抗 + 多轮修订 | 15000+ |
+| effort | 子问题数 | breadth（并行子Agent数）| 数据源数 | 每子问题查询数 | 反思轮次 | 专家团 | 报告字数 |
+|--------|----------|------------------------|----------|----------------|---------|--------|----------|
+| `quick`（快速） | 2-3 | 2 | 2-3 | 3 | 0 | 跳过 | 1500-3000 |
+| `standard`（标准，默认） | 4-6 | 4 | 3-5 | 4 | 1 | 1 轮 3 视角 | 3000-6000 |
+| `deep`（深度） | 7-10 | 8 | 5-8 | 5 | 2-3 | 2 轮含冲突消解 | 6000-15000 |
+| `exhaustive`（极深） | 10+ | 12 | 8+ | 5 | 3+ | red-team 对抗 + 多轮修订 | 15000+ |
+
+> **查询扇出（v6.15）**：上表「每子问题查询数」是**类型化**的——反方 / 量化 / 原始文档 /
+> 时效 / 基础事实各一条，**不是同义改写**（同一表述换措辞等于白搜）。LangChain 开源 DR 的
+> 实证消融显示每子问题 3 条附近最优，再多是噪声。`exhaustive` 与 `deep` 同为 5：
+> 极深档靠多轮加量，不靠单轮堆查询。
 
 **深度策略**（`--depth` 兼容映射）：quick→快速 / standard→标准 / deep→深度 / extreme→极深（exhaustive）
 
@@ -332,9 +349,17 @@ Lead（主 Agent）
 指定引擎: {engines}（由 Lead 从 Phase 0 `--probe` 报 ✅ 的引擎中按主题分配）
 
 任务:
-1) 用 python "{SKILL_DIR}/scripts/research.py" "{subtopic}" --no-cache 检索（若指定引擎则加 --sources {engines}）
-   （v6.10：`--ledger` 只登记证据到 evidence.jsonl，不再把搜索结果的标题写成 claim——
-   标题是别人页面的标题，不是你的论断；混进来会让覆盖率与引用统计虚高，实测 391 条 merge 后变 602 条）
+1) **按信息需求类型扇出检索**（v6.15：1 条改为 3~5 条，**类型化非同义改写**）。
+   从计划里该子问题的 `query_facets` 取每类查询词，逐条检索：
+   `python "{SKILL_DIR}/scripts/research.py" "<该 facet 的 query>" --no-cache`
+   - 优先级：反方/失败案例 → 量化数据 → 原始文档 → 时效 → 基础事实
+   - **反方类必发**：`--perspectives` 里的怀疑者视角对应的就是"失败 缺陷 批评 反例"
+     这条查询；只发正面查询等于没做对抗
+   - 每条查询最多 1 个检索算子（`site:` / `filetype:` / `intitle:`）
+   - `deep` 及以上档位加 `--search-depth advanced`（拿 Tavily 跨索引重排）
+   - **信源过滤**：内容农场/SEO 农场用 `--exclude-domain` 前置排除，
+     不要指望事后靠 Tier 打分降权——被排除的源连 `max_results` 名额都不占
+
 2) 用 python "{SKILL_DIR}/scripts/ledger.py" add-claim --session {ledger_dir} --text "<claim>" --topic "{subtopic}" --status pending --perspective "{perspective}" --confidence <0-1>
    再用 add-source 为该 claim 关联 ≥1 个来源 URL（--tier 自动判定）
 3) 每条 claim 必须：只记录事实与来源，不做总结断言；发现矛盾标 --status conflict
@@ -516,12 +541,18 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 | **独立来源强度（v6.3）**：每条 verified claim 独立来源 ≥2；**v6.7 起档 B（`evidence_tier=B` 且有 `verify_method`）豁免**——归属型断言不该被要求第二个域 | 补交叉验证或降级 pending |
 | **六维要素（v6.3）**：报告含仓库链接时，风险标签/许可证/维护/适配/落地/量化齐备 | 按 7.0b 六维质量门补写 |
 | 占位内容（v6.14）：报告里不得残留 `【待写】`（skeleton.py 的待写标记） | 把该段写完并删掉标记，或按"一个 session 一轮"推到下一轮；不许带着标记盖戳 |
+| **高风险 claim 筛查（v6.15）**：定量/绝对化/比较级三类断言列入待查清单，**只告警不阻断** | 逐条核对来源正文是否真的支持该表述，必要时改写为限定表述或降级为待确认 |
 | 必需章节：执行摘要/方法/结论/来源 | 补写章节 |
 | 低质源占比：Tier4 < 30%（告警） | 建议补权威源后复核 |
 | 执行摘要 ≤ 1200 字 | 精简摘要 |
 | **防伪戳（v6.11）**：`--stamp` 只在过门后往 report.md 尾部写一行 `<!-- drux:validated body=… ledger=… claims=N sources=N -->`；`--verify-stamp` 复核正文与账本指纹 | 没戳／正文改过／账本变过 → 重跑 `--stamp`；手抄一行戳骗不过指纹 |
 
 > 校验通过（exit 0）后才向用户交付；`--format html/markdown/json` 均可先导出再校验。
+>
+> **X-D21 的边界（勿夸大）**：该项是**规则筛出待查清单**，不是"已验证引用支持 claim"。
+> 漏检率不可控，也不做语义判定。真正要判定"支持/部分/不支持"需要 LLM 介入，
+> 那会让校验门失去确定性、`--stamp` 的可复现性也会被破坏——v6.15 刻意不做。
+> 命中项**不降级不删除**：攻击者或噪声会故意植入特征词来躲避收录，删除即 DoS-by-poisoning。
 >
 > **为什么要有戳**：另一次实跑里，Lead 在写不出报告时落了一份带占位内容的 report.md，并在
 > 会话里声称"校验门 passed"——他根本没跑校验。"诚实标注"这条铁律拦不住不碰工具的人，
@@ -1189,6 +1220,11 @@ python "${SKILL_DIR}/scripts/skeleton.py" .research/session/ledger -o report.md 
 # 7. 发布前校验门（exit 0=通过）+ 防伪戳
 python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .research/session/ledger --stamp
 python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .research/session/ledger --verify-stamp
+
+# 8. v6.15 检索参数：信源黑白名单 + Tavily 深度 + 时间窗
+# --search-depth 不填则按 effort 推导（quick→fast/standard→basic/deep·exhaustive→advanced）
+python "${SKILL_DIR}/scripts/research.py" "RAG 选型" --effort deep \
+  --search-depth advanced --exclude-domain csdn.net --include-domain arxiv.org
 ```
 
 ### 14.4 路由决策示例
@@ -1227,7 +1263,7 @@ python "${SKILL_DIR}/scripts/validate_report.py" --report report.md --ledger .re
 
 ```
 scripts/
-├── research.py              # 主入口（--env-check/--probe/--auto-route/--effort/--breadth/--dimensions/--ledger/--min-relevance）
+├── research.py              # 主入口（--env-check/--probe/--auto-route/--effort/--breadth/--dimensions/--ledger/--min-relevance/--search-depth/--include-domain/--exclude-domain）
 ├── console.py               # CLI 强制 UTF-8 输出（Windows GBK 控制台曾直接 UnicodeEncodeError）
 ├── probe.py                 # 引擎功能自检（探针查询表 + ok/empty/failed 判定）
 ├── env_check.py             # 环境分级验证（minimal/opensource/academic/full）
@@ -1274,6 +1310,7 @@ scripts/
     ├── test_repo_health_verdict.py # 仓库扫描五态（限流=unknown / 404=真结论 / token 真发出）
     ├── test_validation_stamp.py # 防伪戳（盖戳只在过门后 / 改正文或账本即失效 / 手抄骗不过）
     ├── test_skeleton.py     # 骨架（引用=账本编号 / 登记表不串号 / 【待写】过不了门 / 无账本硬停）
+    ├── test_v615.py         # v6.15 缺陷收口（X-D16 参数透传 / X-D17 深度推导 / X-D18·D20 扇出与算子 / X-D19 正文默认 / X-D21 高风险筛查不阻断不删除）
     └── test_v6.py           # tier/ledger/panel/validate/plan/reflect/score/平台引擎/相关性过滤
 ```
 
@@ -1301,6 +1338,14 @@ scripts/
 - ❌ **禁止把搜索结果当结论**（v6.10）— `--ledger` 只登记证据；claim 必须用 `add-claim` 显式立论并挂来源。要沿用旧行为得自己加 `--auto-claim` 并说明理由
 - ❌ **禁止把 MCP 的"配置就绪"当"连上了"**（v6.9）— 只有 `--probe`/`--mcp-check` 真握手拿到结果才算这个源存在；握手超时要先预热（首次 npx/uvx 下包），别静默丢掉这个源
 - ❌ **禁止探索性空转** — 不 `ls` skill 目录、不读脚本源码、不跑 `--help`；文档即接口
+- ❌ **禁止同义改写充数**（v6.15）— 每子问题的 3~5 条查询必须落在不同信息需求类型上
+  （反方/量化/原始文档/时效/基础事实），同一表述换措辞等于白搜
+- ❌ **禁止只发正面查询**（v6.15）— 怀疑者视角必须配一条"失败 缺陷 批评 反例"查询；
+  没有反方数据的结论不是调研，是复述官方宣传
+- ❌ **禁止单条查询叠多个算子**（v6.15）— 一条查询最多 1 个 `site:`/`filetype:`/`intitle:`，
+  叠加会过度收窄导致 0 结果（`--probe` 的「⚠️ 0 结果」会明显上升）
+- ❌ **禁止把 X-D21 的待查清单当已验证**（v6.15）— 它只筛出"该查的"，不做语义判定；
+  报告里说某断言成立，靠的是你核对过来源正文，不是脚本跑过了
 - ❌ **禁止只跑不落地** — 每个阶段都要落盘（账本/大纲/报告），中断必须留得下可续用的产物
 
 ---
