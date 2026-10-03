@@ -40,12 +40,12 @@ for p in skill_files:
             bad.append((p, ref))
 print("  断链:", bad or "无")
 
-print("=== 残留违规 ===")
+print("=== 残留违规（不含 CHANGELOG，历史描述会误伤）===")
 checks = {
     "宿主硬编码(非探测表)": r"\.claude/projects/\[project\]|\.claude/projects/<project>",
     "花括号路径变量": r"\$\{?SKILL_DIR|\$\{?CLAUDE_SKILL_DIR",
 }
-allf = skill_files + ref_files + ["CHANGELOG.md"]
+allf = skill_files + ref_files
 for k, pat in checks.items():
     hits = [(p, i + 1) for p in allf for i, l in enumerate(open(p, encoding="utf-8")) if re.search(pat, l)]
     print("  %s: %d %s" % (k, len(hits), hits[:4]))
@@ -65,7 +65,10 @@ kinds = {}
 for c in d["cases"]:
     kinds[c["kind"]] = kinds.get(c["kind"], 0) + 1
 print("  用例:", len(d["cases"]), kinds)
-print("  全部标 not_executed:", all(c.get("status") == "not_executed" for c in d["cases"]))
+sts = {}
+for c in d["cases"]:
+    sts[c["status"]] = sts.get(c["status"], 0) + 1
+print("  状态分布:", sts, "| 未实跑残留:", sts.get("not_executed", 0))
 
 print("=== 结构最小要求（项目 CLAUDE.md 第2节）==="
       )
@@ -81,7 +84,20 @@ print("  五个置信度码齐且互不重复:", all(c in hs for c in codes),
 tpl = open("references/handoff-template.md", encoding="utf-8").read()
 secs = re.findall(r"^## \*?\u2605?\*?(\d+)\.", tpl, re.M)
 print("  模板节数:", len(secs), "期望 10 ->", "ok" if len(secs) == 10 else "MISMATCH", secs)
-print("  必需节标记(★)出现次数:", tpl.count("★"), "(6 个必需节 + 1 处图例)")
+sec_stars = re.findall(r"^## \u2605\d+\.", tpl, re.M)
+print("  必需节标记(★)个数:", len(sec_stars), "期望 6 ->",
+      "ok" if len(sec_stars) == 6 else "MISMATCH")
+print("  图例存在:", "ok" if "★ = 必需节" in tpl else "缺失")
+
+print("=== A5 统计命令 vs 黄金样本（防'命令与格式脱节'复发）===")
+golden_handoff = "- `[V]` `src/x/y.ts:42` 做了什么 — 要点 — 验证：npm test"
+golden_knowledge = "**置信度**：[V]　　**最后验证**：2026-10-03　　**适用版本**：main"
+pats = set(re.findall(r'grep -[a-zA-Z]+E "([^"]+)"', hs))
+hit_h = [p for p in sorted(pats) if re.search(p, golden_handoff)]
+hit_k = [p for p in sorted(pats) if re.search(p, golden_knowledge)]
+print("  HANDOFF 黄金样本:", "命中" if hit_h else "❌ 0 命中", hit_h[:2])
+print("  长期库黄金样本:", "命中" if hit_k else "❌ 0 命中", hit_k[:2])
+print("  黄金样本整体:", "ok" if hit_h and hit_k else "FAIL")
 
 tiers = open("references/knowledge-tiers.md", encoding="utf-8").read()
 spots = [".learnings/", ".ai/HANDOFF.md", ".ai/knowledge/", "agent 记忆库", "规则文件"]

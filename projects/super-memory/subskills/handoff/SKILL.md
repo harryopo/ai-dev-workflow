@@ -83,11 +83,13 @@ find . -maxdepth 2 -iname "HANDOFF.md" -not -path "*/node_modules/*"
 ### A5. 验证（不许跳过）
 
 ```bash
-grep -nE "^## " .ai/HANDOFF.md                       # 十节齐不齐
-grep -cE "^\[[VWQRF]\]" .ai/HANDOFF.md               # 带置信度的条数
-grep -cE "^\[[VWQRF]\]" $(find .ai/knowledge -name '*.md') 2>/dev/null   # 长期库
-grep -rnE "\[(V|W|Q|R|F)\]" .ai/HANDOFF.md | grep -oE "\[[VWQRF]\]" | sort | uniq -c
+grep -nE "^## " .ai/HANDOFF.md                                        # 十节齐不齐
+grep -cE "\[[VWQRF]\]" .ai/HANDOFF.md                                  # 带置信度的行数
+grep -rcE "\[[VWQRF]\]" .ai/knowledge/ 2>/dev/null | awk -F: '{s+=$NF} END{print "长期库置信度行数:", s+0}'
+grep -rnE "\[(V|W|Q|R|F)\]" .ai/HANDOFF.md | grep -oE "\[[VWQRF]\]" | sort | uniq -c   # 各码分布
 ```
+
+统计正则必须能同时命中三种位置：**句首行首**（`[V] …`）、**bullet 后反引号内**（`` - `[V]` … ``）、**字段行中部**（`**置信度**：[V]`）。改模板或改正则任一边，都必须拿另一边格式的黄金样本实测命中一次，不许只看命令"长得对"——`^\[[VWQRF]\]` 这种行首锚定对模板条目实测恒为 0。
 
 然后**逐条核验 `[V]`**：条目里提到的文件/函数/commit 用 `ls`、`grep`、`git log` 各确认一次。核验不过的当场降级为 `[Q]` 并写明差异。摘要里报实测数字，不报"已更新"。
 

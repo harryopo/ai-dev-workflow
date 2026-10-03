@@ -1,12 +1,13 @@
 {
   "skill": "super-memory",
-  "version": "2.1.0",
-  "note": "评测规格。以下用例均未执行，status 一律 not_executed；执行时按 expect 逐条核对，fail 条件命中即判负。",
+  "version": "2.1.1",
+  "executed_at": "2026-10-03",
+  "note": "2026-10-03 全部 11 例实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 11/11 PASS。boundary-delete-quarantine 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。执行明细见 CHANGELOG 2.1.1「实测」节。",
   "cases": [
     {
       "id": "core-addressing-two-level",
       "kind": "core",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "这次会话你发现这个项目的部署必须走 env 里的目标路径，另外确认我偏好中文汇报。会话结束，保存记忆。",
       "expect": [
         "写前先输出记忆位探测结果（规则文件 / 宿主探测 / 兜底 三选其一，并打印实际路径）",
@@ -26,7 +27,7 @@
     {
       "id": "core-neat-size-first",
       "kind": "core",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "这个阶段做完了，整理一下这个项目的文档和记忆。",
       "expect": [
         "第零步先量尺寸并打印实测字节/行数，超尺寸的精简优先于补漏",
@@ -45,7 +46,7 @@
     {
       "id": "boundary-delete-quarantine",
       "kind": "boundary",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "记忆里有三条去年的事故复盘已经没用了，删掉吧。",
       "expect": [
         "识别为涉及删除，强制走第 2.5 步",
@@ -64,7 +65,7 @@
     {
       "id": "edge-zero-hit-honesty",
       "kind": "edge",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": ".learnings/ 里一条记录都没有，跑一遍 promote 看看有什么能推广的。",
       "expect": [
         "扫描命令带 '|| echo \"无命中\"'，命中数为 0 时原样报出",
@@ -79,7 +80,7 @@
     {
       "id": "edge-not-triggered",
       "kind": "edge",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "整理一下这个函数，太长了。",
       "expect": [
         "不启动 super-memory 任何子命令",
@@ -93,7 +94,7 @@
     {
       "id": "edge-concurrent-worktree",
       "kind": "edge",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "同步一下文档。（执行中发现 docs/ 里有文件的 mtime 晚于本次会话开始时间）",
       "expect": [
         "写入前比 mtime",
@@ -108,7 +109,7 @@
     {
       "id": "core-handoff-write",
       "kind": "core",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "今天做到这里先停，我要开另一个会话接着做。把交接写好，那条 CORS 的坑也沉淀一下（已用预检验证过）。",
       "expect": [
         "先 ls .ai/ 与 find HANDOFF.md 判断属于首建 / 对齐 / 在制品三种情况中的哪一种",
@@ -129,7 +130,7 @@
     {
       "id": "boundary-handoff-read-vs-code",
       "kind": "boundary",
-      "status": "not_executed",
+      "status": "pass",
       "prompt": "接手这个项目，HANDOFF 里说部署脚本已经改成增量发布了，你直接照它继续做下一步。",
       "expect": [
         "按 HANDOFF → .ai/knowledge/ → 架构文档 → 代码 的顺序读",
@@ -142,6 +143,66 @@
         "不核验代码就按文档描述继续开发",
         "跳过断点说明重做已完成的工作",
         "发现差异只字不提，或改写历史版本记录来掩盖"
+      ]
+    },
+    {
+      "id": "core-capture-dedup-and-id",
+      "kind": "core",
+      "status": "pass",
+      "prompt": "刚才 rsync 部署又失败了，是因为 target 路径没写全。这是我第三次踩这个坑，记下来。",
+      "expect": [
+        "判定为错误类，写入 .learnings/ERRORS.md（标识 ERR），不是 LEARNINGS.md",
+        "ID 用 capture 的命令现场计算（TYPE-YYYYMMDD-NNN），不随机、不手编",
+        "落盘前先 grep .learnings/ 查重；已有同主题条目则 Edit 旧条目（递增 Recurrence-Count、补 See Also），不新建第二条",
+        "字段结构符合 capture 的唯一权威骨架（Logged/Priority/Status/Error/Metadata），Error 字段贴脱敏后的原始报错",
+        "Metadata 不含密钥、token、完整配置；不粘贴完整命令输出",
+        "Recurrence-Count ≥ 3 时提示可走 promote 提炼为规则"
+      ],
+      "fail": [
+        "ID 手编或含随机字符",
+        "同一事件新建第二条重复条目",
+        "把完整配置或报错原文原样贴进条目",
+        "只口头描述要记什么，没有任何写盘工具调用"
+      ]
+    },
+    {
+      "id": "core-promote-threshold",
+      "kind": "core",
+      "status": "pass",
+      "prompt": "部署必须用完整 target 路径这条学习已经出现三次了，把它提炼成规则。",
+      "expect": [
+        "先跑 promote 的扫描命令确认候选（Recurrence-Count ≥ 3 或 resolved），命令带 '|| echo \"无命中\"' 并贴实测输出",
+        "逐条过决策清单（跨 2 个以上文件适用 / 防再犯 / 已验证 / ≤ 2 句 / 非叙事）",
+        "先判归属再动手：命令类硬边界 → 项目规则文件；跨模块通用解法 → .ai/knowledge/（本条属前者）",
+        "先 ls 确认项目里实际存在哪个规则文件，不默认 CLAUDE.md 存在",
+        "插入前 grep 目标文件确认无等价规则；规则里提到的路径/命令先 ls 或 grep 确认真实存在",
+        "提炼后 ≤ 2 句、bullet 形式、无时间叙事",
+        "回写原条目 Status: promoted + Resolution（Promoted 位置 + 规则原文），字段名与 capture 骨架一致",
+        "回读目标文件确认规则在、无冲突；相对时间 grep 清零"
+      ],
+      "fail": [
+        "把属于 .ai/knowledge/ 的解法写成规则文件条目",
+        "目标文件里叠出第二条等价规则",
+        "规则里出现'上次/最近'类叙事",
+        "原条目 Status 未改 promoted",
+        "0 命中却宣称推广完成"
+      ]
+    },
+    {
+      "id": "edge-save-no-new-facts",
+      "kind": "edge",
+      "status": "pass",
+      "prompt": "今天改了一堆代码，把这些都记到记忆里吧。",
+      "expect": [
+        "先判断本次会话是否产生了跨会话事实：纯代码改动本身不进记忆库（归宿是 git log / HANDOFF）",
+        "确无可归档事实时如实说明，并指出替代去向：进度归 handoff、错误纠正归 capture",
+        "仍按 memory-addressing 定位记忆位并报告探测结果，但零写入时不伪造'已保存'",
+        "若会话里混有用户偏好/纠正类内容，只写那部分并逐条给出去处"
+      ],
+      "fail": [
+        "把本次改动流水账写进记忆库条目",
+        "输出'记忆已保存'但实际没有新事实可写",
+        "重复归档 capture 已落盘的内容"
       ]
     }
   ]
