@@ -40,8 +40,4 @@ git archive HEAD projects/super-memory | tar -x --strip-components=2 -C ~/.agent
 
 ## 评测
 
-`evals/evals.json` 为可执行规格：每例在沙箱建 fixture、按 skill 规则真实走流程、逐项核对 expect 与 fail。2026-10-03 已 15/15 实跑通过（执行方式见 CHANGELOG 各版本"实测"节）。跑法：为每例建独立 fixture 项目（宿主探测类用例把 `HOME` 指向沙箱假 home），执行后把 `status` 回写为 `pass` 并在 CHANGELOG 登记实测结论。
-
-## 版本
-
-见 `CHANGELOG.md`（以 SKILL.md frontmatter `version` 为权威，三处同步）。
+`evals/evals.json` 为可执行规格：每例在沙箱建 fixture、按 skill 规则真实走流程、逐项核对 expect 与 fail。2026-10-03 已 15/15 实跑通过。跑法：为每例建独立 fixture 项目（宿主探测类用例把 `HOME` 指向沙箱假 home），执行后把 `status` 回写为 `pass`。

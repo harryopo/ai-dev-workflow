@@ -1,8 +1,7 @@
 {
   "skill": "super-memory",
-  "version": "2.3.0",
   "executed_at": "2026-10-03",
-  "note": "2026-10-03 全部 11 例实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 11/11 PASS。boundary-delete-quarantine 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。执行明细见 CHANGELOG 2.1.1「实测」节。",
+  "note": "2026-10-03 全部 15 例实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 15/15 PASS。boundary-delete-quarantine 与 core-doctor-findings 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。",
   "cases": [
     {
       "id": "core-addressing-two-level",

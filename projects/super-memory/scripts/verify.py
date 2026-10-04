@@ -40,7 +40,7 @@ for p in skill_files:
             bad.append((p, ref))
 print("  断链:", bad or "无")
 
-print("=== 残留违规（不含 CHANGELOG，历史描述会误伤）===")
+print("=== 残留违规 ===")
 checks = {
     "宿主硬编码(非探测表)": r"\.claude/projects/\[project\]|\.claude/projects/<project>",
     "花括号路径变量": r"\$\{?SKILL_DIR|\$\{?CLAUDE_SKILL_DIR",
@@ -104,7 +104,7 @@ tiers = open("references/knowledge-tiers.md", encoding="utf-8").read()
 spots = [".learnings/", ".ai/HANDOFF.md", ".ai/knowledge/", "agent 记忆库", "规则文件"]
 missing = [s for s in spots if s not in tiers]
 print("  五处落点全覆盖:", "ok" if not missing else missing)
-print("  v2.2.0 格式字段齐:", "ok" if all(s in tiers for s in ["**生效**", "**记录**", "**Related**"]) else "缺字段")
+print("  格式字段齐(生效/记录/Related):", "ok" if all(s in tiers for s in ["**生效**", "**记录**", "**Related**"]) else "缺字段")
 print("  巩固四操作齐:", "ok" if all(s in tiers for s in ["ADD", "UPDATE", "SUPERSEDE", "NOOP"]) else "缺")
 print("  last_verified 超龄规则:", "ok" if "90 天" in tiers and "last_verified" in tiers else "缺")
 
@@ -116,7 +116,4 @@ print("  未在主入口路由表中出现的子技能:", notrouted or "无")
 for kw in ["handoff", "[V]", "knowledge-tiers"]:
     print("  主入口提到 %s: %s" % (kw, kw in parent))
 
-print("=== evals 版本与 skill 版本一致 ===")
-skill_ver = re.search(r"^version:\s*([\d.]+)", open("SKILL.md", encoding="utf-8").read(), re.M).group(1)
-print("  SKILL.md:", skill_ver, "| evals:", d["version"], "| 一致:", skill_ver == d["version"])
 print("  用例总数:", len(d["cases"]))

@@ -1,6 +1,5 @@
 ---
 name: super-memory
-version: 2.3.0
 description: |
   记忆与知识管理工作台：把错误/学习/纠正结构化记到 .learnings/，把会话成果归档到当前 agent 的记忆库，
   阶段性对文档与记忆做洁癖同步，把成熟学习提炼为项目规则。
@@ -8,7 +7,6 @@ description: |
   梳理一下、neat、sync up、tidy up docs、收尾、这个阶段做完了、新人能直接上手、沉淀经验、记录下来、
   推广到规则、以后都要这样、这条记进 memory、接手这个项目、继续上次到哪了、交接、HANDOFF、断点在哪。
   其中"整理一下/收尾/梳理一下"仅在同时指向文档、记忆或知识库时触发，单纯说给代码或需求文档时不触发。
-  版本历史见 CHANGELOG.md。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
 
