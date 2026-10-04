@@ -195,8 +195,8 @@
   ├── 无版本标记、无开发注释、无决策记录
   └── 功能完整性未受影响（跑一遍 evals）
   ↓
-第六步：生成清洗报告
-  → 保存到 ./artifacts/cleanup/cleanup-report-{date}-{skill-name}.md
+第六步：确认清洗结果
+  → 脚本向用户报告删除了哪些文件，不落盘
   ↓
 第七步：执行发布/部署
 ```
@@ -277,8 +277,8 @@
 ## 四、发布建议
 
 - ✅ 可以发布
-- ⚠️ 注意：.dev-memory.md 不应包含在发布包中
-- ⚠️ 注意：artifacts/cleanup/ 目录不应包含在发布包中
+- ⚠️ 注意：`.dev-memory.md` 不应包含在发布包中
+- 完整清洗清单见 `release-clean.md`，或直接跑 `scripts/release-clean.sh`
 ```
 
 ---

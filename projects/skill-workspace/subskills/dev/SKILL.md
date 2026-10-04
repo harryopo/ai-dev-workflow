@@ -101,13 +101,18 @@ allowed-tools: Read Write Edit Glob Bash WebFetch
 │  └── 如有污染，迁移到 .dev-memory.md                         │
 ├─────────────────────────────────────────────────────────────┤
 │  发布前：清洗检查（用户说"部署/开源/发布"时触发）            │
-│  ├── 检测 .dev-memory.md 是否存在                            │
-│  ├── 扫描主文档污染（更新概要/版本标记/TODO/决策记录）       │
-│  ├── 清除污染，归档到 .dev-memory.md                         │
+│  ├── 跑清洗脚本（默认 dry-run，确认后再 --apply）           │
+│  │     bash "<工作台>/scripts/release-clean.sh" "<新skill目录>"│
+│  ├── 删除开发期目录（.research/、artifacts/、__pycache__/）  │
+│  ├── 归档 .dev-memory.md 到工作区，不进发布包                │
+│  ├── 剥离 frontmatter version 字段与正文版本后缀             │
 │  ├── 验证功能完整性（evals通过率≥80%）                       │
-│  └── 生成清洗报告 → ./artifacts/cleanup/                     │
+│  └── 向用户报告删除了哪些文件（不落盘）                      │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+> 清洗清单见 `../../flows/release-clean.md`，脚本是该清单的可执行版本。
+> 用户自己开发 skill 时也适用——发布包只留运行必需的内容。
 
 ---
 
@@ -1915,7 +1920,7 @@ cat {全局skills目录}/{skill名}/SKILL.md | head -5
       ↓
       验证功能完整性（evals通过率≥80%）
       ↓
-      生成清洗报告 → ./artifacts/cleanup/cleanup-{date}-{name}.md
+      向用户报告删除了哪些文件（不落盘）
       ↓
       继续执行部署（流程五）
 ```

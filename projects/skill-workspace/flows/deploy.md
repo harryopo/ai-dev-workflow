@@ -41,25 +41,29 @@
 
    只想手动核对时，按 `flows/release-clean.md` 的清单逐项检查即可；脚本是清单的可执行版本。
 
+   **顺序要求：清洗必须作用在源目录，在 `cp` 之前。** 若先复制再清洗全局副本，源目录里的 `__pycache__/` 已被带过去，且下次跑 `gates/` 会在源目录重新生成——两边都得清。默认 dry-run 是为了让你看清要删什么再加 `--apply`，不是可以跳过这步的理由。
+
 2. **确认来源**
    ```bash
-   # 检查清洗后的 skill 目录
+   # 检查清洗后的 skill 目录，应只剩 SKILL.md + references/ + scripts/ + evals/
    ls ./{skill名}/
    ```
 
 3. **复制到全局**
    ```bash
    # ⚠️ 永远用 cp，不用 mv
+   # ⚠️ 目标已存在时先删旧的再复制，避免上一版残留文件混进新包
+   rm -rf {全局skills目录}/{skill名}/
    cp -r ./{skill名}/ {全局skills目录}/{skill名}/
    ```
 
 4. **验证部署**
    ```bash
-   # 检查文件
-   ls {全局skills目录}/{skill名}/
+   # 与源目录逐文件比对，应无差异
+   diff -rq ./{skill名}/ {全局skills目录}/{skill名}/
 
-   # 确认 SKILL.md 存在
-   cat {全局skills目录}/{skill名}/SKILL.md | head -5
+   # 确认 SKILL.md 存在且 frontmatter 无 version 字段
+   head -5 {全局skills目录}/{skill名}/SKILL.md
    ```
 
 4. **测试全局可用**
@@ -291,6 +295,8 @@ done
 
 ## ⚠️ 重要规则
 
+- **先清洗源目录，再复制** — 顺序反了会把开发期产物带进发布包，且源目录下次跑脚本又会重新生成
+- **覆盖部署前先删旧目标** — `rm -rf` 目标目录再 `cp`，否则上一版残留文件会混进新包
 - **永远用 `cp`，不用 `mv`** — 保留源文件
 - **部署前先测试** — 不要直接推到全局
 - **保留工作区副本** — 方便回滚和迭代

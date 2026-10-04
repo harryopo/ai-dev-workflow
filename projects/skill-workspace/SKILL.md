@@ -174,7 +174,10 @@ allowed-tools: Read Write Edit Glob Grep Bash WebFetch
    - ⚠️ git clone 必须落到 `.cache/sources/{时间戳}-{仓库名}/` 并写 `.skill-workspace-source` 标记，**禁止散落**
    - 优先 `curl` 只取 SKILL.md；确需全量分析才 clone，且加 `--depth 1`
 3. **安全审查**（强制）— 评级 >= B → 继续；评级 <= C → 询问用户
-4. **安装到工作区** — `cp -r {skill目录}/ ~/.skills/{skill名}/`
+4. **安装到工作区** — 先删旧目标再复制，避免上一版残留文件混进新包
+   ```bash
+   rm -rf ~/.skills/{skill名}/ && cp -r {skill目录}/ ~/.skills/{skill名}/
+   ```
 5. **确认安装结果**
 6. **释放源码工作区**（如执行过 clone）— `release` + `auto`，详见 `flows/source-lifecycle.md`
 7. **生成安装报告** → `./artifacts/install/install-report-{date}-{skill-name}.md`

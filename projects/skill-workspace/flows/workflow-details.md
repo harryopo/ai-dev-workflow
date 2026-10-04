@@ -564,21 +564,28 @@ npx clawhub@latest search {关键词}
 ### 部署流程
 
 1. **环境检查** — 调用流程零，确保目标目录可写
-2. **确认来源** — 工作区中的哪个 skill 目录
-3. **检查是否通过测评** — 建议先走「审查」流程
-4. **复制到全局**
+2. **发布前清洗**（必做，不可跳过）
    ```bash
-   cp -r "./{skill名}/" ~/.skills/{skill名}/
+   bash "{技能目录}/scripts/release-clean.sh" "./{skill名}/" --apply
    ```
-5. **验证部署**
+   默认 dry-run，先看清要删什么再加 `--apply`。清单见 `release-clean.md`。
+3. **确认来源** — 工作区中的哪个 skill 目录
+4. **检查是否通过测评** — 建议先走「审查」流程
+5. **复制到全局**
    ```bash
-   ls ~/.skills/{skill名}/
+   # 先删旧目标，避免上一版残留文件混进新包
+   rm -rf ~/.skills/{skill名}/ && cp -r "./{skill名}/" ~/.skills/{skill名}/
    ```
-6. **测试全局可用**
+6. **验证部署**
+   ```bash
+   # 与源目录比对，应无差异
+   diff -rq "./{skill名}/" ~/.skills/{skill名}/
+   ```
+7. **测试全局可用**
    - `claude -p "使用 {name} 完成 XXX"`
    - `codex "使用 {name} 完成 XXX"`
-7. **释放源码工作区**（自动执行，无需询问）
-   - 前置条件：步骤 5、6 均通过
+8. **释放源码工作区**（自动执行，无需询问）
+   - 前置条件：步骤 6、7 均通过
    - 标记所有 `skill_name={skill名}` 的受管工作区为 releasable
    - 执行回收：
      ```bash
@@ -589,7 +596,7 @@ npx clawhub@latest search {关键词}
 
    详见 `./source-lifecycle.md`。
 
-**⚠️ 永远用 `cp`，不用 `mv`，保留源文件。**
+**⚠️ 先清洗源目录再复制；永远用 `cp`，不用 `mv`，保留源文件。**
 
 **⚠️ 注意区分两个「源」：** Skill 源文件（`projects/{skill名}/`，**永不删除**，是回滚依据）vs 分析用下载的第三方源码（`.cache/sources/`，部署后必须释放）。清理只针对后者。
 
@@ -941,8 +948,8 @@ npx skills check
   ├── 无版本标记、无开发注释、无决策记录
   └── 功能完整性未受影响（跑一遍 evals）
 
-第六步：生成清洗报告
-  └── 保存到 ./artifacts/cleanup/cleanup-report-{date}-{skill-name}.md
+第六步：确认清洗结果
+  └── 脚本直接向用户报告删除了哪些文件，不落盘
 
 第七步：执行发布/部署
 ```
@@ -982,7 +989,6 @@ npx skills check
 | 审查报告 | 审查评分完成后 | `review-report-{date}-{skill-name}.md` | `./artifacts/reviews/` |
 | MCP整合报告 | MCP整合完成后 | `mcp-integration-{date}-{name}.md` | `./artifacts/mcp/` |
 | 蒸馏报告 | 工作流蒸馏完成后 | `distillation-{date}-{workflow-name}.md` | `./artifacts/distillation/` |
-| 清洗报告 | 发布前清洗完成后 | `cleanup-{date}-{skill-name}.md` | `./artifacts/cleanup/` |
 
 ### 产物目录结构
 
