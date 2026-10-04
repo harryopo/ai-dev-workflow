@@ -113,7 +113,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 - 让品牌或产品名称成为最响亮的文字
 - 保持文案短到几秒内可扫描
 - 在添加装饰之前，先使用留白、对齐、缩放、裁剪和对比
-- 限制系统：最多两种字体，默认一种强调色
+- 限制系统：默认 display + body 两族，第 3 族仅限一个功能性 register 且 ≤2 处 slot；默认一种强调色
 - 默认无卡片布局。使用区块、列、分隔线、列表和媒体块
 - 将第一视口视为海报，而非文档
 
@@ -279,7 +279,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 - 在品牌页面上，标题不应压过品牌
 - 无填充文案
 - 除非文本位于平静、统一的一侧，否则无分屏 hero
-- 除非产品已有强系统，否则不超过两种字体
+- 字体族默认两族（display + body）；除非产品已有强系统，第 3 族只允许承担一个功能性 register 且不超过 2 处 slot
 - 不超过一种强调色
 
 **拒绝这些失败：**

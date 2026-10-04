@@ -289,7 +289,7 @@ transition={{ type: "spring", stiffness: 300, damping: 25 }}
 
 ## 13. 斜体标题禁令
 
-> 来源：hallmark 57条Slop Test — "Most Reliable AI Tell #1"
+> 来源：hallmark 56条Slop Test — "Most Reliable AI Tell #1"
 
 - ❌ **绝对禁止**在h1/h2/h3/title等标题元素使用`font-style: italic`或`italic` class
 - ❌ **绝对禁止**在ALL CAPS标题使用斜体
@@ -301,7 +301,7 @@ transition={{ type: "spring", stiffness: 300, damping: 25 }}
 
 ## 14. 侧边条纹卡片禁令
 
-> 来源：hallmark 57条Slop Test — "Most Reliable AI Tell #2"
+> 来源：hallmark 56条Slop Test — "Most Reliable AI Tell #2"
 
 - ❌ **绝对禁止**卡片使用4-6px纯色左边框（尤其是purple/green/blue）
 - ❌ **绝对禁止**使用`border-left: 4px solid #8b5cf6`这类模式
@@ -313,7 +313,7 @@ transition={{ type: "spring", stiffness: 300, damping: 25 }}
 
 ## 15. LCP优化规范
 
-> 来源：hallmark 57条Slop Test + Web Vitals最佳实践
+> 来源：hallmark 56条Slop Test + Web Vitals最佳实践
 
 - ✅ Hero图片必须使用`loading="eager"` + `fetchpriority="high"`
 - ✅ Hero图片必须有明确的`width`和`height`属性防止CLS
@@ -328,7 +328,7 @@ transition={{ type: "spring", stiffness: 300, damping: 25 }}
 
 ## 16. 间距4px倍数纪律
 
-> 来源：hallmark 57条Slop Test + 数值化间距系统
+> 来源：hallmark 56条Slop Test + 数值化间距系统
 
 - ✅ **所有**padding/margin/gap值必须是4的倍数
 - ✅ 允许值集：4, 8, 12, 16, 20, 24, 28, 32, 40, 48, 56, 64, 72, 80, 96, 128

@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Negative control for scripts/audit_integrity.py.
 
-Copies the skill to a scratch dir, injects one known defect at a time, and
-requires the gate to fail with the expected check name. A gate that cannot go
+Copies the skill to a scratch dir, injects one known defect at a time (11 cases:
+10 injected defects plus one bad-flag rejection), and requires the gate to fail
+with the expected check name. A gate that cannot go
 red is not measuring anything.
 """
 
@@ -45,6 +46,34 @@ CASES = [
     ("bogus-flag-must-not-scan-quietly",
      None,
      "unknown flag"),
+    ("stale-slop-test-quote",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("56条Slop Test", "59条Slop Test"), encoding="utf-8"),
+     "cross-claim"),
+    ("stale-rule-table-count",
+     lambda d: (d / "SKILL.md").write_text(
+         (d / "SKILL.md").read_text(encoding="utf-8")
+         .replace("28 条规则", "30 条规则", 1), encoding="utf-8"),
+     "cross-claim"),
+    ("layer-table-does-not-add-up",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("| 特殊规则（V50-V56） | 7 |", "| 特殊规则（V50-V56） | 5 |"),
+         encoding="utf-8"),
+     "layer-sum"),
+    ("policy-prose-number-drift",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("首屏强调色使用面积 ≤ 5%", "首屏强调色使用面积 ≤ 12%"), encoding="utf-8"),
+     "policy-consistency"),
+    ("policy-gate-threshold-drift",
+     lambda d: (d / "rules/policy.json").write_text(
+         (d / "rules/policy.json").read_text(encoding="utf-8")
+         .replace('"value": 3,\n      "also_allowed": [2]',
+                  '"value": 4,\n      "also_allowed": [2]', 1),
+         encoding="utf-8"),
+     "policy-consistency"),
 ]
 
 

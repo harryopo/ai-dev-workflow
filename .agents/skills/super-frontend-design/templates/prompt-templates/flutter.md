@@ -2,7 +2,7 @@
 
 > Flutter 移动端/桌面端组件生成模板。
 > 设计约束参考 react-tailwind.md，适配 Material Design 3 + Design Token。
-> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 57条Slop Test检查（Flutter适配版）。
+> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 56条Slop Test检查（Flutter适配版）。
 
 ---
 

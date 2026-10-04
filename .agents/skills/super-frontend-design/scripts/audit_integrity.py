@@ -15,6 +15,11 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 下 stdout 默认 gbk，中文结论会变乱码，门禁输出统一强制 UTF-8
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8")
+
 # Resource dirs whose files must be referenced somewhere, and whose internal
 # paths mentioned in markdown must resolve to real files.
 RESOURCE_DIRS = ("references", "subskills", "templates", "themes", "scripts", "rules", "tests")
@@ -238,27 +243,49 @@ def check_index_completeness(root, f):
 
 
 def check_cross_claims(root, f):
-    """Counts of a shared dataset quoted in instruction files must match the data.
+    """Counts of a shared dataset quoted anywhere in the skill must match the data.
 
-    '57条Slop Test' appears in SKILL.md and in review; if only some of them are
-    updated when the list changes, the skill quotes its own numbers inconsistently.
+    '56条Slop Test' is quoted in SKILL.md, review, critique, refine, README and the
+    prompt templates; updating only some of them leaves the skill quoting its own
+    numbers inconsistently. Every markdown file is scanned (release notes excepted —
+    they are a version log and rewriting a past entry would falsify it).
     """
     slop = root / "references" / "slop-test.md"
     if not slop.exists():
         return
     actual = len(re.findall(r"(?m)^### V\d+\.", strip_code_fences(read(slop))))
     stale = []
-    for md in instruction_files(root) + [root / "README.md"]:
-        if not md.exists():
+    # 数字必须与"Slop Test"相邻，否则同一行里的"26条确定性探测器""16条规则"会被误抓
+    ADJACENT = [re.compile(r"(?i)(\d+)\s*(?:条|项)[^|，。；\n]{0,12}?slop[ -]?test"),
+                re.compile(r"(?i)slop[ -]?test[^|，。；\n]{0,10}?(\d+)\s*(?:条|项)")]
+    for md in markdown_files(root):
+        if md.relative_to(root).as_posix() in ("RELEASE-NOTES.md",):
             continue
-        for n in re.findall(r"(\d+)\s*条\s*Slop Test|(\d+)\s*条Slop Test", read(md)):
-            num = int(next(x for x in n if x))
-            if num != actual:
-                stale.append("%s says %d" % (md.relative_to(root), num))
+        for lineno, line in enumerate(read(md).splitlines(), 1):
+            for pat in ADJACENT:
+                for num in pat.findall(line):
+                    if int(num) != actual:
+                        stale.append("%s:%s 写 %s 条" % (md.relative_to(root).as_posix(), lineno, num))
     if stale:
-        f.fail("cross-claim", "slop-test.md has %d items but %s" % (actual, "; ".join(sorted(set(stale)))))
+        f.fail("cross-claim", "slop-test.md 实为 %d 条但 %s" % (actual, "; ".join(sorted(set(stale)))))
     else:
         f.ok("cross-claim", "all Slop Test quotes match %d items" % actual)
+
+    table = root / "rules" / "slop-table.json"
+    if table.is_file():
+        n = len(json.loads(table.read_bytes().decode("utf-8"))["rules"])
+        wrong = []
+        for md in markdown_files(root):
+            for lineno, line in enumerate(read(md).splitlines(), 1):
+                if "slop_scan" not in line and "slop-table" not in line:
+                    continue
+                for m in re.finditer(r"(\d+)\s*条(?:静态)?规则", line):
+                    if int(m.group(1)) != n:
+                        wrong.append("%s:%s 写 %s 条" % (md.relative_to(root).as_posix(), lineno, m.group(1)))
+        if wrong:
+            f.fail("cross-claim", "rules/slop-table.json 有 %d 条但 %s" % (n, "; ".join(wrong)))
+        else:
+            f.ok("cross-claim", "slop-table quotes match its %d rules" % n)
 
 
 def check_denominators(root, f):
@@ -422,6 +449,128 @@ def check_tools(root, f):
         f.ok("allowed-tools", "all mentioned tools are allowed")
 
 
+def check_policy_consistency(root, f):
+    """One policy may carry only one number; rules/policy.json is the single source.
+
+    Both directions are compared: machine thresholds (rules/slop-table.json,
+    scripts/render_probe.py) must equal the policy value, and every prose statement
+    of the policy must carry a number the policy allows. Each policy also declares how
+    many prose hits its patterns must find — when wording drifts so far that patterns
+    stop matching, coverage collapses and that is reported instead of a silent pass.
+    """
+    policy_path = root / "rules" / "policy.json"
+    if not policy_path.is_file():
+        f.fail("policy-consistency", "rules/policy.json 不存在，政策数字无处对账")
+        return
+    policies = json.loads(policy_path.read_bytes().decode("utf-8"))["policies"]
+    table_path = root / "rules" / "slop-table.json"
+    rules = {}
+    if table_path.is_file():
+        rules = {r["id"]: r for r in json.loads(table_path.read_bytes().decode("utf-8"))["rules"]}
+    probe_path = root / "scripts" / "render_probe.py"
+    probe_text = read(probe_path) if probe_path.exists() else ""
+
+    problems = []
+    hits_total = 0
+    for p in policies:
+        allowed = {float(p["value"])} | {float(x) for x in p.get("also_allowed", [])}
+        for rid in p.get("rule_ids", []):
+            rule = rules.get(rid)
+            if rule is None:
+                problems.append("%s: 判定表里没有规则 %s" % (p["id"], rid))
+                continue
+            try:
+                thr = float(rule.get("threshold"))
+            except (TypeError, ValueError):
+                problems.append("%s: 规则 %s 没有可比对的 threshold" % (p["id"], rid))
+                continue
+            if thr not in allowed:
+                problems.append("%s: slop-table %s threshold=%s 不在政策允许值 %s 内"
+                                % (p["id"], rid, rule.get("threshold"), sorted(allowed)))
+        for key, val in (p.get("probe") or {}).items():
+            if not probe_text:
+                problems.append("%s: 找不到 scripts/render_probe.py，无法核对 %s" % (p["id"], key))
+            elif re.search(r"(?<![\d.])%s(?![\d])" % re.escape(str(val)), probe_text) is None:
+                problems.append("%s: render_probe.py 里找不到 %s=%s" % (p["id"], key, val))
+
+        prose = p.get("prose") or {}
+        patterns = [re.compile(x) for x in prose.get("patterns", [])]
+        excludes = prose.get("exclude", [])
+        min_hits = prose.get("min_hits", 1)
+        hits = 0
+        seen = set()
+        for md in markdown_files(root):
+            # 发布记录是历史陈述，允许引用当时的数字；政策冲突只比对规范文档
+            if md.relative_to(root).as_posix() in ("RELEASE-NOTES.md",):
+                continue
+            for lineno, line in enumerate(read(md).splitlines(), 1):
+                if not line.strip() or any(x in line for x in excludes):
+                    continue
+                for pat in patterns:
+                    for m in pat.finditer(line):
+                        try:
+                            val = float(m.group(1))
+                        except (IndexError, TypeError, ValueError):
+                            continue
+                        # 两个方向的模式会命中同一个数字，按"处"计数而不是按"次匹配"
+                        if (md, lineno, val) in seen:
+                            continue
+                        seen.add((md, lineno, val))
+                        hits += 1
+                        if val not in allowed:
+                            problems.append("%s: 文档写 %g（政策允许 %s）@ %s:%s ｜ %s"
+                                            % (p["id"], val, sorted(allowed),
+                                               md.relative_to(root).as_posix(), lineno,
+                                               line.strip()[:70]))
+        if hits < min_hits:
+            problems.append("%s: 只匹配到 %d 处政策措辞（应 ≥%d）——措辞已漂移，对账覆盖不足"
+                            % (p["id"], hits, min_hits))
+        hits_total += hits
+
+    if problems:
+        for x in problems:
+            f.fail("policy-consistency", x)
+    else:
+        f.ok("policy-consistency", "%d 条政策与 %d 处文档措辞、判定表阈值双向一致"
+             % (len(policies), hits_total))
+
+
+def check_layer_sum(root, f):
+    """The review report template's per-layer counts must add up to its own total.
+
+    The 56-item checklist is presented to the reviewer as a scored table; when a
+    layer is dropped or renumbered, the printed total stops matching the rows above
+    it and the score becomes unfalsifiable. Rows scored as '—' (the pre-emit axes,
+    scored out of 30 separately) carry no checklist item and are excluded.
+    """
+    review = root / "subskills" / "review" / "SKILL.md"
+    slop = root / "references" / "slop-test.md"
+    if not (review.exists() and slop.exists()):
+        f.ok("layer-sum", "no review report template to add up, skipped")
+        return
+    text = read(review)
+    rows = re.findall(r"(?m)^\|\s*([^|]+?)\s*\|\s*\*{0,2}(\d+)\*{0,2}\s*\|(.*)\|\s*$", text)
+    layers = [(name, int(n)) for name, n, tail in rows
+              if "__" in tail and "—" not in tail
+              and "总计" not in name and "层级" not in name]
+    totals = [int(n) for name, n, tail in rows if "总计" in name]
+    actual = len(re.findall(r"(?m)^### V\d+\.", strip_code_fences(read(slop))))
+    if not layers or not totals:
+        f.fail("layer-sum", "review 报告模板里找不到可相加的分层行或总计行")
+        return
+    s = sum(n for _, n in layers)
+    problems = []
+    if s != totals[0]:
+        problems.append("分层行数相加是 %d，总计写 %d" % (s, totals[0]))
+    if totals[0] != actual:
+        problems.append("总计写 %d，但 slop-test.md 实有 %d 条" % (totals[0], actual))
+    if problems:
+        for p in problems:
+            f.fail("layer-sum", p + " ｜ 分层：" + ", ".join("%s=%d" % (n, v) for n, v in layers))
+    else:
+        f.ok("layer-sum", "%d 层相加 = 总计 %d = slop-test 实际条数" % (len(layers), totals[0]))
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -443,7 +592,8 @@ def main(argv=None):
     for fn in (check_paths, check_orphans, check_counts, check_denominators,
                check_subskill_claims, check_cross_claims, check_part_claims,
                check_index_numbers, check_index_completeness, check_fences,
-               check_frontmatter, check_round_consistency, check_tools):
+               check_frontmatter, check_round_consistency, check_policy_consistency,
+               check_layer_sum, check_tools):
         fn(root, f)
 
     if ns.json:

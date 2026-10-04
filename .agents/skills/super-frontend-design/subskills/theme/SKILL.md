@@ -419,7 +419,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
    - 基于风格关键词匹配字体
    - 确保标题字体和正文字体形成对比
    - 优先选择 Google Fonts 可用字体
-   - 限制在两种字体以内
+   - 默认两族（display + body）；第 3 族只允许承担一个功能性 register（等宽用于代码/数字，或 wordmark），且全页出现不超过 2 处 slot
 
 4. **定义视觉特征**：
    - 圆角大小（0px 锐利 → 16px 柔和）

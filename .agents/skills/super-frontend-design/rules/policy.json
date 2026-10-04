@@ -1,0 +1,79 @@
+{
+  "comment": "同一政策在本 skill 里只允许一个数字。此文件是唯一真值源：门禁阈值（rules/slop-table.json、scripts/render_probe.py）与文档措辞都必须与此一致，audit_integrity.py 会双向对账。",
+  "policies": [
+    {
+      "id": "font-family-cap",
+      "name": "一份设计里允许的 distinct font-family 上限",
+      "value": 3,
+      "also_allowed": [2],
+      "rule_ids": ["too-many-font-families"],
+      "prose": {
+        "patterns": [
+          "(\\d+)\\s*(?:种|族|个|款)\\s*(?:[^，。；\\n]{0,12}?)(?:字体|typeface|font-family)",
+          "(?:最多|超过|禁止超过|≤|<=|>)\\s*(\\d+)\\s*(?:种|族|个|款)?\\s*(?:[^，。；\\n]{0,20}?)(?:字体|typeface|font-family)"
+        ],
+        "exclude": ["字体文件", "字体配对", "字体品牌", "57"],
+        "min_hits": 3
+      }
+    },
+    {
+      "id": "register-face-slots",
+      "name": "功能性 register（等宽）字体允许占用的 slot 数",
+      "value": 2,
+      "also_allowed": [],
+      "rule_ids": ["outlier-face-overuse"],
+      "prose": {
+        "patterns": [
+          "(?:不超过|≤|<=|>)(?:超过)?\\s*(\\d+)\\s*(?:处|个)?\\s*(?:[^，。；\\n]{0,14}?)(?:slot|位置)"
+        ],
+        "exclude": [],
+        "min_hits": 1
+      }
+    },
+    {
+      "id": "accent-coverage-percent",
+      "name": "强调色在单个视口内允许覆盖的面积百分比",
+      "value": 5,
+      "also_allowed": [20],
+      "rule_ids": [],
+      "prose": {
+        "patterns": [
+          "(?:强调色|accent)[^\\n]{0,20}?(\\d+(?:\\.\\d+)?)\\s*%"
+        ],
+        "exclude": [],
+        "min_hits": 3
+      }
+    },
+    {
+      "id": "bare-hex-outside-root",
+      "name": ":root 之外允许的裸 hex 值个数",
+      "value": 12,
+      "also_allowed": [],
+      "rule_ids": ["bare-hex-outside-root"],
+      "prose": {
+        "patterns": [
+          "(\\d+)\\s*(?:个|处)[^\\n]{0,14}?hex",
+          "hex[^\\n]{0,20}?(\\d+)\\s*(?:个|处)"
+        ],
+        "exclude": [],
+        "min_hits": 3
+      }
+    },
+    {
+      "id": "wcag-contrast",
+      "name": "WCAG 对比度阈值（正文 4.5:1，大文本与焦点环 3:1，AAA 正文 7:1）",
+      "value": 4.5,
+      "also_allowed": [3, 3.0, 7],
+      "rule_ids": [],
+      "probe": {"body": 4.5, "large": 3.0},
+      "prose": {
+        "patterns": [
+          "(?:对比度|contrast|WCAG|AA|焦点环|前景|正文文字)[^\\n]{0,24}?(\\d+(?:\\.\\d+)?)\\s*:1",
+          "(\\d+(?:\\.\\d+)?)\\s*:1[^\\n]{0,16}?(?:WCAG|\\(AA|对比度|标准)"
+        ],
+        "exclude": ["字号比", "面积比", "柱宽"],
+        "min_hits": 4
+      }
+    }
+  ]
+}

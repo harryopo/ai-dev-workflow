@@ -50,7 +50,7 @@
 
 ## 4. 字体配对
 
-- 每个页面最多 **2 个 typeface**（display + body，或一个可变字体多 weight）
+- 默认 **2 个 typeface**（display + body，或一个可变字体多 weight）；第 3 个只允许承担一个功能性 register（如 mono），且不超过 2 处 slot
 - 始终声明系统回退链
 - **禁止** `font-family: system-ui` 单独用于标题 — 这是教科书级 AI 默认
 
@@ -97,7 +97,7 @@ Weight 700+ 极少需要。如果你的设计用了 Bold on Bold，说明其他�
 | T2 | Display text ≥32px 缺少负 tracking | 检查 ≥32px 的文本元素是否有 letter-spacing 负值 | 🟡 Medium |
 | T3 | Body text 行高 < 1.5 | 检查 15–18px 文本的 line-height | 🟡 Medium |
 | T4 | Body copy 行宽超 75 字符 | 计算 `max-width` 字符数 | 🟡 Medium |
-| T5 | >2 个 typeface 在同一页面 | 统计 `font-family` 声明中的第一字体 | 🟡 Medium |
+| T5 | >3 个 typeface 在同一页面（第 3 个仅限功能性 register，且 ≤2 处 slot） | `python scripts/slop_scan.py <页面> --only too-many-font-families,outlier-face-overuse` | 🟡 Medium |
 | T6 | `font-family: system-ui` 在标题元素 | Grep `h[1-6].*font-family.*system-ui` | 🔴 High |
 | T7 | Weight 超过 3 个 | 统计 `font-weight` 值种类 | 🟢 Low |
 | T8 | `text-align: justify` 在 body copy | Grep `text-align:\s*justify` | 🔴 High |

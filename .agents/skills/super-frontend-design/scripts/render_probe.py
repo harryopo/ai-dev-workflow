@@ -19,6 +19,11 @@ import json
 import sys
 from pathlib import Path
 
+# Windows 下 stdout 默认 gbk，中文结论会变乱码，门禁输出统一强制 UTF-8
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8")
+
 KNOWN = {"--json", "--strict", "--widths", "--timeout"}
 JS_CONTRAST = r"""
 () => {

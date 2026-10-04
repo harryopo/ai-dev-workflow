@@ -115,17 +115,37 @@ def test_inline_ignore_without_reason_is_reported(fails):
         tmp.unlink()
 
 
+def test_emoji_rule_is_position_sensitive(fails):
+    """句中提到的 emoji 不是图标；标题首字符的 emoji 才是（两类都曾判错）。"""
+    tmp = HERE / "_emoji_probe.html"
+    tmp.write_text('<!DOCTYPE html><html><body>'
+                   '<ul><li>正文标 ⚠️ 的降级引用只告警，不阻断交付</li></ul>'
+                   '</body></html>', encoding="utf-8")
+    try:
+        rules = {x["rule"] for x in json.loads(run(str(tmp), "--json").stdout)["hard"]}
+        if "emoji-as-icon" in rules:
+            fails.append("a prose mention of an emoji must not count as an icon")
+        tmp.write_text('<!DOCTYPE html><html><body><h3>\U0001F9FE 证据账本</h3>'
+                       '</body></html>', encoding="utf-8")
+        rules = {x["rule"] for x in json.loads(run(str(tmp), "--json").stdout)["hard"]}
+        if "emoji-as-icon" not in rules:
+            fails.append("a leading emoji outside the old hand-picked list must still fire")
+    finally:
+        tmp.unlink()
+
+
 def main():
     fails = []
     for fn in (test_red_catches_every_rule, test_clean_is_silent,
                test_line_numbers_point_at_the_right_line, test_empty_input_is_not_a_pass,
                test_unknown_flag_fails_closed, test_waiver_requires_reason,
-               test_inline_ignore_without_reason_is_reported):
+               test_inline_ignore_without_reason_is_reported,
+               test_emoji_rule_is_position_sensitive):
         fn(fails)
     for f in fails:
         print("FAIL  %s" % f)
     print("-" * 60)
-    print("checks=%d failures=%d" % (7, len(fails)))
+    print("checks=%d failures=%d" % (8, len(fails)))
     print("RESULT: PASS" if not fails else "RESULT: FAIL")
     return 1 if fails else 0
 

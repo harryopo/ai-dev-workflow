@@ -2,7 +2,7 @@
 
 > 零依赖、单文件输出，优先使用纯 CSS 原生特性。
 > 所有 CSS 变量定义在 `:root {}`，暗色模式用 `[data-theme="dark"]`。
-> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 57条Slop Test检查、GSAP 动效最佳实践（纯 CSS 动效优先，复杂动效用 GSAP）。
+> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 56条Slop Test检查、GSAP 动效最佳实践（纯 CSS 动效优先，复杂动效用 GSAP）。
 > 参考: references/css-modern-features.md（CSS 2025-2026 现代特性指南）
 
 ---

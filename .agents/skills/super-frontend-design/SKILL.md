@@ -445,14 +445,23 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | canvas-fonts/ | 字体资源（TTF + OFL 授权） | creative 子命令 |
 | themes/ | 10 个预设主题数据 | theme 子命令 |
 | scripts/search.py | CLI 搜索工具 | design 子命令 |
-| scripts/audit_integrity.py | 结构自检门禁：断链/孤儿资源/数字对账/围栏配对 | 交付前自检 |
-| scripts/slop_scan.py | 静态反 AI 味门禁：27 条规则扫 html/css，退出码 0/1/2 | review / critique |
+| scripts/audit_integrity.py | 结构自检门禁：断链/孤儿资源/数字对账/政策数字对账/围栏配对 | 交付前自检 |
+| scripts/slop_scan.py | 静态反 AI 味门禁：28 条规则扫 html/css，退出码 0/1/2；`--only 规则号` 可单点复检 | review / critique |
 | scripts/render_probe.py | 渲染量测门禁：对比度/横向滚动/触摸目标/焦点/alt/label（Playwright 离线） | review / critique |
+| scripts/token_lint.py | Token 门禁：未定义引用、死 token、与 DESIGN.md 契约双向对账（纯标准库） | design / review |
+| scripts/visual_diff.py | 参考图对账：截图、逐像素差异、白屏与内容密度兜底（Playwright + Pillow） | review（有参考图时） |
 | rules/slop-table.json | slop_scan 的判定表（规则即数据，阈值可溯源到条文） | review / critique |
+| rules/policy.json | 政策数字的唯一真值源（字体上限、强调色面积、对比度阈值…），文档与门禁双向对账 | 交付前自检 |
 | tests/slop_red.html | 反向夹具：每条规则必须被触发 | 门禁自测 |
 | tests/slop_clean.html | 正向夹具：不得报任何硬判定 | 门禁自测 |
-| tests/test_slop_scan.py | 门禁契约测试（7 项），证明扫描器真能变红 | 交付前自检 |
-| tests/test_audit_gate_red.py | 往副本注入 5 类缺陷，证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
+| tests/token_clean.css | Token 正向夹具 | 门禁自测 |
+| tests/token_red.html | Token 反向夹具（同行声明、缺失 token、死 token） | 门禁自测 |
+| tests/design_contract.md | DESIGN.md 契约对账夹具 | 门禁自测 |
+| tests/test_slop_scan.py | slop_scan 契约测试（8 项），证明扫描器真能变红 | 交付前自检 |
+| tests/test_token_lint.py | token_lint 契约测试（12 项）：误判回归 + 契约对账 + 空扫描/拼错参数必须拒跑 | 交付前自检 |
+| tests/test_visual_diff.py | visual_diff 契约测试（13 项）：白屏兜底、尺寸不符未比对面积、UTF-8 输出 | 交付前自检 |
+| tests/test_render_probe.py | render_probe 契约测试（6 项）：真浏览器量对比度/横向滚动/alt；无 Playwright 时退出 2，不许"没量到"当成通过 | 交付前自检 |
+| tests/test_audit_gate_red.py | 往副本注入 10 类缺陷 + 1 项参数拼写拒跑，证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
 
 **预设主题列表：**
 
@@ -563,8 +572,8 @@ output/
 - ✅ **每个阶段结束自动触发 review 审查**：调用 subskills/review/SKILL.md（基于 impeccable），形成质量闭环
 - ✅ **遵循各子命令的完整工作流**：不要省略步骤，每个步骤都有其目的
 - ✅ **输出可运行的代码**：design 子命令输出的代码必须可直接运行
-- ✅ **交付前跑三道门禁**：改过本 Skill 的任何文件 → `python ${SKILL_DIR}/scripts/audit_integrity.py`；产出了 UI 代码 → `python ${SKILL_DIR}/scripts/slop_scan.py <产物路径>` 与 `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>`。任一退出码非 0 视为未完成，不得声称已修好；退出码 2 表示根本没扫到东西，同样不算通过
-- ✅ **语义化 Token**：所有颜色、间距、字体使用语义化命名
+- ✅ **交付前跑五道门禁**：改过本 Skill 的任何文件 → `python ${SKILL_DIR}/scripts/audit_integrity.py`；产出了 UI 代码 → `slop_scan.py <产物路径>`（静态反 AI 味）、`token_lint.py <产物>`（Token 与 DESIGN.md 对账）、`render_probe.py <产物.html>`（对比度/横向滚动/焦点/alt，Playwright 离线）、有参考图时 `visual_diff.py check <产物.html> --reference 参考图.png`。任一退出码非 0 视为未完成，不得声称已修好；退出码 2 表示根本没扫到东西或参数拼错，同样不算通过。改过门禁脚本本身还要跑 `tests/` 下的契约测试与 `test_audit_gate_red.py`
+- ✅ **语义化 Token**：所有颜色、间距、字体使用语义化命名，并用 `token_lint.py` 证明没有未定义引用与死 Token
 - ✅ **全网搜索结果必须经过解构优化**：不可直接照搬搜索结果，必须经过解构→分析→融合→优化四步流程
 - ✅ **跨领域借鉴**：设计思考不局限于 UI 领域，主动从建筑、时尚、工业设计等领域获取灵感
 - ✅ **去 AI 味**：所有设计输出必须经过反 AI 味检查清单，禁止蓝紫渐变、emoji 图标、均匀间距等 AI 味特征开端

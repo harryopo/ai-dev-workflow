@@ -22,6 +22,11 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 下 stdout 默认 gbk，中文结论会变乱码，门禁输出统一强制 UTF-8
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8")
+
 GENERIC_FONTS = {"sans-serif", "serif", "monospace", "system-ui", "ui-monospace",
                  "-apple-system", "blinkmacsystemfont", "segoe ui", "inherit", "initial"}
 DEMO_HINT = re.compile(r"(?i)\b(demo|example|bad-?|before|after|anti-?pattern|slop-?|preview|showcase)\b")
@@ -131,21 +136,51 @@ def _unmeasurable(value):
     return value is None or "var(" in value or "calc(" in value or "attr(" in value
 
 
-def distinct_font_families(blocks, threshold):
-    fams = {}
+def family_usage(blocks):
+    """First family per font-family declaration -> how many slots use it.
+
+    Only the first family counts: fallbacks in a stack are not extra typefaces on
+    the page. var()-based values are skipped because the resolved face is unknown.
+    """
+    usage = {}
     for lineno, sel, body in blocks:
-        value = _decl(body, "font-family") if body else None
-        if value is None and sel and sel.startswith("--"):
-            value = _decl(sel + ";" + (body or ""), "font-family")
+        value = _decl(body or "", "font-family")
+        if value is None and sel and sel.strip().startswith("--"):
+            value = sel.split(":", 1)[1] if ":" in sel else None
         if _unmeasurable(value):
             continue
         first = value.split(",")[0].strip().strip("\"'").lower()
-        if first and first not in GENERIC_FONTS:
-            fams.setdefault(first, lineno)
-    if len(fams) > threshold:
-        line_no = min(fams.values())
-        return [("distinct=%d families: %s" % (len(fams), ", ".join(sorted(fams))), line_no)]
+        if not first or first in GENERIC_FONTS:
+            continue
+        usage.setdefault(first, []).append(lineno)
+    return usage
+
+
+def distinct_font_families(blocks, threshold):
+    usage = family_usage(blocks)
+    if len(usage) > threshold:
+        return [("distinct=%d families: %s" % (len(usage), ", ".join(sorted(usage))),
+                 min(min(v) for v in usage.values()))]
     return []
+
+
+REGISTER_FACE = re.compile(r"(?i)\b(mono|code|jetbrains|roboto mono|fira code|source code)\b")
+
+
+def outlier_face_overuse(blocks, threshold):
+    """V38, in the one form that is mechanically decidable from source.
+
+    A register face (monospace) used as if it were a third body font is the case
+    we can name with confidence. Other outlier faces (a second serif spread thin)
+    need to know which face is display vs body, so they stay a manual check —
+    the rule deliberately does not claim them.
+    """
+    out = []
+    for fam, lines in family_usage(blocks).items():
+        if REGISTER_FACE.search(fam) and len(lines) > threshold:
+            out.append(("register 字体 %s 用在 %d 处 slot（应 ≤%d，超出即成了第三种正文字体）"
+                        % (fam, len(lines), threshold), min(lines)))
+    return out
 
 
 def bare_hex_outside_root(blocks, threshold):
@@ -405,6 +440,7 @@ def bare_1fr_track(blocks, threshold):
 
 MEASURES = {
     "distinct_font_families": lambda ctx, r: distinct_font_families(ctx["blocks"], r["threshold"]),
+    "outlier_face_overuse": lambda ctx, r: outlier_face_overuse(ctx["blocks"], r["threshold"]),
     "bare_hex_outside_root": lambda ctx, r: bare_hex_outside_root(ctx["blocks"], r["threshold"]),
     "spacing_not_multiple_of_4": lambda ctx, r: spacing_not_multiple_of_4(ctx["blocks"], r["threshold"]),
     "reduced_motion_missing": lambda ctx, r: reduced_motion_missing(ctx["css_text"], ctx["blocks"], r["threshold"]),
@@ -575,9 +611,9 @@ def gather(args):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    known = {"--json", "--strict", "--allow", "--rules", "-h", "--help"}
+    known = {"--json", "--strict", "--allow", "--rules", "--only", "-h", "--help"}
     for a in argv:
-        if a.startswith("-") and a not in known:
+        if a.startswith("-") and a.split("=", 1)[0] not in known:
             # argparse would happily accept '--stric' as an abbreviation of
             # '--strict'; a mistyped gate flag must not silently keep scanning
             sys.stderr.write("ERROR  未知参数 %r（可用：%s）\n" % (a, ", ".join(sorted(known))))
@@ -590,6 +626,8 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true", help="warn 也计入失败")
     ap.add_argument("--allow", action="append", default=[], metavar="RULE=REASON",
                     help="行外豁免，必须给理由")
+    ap.add_argument("--only", default=None, metavar="RULE,RULE",
+                    help="只跑指定规则（改完单点复检用）")
     ap.add_argument("--rules", default=None, help="判定表路径，默认取 skill 的 rules/slop-table.json")
     ns = ap.parse_args(argv)
 
@@ -599,6 +637,13 @@ def main(argv=None):
                 raise ScanError("--allow 需要 RULE=理由 形式：%r" % w)
         table = Path(ns.rules) if ns.rules else Path(__file__).resolve().parent.parent / "rules" / "slop-table.json"
         rules_data = load_rules(table)
+        only = None
+        if ns.only:
+            only = {x.strip() for x in ns.only.split(",") if x.strip()}
+            unknown = sorted(only - {r["id"] for r in rules_data["rules"]})
+            if unknown or not only:
+                raise ScanError("--only 里有判定表不存在的规则号：%s" % (", ".join(unknown) or ns.only))
+            rules_data = dict(rules_data, rules=[r for r in rules_data["rules"] if r["id"] in only])
         files = gather(ns)
         if not files:
             raise ScanError("没有可扫描的 html/css 文件——空扫描不等于通过")

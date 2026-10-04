@@ -28,8 +28,8 @@
      "message": "彩色侧边条纹卡片（AI dashboard tile 形状）"},
 
     {"id": "emoji-as-icon", "kind": "regex", "severity": "hard", "scope": "html",
-     "source": "anti-ai-slop#3 / V29 / V50", "pattern": "<(?:h[1-6]|button|li|span)\\b[^>]*>[^<]*[✨🚀⚡🔥💡🎯🎨🛠️]",
-     "message": "emoji 当功能图标"},
+     "source": "anti-ai-slop#3 / V29 / V50", "pattern": "<(?:h[1-6]|button|li|span|div|p)\\b[^>]*>\\s*[\\U0001F000-\\U0001FAFF\\u2600-\\u27BF\\u2B00-\\u2BFF]",
+     "message": "emoji 当功能图标（标题/按钮/列表项/内联容器的首字符就是 emoji）"},
 
     {"id": "placeholder-cdn", "kind": "regex", "severity": "hard", "scope": "html",
      "source": "anti-ai-slop#9", "pattern": "(?:unsplash\\.com|placehold\\.co|placekitten\\.com|picsum\\.photos)",
@@ -62,6 +62,10 @@
     {"id": "too-many-font-families", "kind": "measure", "severity": "hard", "scope": "css",
      "source": "V37", "fn": "distinct_font_families", "threshold": 3,
      "message": "distinct font-family 超过 3 种"},
+
+    {"id": "outlier-face-overuse", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "V38", "fn": "outlier_face_overuse", "threshold": 2,
+     "message": "等宽/register 字体被当第三种正文字体使用（超过阈值 slot）；其他类型的 outlier 仍需人工判定"},
 
     {"id": "bare-hex-outside-root", "kind": "measure", "severity": "hard", "scope": "css",
      "source": "anti-ai-slop#10 / V47", "fn": "bare_hex_outside_root", "threshold": 12,

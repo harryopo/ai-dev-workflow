@@ -70,7 +70,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 5. **反 AI 味检查**
    - 加载 references/anti-ai-slop.md
    - 检查七宗罪硬规则
-   - 检查 Slop Test 57 条
+   - 检查 Slop Test 56 条
 
 6. **可访问性检查**
    - 对比度 ≥ 4.5:1

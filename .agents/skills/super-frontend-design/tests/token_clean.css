@@ -1,0 +1,10 @@
+/* Token 正例：引用的都有定义，定义的都有人用 */
+:root {
+  --color-ink: #101014;
+  --space-4: 4px;
+}
+
+body {
+  color: var(--color-ink);
+  padding: var(--space-4);
+}

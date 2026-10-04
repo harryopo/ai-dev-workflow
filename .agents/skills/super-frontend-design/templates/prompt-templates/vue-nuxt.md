@@ -2,7 +2,7 @@
 
 > 在生成组件设计卡时使用以下模板格式。
 > `{...}` 为从 DESIGN.md 和视觉论文中动态填充的变量。
-> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 57条Slop Test检查、GSAP 动效最佳实践（Vue 3 中推荐 useGSAP hook）。
+> **v2.4.0 规范**: 严格遵循 references/premium-design-rules.md 的16条规则（含斜体标题禁令/侧边条纹禁令/LCP优化/间距4px纪律）、hallmark 21种Macrostructure路由、hallmark 56条Slop Test检查、GSAP 动效最佳实践（Vue 3 中推荐 useGSAP hook）。
 > 参考: references/css-modern-features.md（CSS现代特性指南）
 
 ---

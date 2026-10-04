@@ -87,7 +87,8 @@
   }
 
   .figure { margin: 0; }
-  .figure img { display: block; width: 100%; height: auto; }
+  .figure img { display: block; width: 100%; height: auto; border-radius: var(--radius-md); }
+  .stamp { font-family: var(--font-mono); font-size: 12px; color: var(--color-muted); }
   img, video { max-width: 100%; height: auto; }
 
   .mark { display: block; }
@@ -121,6 +122,7 @@
     <article class="note">
       <h2>成文</h2>
       <p>把散落的划线按主题并起来，缺证的地方会留空提醒，不编数字。</p>
+      <p class="stamp">最近校对 2026-10-04</p>
       <svg class="mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
         <path d="M6 22h20M6 10h20" stroke="currentColor" stroke-width="1.6" fill="none"></path>
       </svg>
