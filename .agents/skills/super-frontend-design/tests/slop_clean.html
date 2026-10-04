@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Slop Scan CLEAN fixture — 应当零硬判定，用来抓扫描器误报</title>
+<style>
+  :root {
+    --color-canvas: #fbfaf7;
+    --color-ink: #1b1a17;
+    --color-muted: #6b675f;
+    --color-line: #ded9cf;
+    --color-accent: #0f766e;
+    --font-display: "Newsreader", "Source Serif 4", serif;
+    --font-body: "Instrument Sans", "Segoe UI", sans-serif;
+    --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-6: 24px;
+    --space-8: 32px;
+    --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+    --radius-sm: 4px;
+    --radius-md: 8px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-style: normal;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    margin: 0 0 var(--space-3);
+  }
+
+  .shell { max-width: 1120px; margin: 0 auto; padding: var(--space-8) var(--space-6); }
+
+  .masthead {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: var(--space-8);
+    align-items: center;
+    padding: var(--space-8) 0;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .lede { max-width: 62ch; color: var(--color-muted); }
+
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-height: 44px;
+    padding: var(--space-3) var(--space-4);
+    border: 1px solid var(--color-accent);
+    border-radius: var(--radius-sm);
+    background: var(--color-accent);
+    color: var(--color-canvas);
+    font: inherit;
+    cursor: pointer;
+    transition: transform 150ms var(--ease-out-expo), opacity 150ms linear;
+  }
+  .cta:hover { transform: translateY(-2px); }
+  .cta:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+  .cta:active { transform: translateY(0); }
+  .cta:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .index {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    gap: var(--space-6);
+    margin-top: var(--space-8);
+  }
+
+  .note {
+    border-top: 1px solid var(--color-line);
+    padding-top: var(--space-4);
+  }
+
+  .figure { margin: 0; }
+  .figure img { display: block; width: 100%; height: auto; }
+  img, video { max-width: 100%; height: auto; }
+
+  .mark { display: block; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cta { transition: none; }
+    .cta:hover { transform: none; }
+  }
+</style>
+</head>
+<body>
+<main class="shell">
+  <section class="masthead">
+    <div>
+      <h1>知行读书 · 编辑台</h1>
+      <p class="lede">把划线、卡片和周记放在同一张书桌上。三段流程：摘录、归纳、成文，每一步都能回到原文核对。</p>
+    </div>
+    <div>
+      <button class="cta" type="button">打开今日摘录</button>
+    </div>
+  </section>
+
+  <section class="index">
+    <article class="note">
+      <h2>摘录</h2>
+      <p>读到有用处直接划下来，段落来源与页码跟着走。</p>
+      <figure class="figure">
+        <img src="assets/excerpt-column.png" alt="摘录列表：左侧书名，右侧段落预览" width="640" height="360" fetchpriority="high">
+      </figure>
+    </article>
+    <article class="note">
+      <h2>成文</h2>
+      <p>把散落的划线按主题并起来，缺证的地方会留空提醒，不编数字。</p>
+      <svg class="mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+        <path d="M6 22h20M6 10h20" stroke="currentColor" stroke-width="1.6" fill="none"></path>
+      </svg>
+    </article>
+  </section>
+
+  <video autoplay muted loop playsinline src="demo.webm" poster="demo-poster.jpg" width="640" height="360"></video>
+</main>
+</body>
+</html>

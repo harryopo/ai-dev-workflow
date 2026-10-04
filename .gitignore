@@ -78,3 +78,14 @@ antigravity-awesome-skills/
 claude-task-master/
 everything-claude-code/
 spec-kit/
+
+# 白名单：super-frontend-design 开发副本纳入版本控制（放在末尾才能覆盖上面的目录排除）
+# 逐层放行：.agents 下只放出 skills/，skills/ 下只放出这一个 skill，字体资源不入库
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/super-frontend-design/
+.agents/skills/super-frontend-design/canvas-fonts/
+# 上面第 42 行的 research/ 会连带排除 subskills/research，这里单独放回
+!.agents/skills/super-frontend-design/subskills/research/

@@ -1,0 +1,114 @@
+{
+  "version": 1,
+  "ignore_token": "slop-scan-ignore",
+  "note": "判定表。阈值一律取自 references/slop-test.md、references/anti-ai-slop.md、references/premium-design-rules.md 的既有条文，不新增发明。kind=regex 走模式匹配，kind=measure 走 scripts/slop_scan.py 里的具名测量函数；未知 measure 名会直接报错退出。",
+  "rules": [
+    {"id": "ai-default-hex", "kind": "regex", "severity": "hard", "scope": "all",
+     "source": "anti-ai-slop#1 / V2", "pattern": "#(?:6366f1|4F46E5|4338CA|3730A3|8B5CF6|7C3AED|A855F7)\\b",
+     "message": "AI 默认 indigo/violet 色阶，教科书级生成指纹"},
+
+    {"id": "banned-display-font", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V1 / typography.md", "fn": "banned_display_font_used", "threshold": 0,
+     "message": "display/标题字体用了 Inter、Roboto、Open Sans、Poppins、Lato"},
+
+    {"id": "gradient-hero", "kind": "regex", "severity": "hard", "scope": "css",
+     "source": "V2 / anti-ai-slop#2", "pattern": "linear-gradient\\([^)]*(?:#8B5CF6|#6366F1|#3B82F6|#06B6D4|#EC4899|purple|violet|indigo|cyan)",
+     "message": "两色/三色渐变 Hero，禁止组合"},
+
+    {"id": "gradient-text", "kind": "regex", "severity": "hard", "scope": "css",
+     "source": "V2 / craft refuse-03", "pattern": "background-clip:\\s*text",
+     "message": "渐变文字（background-clip: text）"},
+
+    {"id": "transition-all", "kind": "regex", "severity": "hard", "scope": "css",
+     "source": "V9", "pattern": "transition(?:-property)?:\\s*all\\b",
+     "message": "transition: all 会连带动画布局属性，必须点名属性"},
+
+    {"id": "side-stripe-card", "kind": "regex", "severity": "hard", "scope": "css",
+     "source": "V5 / premium#14", "pattern": "border-left:\\s*[4-6]px\\s+solid\\s+[^;]*",
+     "message": "彩色侧边条纹卡片（AI dashboard tile 形状）"},
+
+    {"id": "emoji-as-icon", "kind": "regex", "severity": "hard", "scope": "html",
+     "source": "anti-ai-slop#3 / V29 / V50", "pattern": "<(?:h[1-6]|button|li|span)\\b[^>]*>[^<]*[✨🚀⚡🔥💡🎯🎨🛠️]",
+     "message": "emoji 当功能图标"},
+
+    {"id": "placeholder-cdn", "kind": "regex", "severity": "hard", "scope": "html",
+     "source": "anti-ai-slop#9", "pattern": "(?:unsplash\\.com|placehold\\.co|placekitten\\.com|picsum\\.photos)",
+     "message": "外部占位图 CDN"},
+
+    {"id": "filler-copy", "kind": "regex", "severity": "hard", "scope": "all",
+     "source": "anti-ai-slop#7 / V18", "pattern": "(?i)(?:lorem ipsum|功能一|功能二|功能三|placeholder text|sample content)",
+     "message": "填充文案"},
+
+    {"id": "placeholder-name", "kind": "regex", "severity": "hard", "scope": "all",
+     "source": "V18", "pattern": "(?:Jane Doe|John Doe|John Smith|\\bAcme\\b|\\bNexus\\b|Seamless|Unleash)",
+     "message": "占位人名 / 创业套路名"},
+
+    {"id": "fake-metrics", "kind": "regex", "severity": "warn", "scope": "all",
+     "source": "V45 / anti-ai-slop#6", "pattern": "(?:\\d+[×x]\\s*(?:更快|faster|更高效|more)|\\d{2,3}\\.\\d%\\s*(?:在线|uptime)?|百万级|千万用户)",
+     "message": "无来源的量化声明"},
+
+    {"id": "equal-three-col", "kind": "regex", "severity": "warn", "scope": "css",
+     "source": "V3 / craft refuse-02", "pattern": "grid-template-columns:\\s*repeat\\(\\s*3\\s*,\\s*1fr",
+     "message": "等宽三列卡片网格"},
+
+    {"id": "bare-1fr-track", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "V49", "fn": "bare_1fr_track", "threshold": 0,
+     "message": "栅格轨道用裸 1fr，应为 minmax(0, 1fr) 防溢出"},
+
+    {"id": "overshoot-easing", "kind": "regex", "severity": "warn", "scope": "css",
+     "source": "V11", "pattern": "cubic-bezier\\([^)]*,\\s*1\\.[1-9]\\d*\\s*[,)]",
+     "message": "回弹/弹性缓动用在 UI 交互上"},
+
+    {"id": "too-many-font-families", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V37", "fn": "distinct_font_families", "threshold": 3,
+     "message": "distinct font-family 超过 3 种"},
+
+    {"id": "bare-hex-outside-root", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "anti-ai-slop#10 / V47", "fn": "bare_hex_outside_root", "threshold": 12,
+     "message": ":root 之外裸 hex 值超过 12 个，Token 纪律失守"},
+
+    {"id": "non-4px-spacing", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V23 / premium#16", "fn": "spacing_not_multiple_of_4", "threshold": 0,
+     "message": "间距不是 4px 倍数（px 魔法数字）"},
+
+    {"id": "reduced-motion-missing", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V26 / anti-ai-slop 可访问性底线", "fn": "reduced_motion_missing", "threshold": 0,
+     "message": "有动效但整个文件没有 prefers-reduced-motion 降级"},
+
+    {"id": "italic-heading", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V39 / premium#13", "fn": "italic_on_heading_rule", "threshold": 0,
+     "message": "标题用斜体（hallmark 列为顶级 AI 标志）"},
+
+    {"id": "animates-layout-props", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "V13 / premium#6", "fn": "transition_on_layout_props", "threshold": 0,
+     "message": "对 width/height/margin/padding/top/left 做过渡动画"},
+
+    {"id": "glassmorphism-overuse", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "V56 / craft refuse", "fn": "backdrop_filter_count", "threshold": 2,
+     "message": "backdrop-filter 出现超过 2 次，玻璃拟态当装饰"},
+
+    {"id": "prose-line-length", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "V24", "fn": "prose_max_width_out_of_range", "threshold": 0,
+     "message": "正文容器 max-width 不在 45-75ch"},
+
+    {"id": "missing-interactive-states", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "V25", "fn": "interactive_states_incomplete", "threshold": 0,
+     "message": "可交互选择器缺 :focus-visible / :active / :disabled 状态"},
+
+    {"id": "decorative-svg-no-aria", "kind": "measure", "severity": "warn", "scope": "html",
+     "source": "V32", "fn": "svg_without_accessible_name", "threshold": 0,
+     "message": "装饰性 svg 既无 aria-hidden/可访问名，父级也没有文字或 aria-label 兜底"},
+
+    {"id": "autoplay-with-sound", "kind": "measure", "severity": "hard", "scope": "html",
+     "source": "V53 / V27", "fn": "video_autoplay_not_muted", "threshold": 0,
+     "message": "video autoplay 未 muted"},
+
+    {"id": "lazy-loaded-lcp", "kind": "measure", "severity": "hard", "scope": "html",
+     "source": "V54 / V27", "fn": "hero_img_lazy_loaded", "threshold": 0,
+     "message": "Hero/LCP 图片被 loading=\"lazy\""},
+
+    {"id": "eyebrow-on-every-section", "kind": "measure", "severity": "warn", "scope": "html",
+     "source": "V51 / craft refuse-01", "fn": "numbered_eyebrow_count", "threshold": 2,
+     "message": "每个 section 都挂 01 / XXX 式 eyebrow"}
+  ]
+}
