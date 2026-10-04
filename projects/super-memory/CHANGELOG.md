@@ -2,6 +2,24 @@
 
 本项目遵循"改动即记录"。版本号以 SKILL.md frontmatter 的 `version` 为权威，与本文件最新小节、`evals/evals.json` 的 `version` 三处同步演进（verify.py 校验一致）。
 
+## 2.3.0 — 2026-10-03
+
+开源机制移植第二批（任务 4–6，见 `references/v2.2.0-实施计划.md`）：记忆体检并入 neat、hooks 自动触发、README。
+
+### 新增
+
+- **记忆体检并入 neat**（来源 Letta /doctor）：neat 第一步新增 1b——按 `references/memory-doctor.md` 四项机械检查逐项跑（索引断链 / 重复条目 / 非法置信度码 / 超龄未验证），自检清单同步加一条。处置路由表区分"直修（死链索引行、非法码）"与"需第 2.5 步确认（重复合并涉隔离）"与"只提示不动文件（超龄）"。neat 原反例表压缩为指针（与主入口去重），为正文让出体积。
+- **hooks-setup.md**（来源 claude-mem 生命周期映射）：SessionStart 读交接 / PreCompact 压缩前抢救 / Stop 收尾提醒三时机配置片段（Claude Code 形态，其他宿主按文档映射）；可选安装件，不装不影响 skill 本体；写明与 claude-mem 类插件的共写边界。
+- **README.md**：定位、五子命令表、安装命令、寻址三步、与宿主记忆/self-improving-agent/claude-mem 的共存规则、评测跑法与版本权威说明。
+
+### 实测
+
+- evals 新增 `core-doctor-findings` 并实跑 PASS：四项检查全部检出注入病灶；处置合规（死链直修、[X] 修为 [已失效]+原因、重复 UPDATE 合并+隔离走模拟确认门、超龄只提示）。**执行中自纠一处**：合并后首轮终检仍报 ci-use-pnpm 断链——"合并必须同步清索引"的动作漏了半步，终检命令按设计抓到，清理后复检 0（该教训已体现在用例记录中）。用例总数 14 → 15，状态全 pass。
+
+### 未做
+
+- hooks 片段未在真实宿主上配置触发过（规格与示例已给，属可选件）。
+
 ## 2.2.0 — 2026-10-03
 
 开源机制移植第一批（任务 1–3，见 `references/v2.2.0-实施计划.md`）：mem0 巩固协议、A-Mem 互链、Graphiti 双时间戳。全部零外部依赖，纯提示词层。
