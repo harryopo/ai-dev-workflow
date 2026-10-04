@@ -1,8 +1,7 @@
 ---
 name: skill-dev
-version: 5.3.1
 description: |
-  Skill 开发助手 v5.3.1。当用户提到"开发skill"、"创建skill"、"新建skill"、
+  Skill 开发助手。当用户提到"开发skill"、"创建skill"、"新建skill"、
   "写个skill"、"帮我做个skill"、"合并skill"、"MCP包装为Skill"、"工作流蒸馏"、
   "优化skill"、"沉淀记忆"时触发。引导用户完成符合官方规范的
   Skill 开发，支持MCP整合、工作流蒸馏、开发记忆沉淀，自动生成 SKILL.md 文件。由 skill-workspace 主入口路由调用。
@@ -1287,7 +1286,7 @@ description: |
 2. 保存到指定位置
 3. 展示给用户
 
-## description 编写规范（v5.3.1新增）
+## description 编写规范
 
 > **来源：** agentskills.io 规范 + Anthropic 官方最佳实践 + PluginEval 反模式研究（2026-07 调研）
 
@@ -1328,7 +1327,7 @@ description: "这个 skill 可以帮你处理 PDF"
 description: "我能帮你把 PDF 转成 Markdown"
 ```
 
-## Gotchas 段落编写指引（v5.3.1新增）
+## Gotchas 段落编写指引
 
 > **来源：** Anthropic 内部经验（2026-06）+ Perplexity Skill 之禅（2026-05）
 
@@ -1356,7 +1355,7 @@ description: "我能帮你把 PDF 转成 Markdown"
 - ❌ 写模糊的建议（如"注意安全"）
 - ❌ 只写问题不给解决方案
 
-## Plan-Validate-Execute 模式（v5.3.1新增）
+## Plan-Validate-Execute 模式
 
 > **来源：** Anthropic 官方最佳实践（2026-07 调研）
 
@@ -1380,7 +1379,7 @@ description: "我能帮你把 PDF 转成 Markdown"
 
 **适用场景：** 批量操作、不可逆操作、高风险操作
 
-## 防递归硬约束（v5.3.1新增）
+## 防递归硬约束
 
 > **来源：** deep-research-ultra 案例分析（2026-07 调研）
 
@@ -1395,7 +1394,7 @@ description: "Use when orchestrating data analysis workflows"
 # ✅ "You are a data collection sub-agent. Collect data from..."（安全）
 ```
 
-## 跨会话记忆机制（v5.3.1新增）
+## 跨会话记忆机制
 
 > **来源：** Anthropic 内部经验 + Claude Code ${CLAUDE_PLUGIN_DATA} 变量
 

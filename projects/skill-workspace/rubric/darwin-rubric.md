@@ -204,7 +204,7 @@
 
 ---
 
-### 附加扣分维度：PluginEval 反模式检测（v5.3.1 新增）
+### 附加扣分维度：PluginEval 反模式检测
 
 > **来源：** 上游 wshobson/agents 仓库的 plugin-eval 插件（2026-07 调研）。11 条反模式定义在该插件静态层的 Python 源码里；该仓库没有 docs 目录，下载的副本在本仓库 opensource-reference 下，不随本技能包发布。
 > **背景：** PluginEval 提供三层质量评估（静态分析 + LLM Judge + Monte Carlo），覆盖 10 个质量维度，检测 11 种反模式。

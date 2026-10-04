@@ -1,8 +1,7 @@
 ---
-name: review
-version: 5.3.1
+name: skill-review
 description: |
-  Skill 审查评分工具 v5.3.1。基于 Darwin 9 维度评估体系（其中 3 个维度有 SkillLens 论文实证，其余维度与权重为自定），
+  Skill 审查评分工具。基于 Darwin 9 维度评估体系（其中 3 个维度有 SkillLens 论文实证，其余维度与权重为自定），
   集成多评委独立审查机制、语义-行为一致性检测、组合攻击风险评估、开发记忆污染检测、
   PluginEval 11 种反模式检测、安全审计数据参考，
   对 Skill 进行全面质量审查和安全扫描，输出评分报告。
@@ -302,7 +301,7 @@ allowed-tools: Read Glob Grep
 
 **如果 Skill 缺少反例说明 → D9 维度扣分。**
 
-#### 5.3 PluginEval 11种反模式检测（v5.3.1新增）
+#### 5.3 PluginEval 11种反模式检测
 
 > **来源：** 上游 wshobson/agents 仓库的 plugin-eval 插件（2026-07 调研）。11 条反模式定义在该插件静态层的 Python 源码里；该仓库没有 docs 目录，下载的副本在本仓库 opensource-reference 下，不随本技能包发布。
 > **背景：** PluginEval 提供三层质量评估（静态分析 + LLM Judge + Monte Carlo），覆盖 10 个质量维度，检测 11 种反模式。
@@ -353,7 +352,7 @@ skills-ref validate ./my-skill
 uvx skilllint@latest check <skill-path>
 ```
 
-#### 5.4 安全审计数据参考（v5.3.1新增）
+#### 5.4 安全审计数据参考
 
 > **来源：** 腾讯云鼎实验室、Snyk、ClawHavoc 攻击事件（2026 调研）
 
@@ -536,7 +535,7 @@ bash "../../scripts/source-cleanup.sh" auto
 {一段话总结审查结论，给出整体评价和优先改进建议。引用 SkillLens 论文的关键发现作为理论支撑。}
 ```
 
-### 第七步：开发记忆污染检测与沉淀建议（v5.3新增）
+### 第七步：开发记忆污染检测与沉淀建议
 
 **目标：** 检测被审查 Skill 的主文档是否被开发记忆污染，并将审查发现的问题及改进建议沉淀到 `.dev-memory.md`。
 

@@ -23,19 +23,37 @@
 
 ### 部署步骤
 
-1. **确认来源**
+1. **发布前清洗**（必做，不可跳过）
+
+   开发期产物、升级纪要、版本标记都不该进入发布包——它们占磁盘、污染上下文，且会让 Agent 把历史当现状。
+
    ```bash
-   # 检查当前目录中的 skill 目录
+   # Bash / Git Bash
+   bash "{技能目录}/scripts/release-clean.sh" "{工作区路径}/{skill名}"
+   ```
+
+   ```powershell
+   # Windows PowerShell
+   powershell -ExecutionPolicy Bypass -File "{技能目录}\scripts\release-clean.ps1" "{工作区路径}\{skill名}"
+   ```
+
+   该脚本按 `flows/release-clean.md` 的清单执行：删除开发期目录与缓存、剥离 frontmatter `version` 字段与正文版本后缀、把升级纪要迁出到 `.dev-memory.md`（若不存在则归档到工作区，不进发布包）。清洗后向用户报告删了什么。
+
+   只想手动核对时，按 `flows/release-clean.md` 的清单逐项检查即可；脚本是清单的可执行版本。
+
+2. **确认来源**
+   ```bash
+   # 检查清洗后的 skill 目录
    ls ./{skill名}/
    ```
 
-2. **复制到全局**
+3. **复制到全局**
    ```bash
    # ⚠️ 永远用 cp，不用 mv
    cp -r ./{skill名}/ {全局skills目录}/{skill名}/
    ```
 
-3. **验证部署**
+4. **验证部署**
    ```bash
    # 检查文件
    ls {全局skills目录}/{skill名}/
@@ -94,7 +112,7 @@
 cp -r ./{skill名}/ {全局skills目录}/{skill名}/
 ```
 
-## AGENTS.md 一主多适配策略（v5.3.1新增）
+## AGENTS.md 一主多适配策略
 
 > **核心思想：维护一份源 Skill，通过 AGENTS.md 适配多个 Agent 平台的差异。**
 

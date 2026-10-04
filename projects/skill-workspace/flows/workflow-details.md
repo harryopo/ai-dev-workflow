@@ -1000,8 +1000,8 @@ npx skills check
 ├── proposals/           # 方案文档
 ├── merge/               # 合并方案
 ├── mcp/                 # MCP整合报告
-├── distillation/        # 工作流蒸馏报告（v5.3新增）
-└── cleanup/             # 发布前清洗报告（v5.3新增）
+├── distillation/        # 工作流蒸馏报告
+└── cleanup/             # 发布前清洗报告
 ```
 
 ### 产物生成规则

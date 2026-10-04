@@ -1,8 +1,7 @@
 ---
 name: skill-workspace
-version: 5.4.0
 description: |
-  Skill 全生命周期工作台 v5.4.0。当用户提到"skill工作台"、"管理skill"、"搜索skill"、
+  Skill 全生命周期工作台。当用户提到"skill工作台"、"管理skill"、"搜索skill"、
   "下载skill"、"优化skill"、"部署skill"、"合并skill"、"MCP整合"、"工作流蒸馏"、
   "开发记忆"、"清洗skill"、"清理源码"、"释放磁盘"、"删掉下载的源码"时触发。
   开发和审查功能由子技能处理。
@@ -585,7 +584,7 @@ your-workflow-skill/
 
 **目标：** 防止开发记忆污染主 SKILL.md，确保发布产物纯净。开发期记忆沉淀到 `.dev-memory.md`，发布/开源前自动清洗。
 
-**详细指南：** `flows/dev-memory-guide.md`
+**详细指南：** `flows/dev-memory-guide.md`（记忆沉淀与污染检测）、`flows/release-clean.md`（发布清洗清单）
 
 ### 核心机制
 
@@ -597,13 +596,17 @@ your-workflow-skill/
   ↓ 确认主文档未被污染
 
 发布期：用户说"正式部署"/"开源"/"发布"等关键词
-  ↓ 检测 .dev-memory.md 是否存在
-  ↓ 扫描主文档污染（更新概要/版本标记/TODO/决策记录）
-  ↓ 清除污染，归档到 .dev-memory.md
+  ↓ 执行清洗（脚本或清单逐项核对）
+  ↓ 删除开发期目录（.research/、artifacts/、__pycache__/、index.html 等）
+  ↓ 归档 .dev-memory.md 到工作区（不进发布包）
+  ↓ 剥离 frontmatter version 字段与正文版本后缀
   ↓ 验证功能完整性（evals通过率≥80%）
-  ↓ 生成清洗报告 → ./artifacts/cleanup/cleanup-{date}-{name}.md
   ↓ 执行部署（流程五）
 ```
+
+**清洗脚本：** `scripts/release-clean.sh`（Bash）/ `scripts/release-clean.ps1`（PowerShell），默认 dry-run，加 `--apply` / `-Apply` 才实际改动。
+
+**清洗清单：** `flows/release-clean.md` —— 脚本是该清单的可执行版本，也可手动逐项核对。
 
 ### 记忆沉淀触发时机
 
@@ -779,7 +782,7 @@ bash "{技能目录}/scripts/source-cleanup.sh" restore "{staged-name}"
 - 反例黑名单：`knowledge/anti-patterns.md`
 - Agent 中立指南：`knowledge/agent-neutral-guide.md`
 - MCP整合指南：`flows/mcp-integration.md`
-- 其他流程指南：`flows/environment-check.md`、`flows/search-strategy.md`、`flows/optimize.md`、`flows/deploy.md`、`flows/merge-workflow.md`、`flows/workflow-distillation.md`、`flows/dev-memory-guide.md`、`flows/source-lifecycle.md`
+- 其他流程指南：`flows/environment-check.md`、`flows/search-strategy.md`、`flows/optimize.md`、`flows/deploy.md`、`flows/merge-workflow.md`、`flows/workflow-distillation.md`、`flows/dev-memory-guide.md`、`flows/release-clean.md`、`flows/source-lifecycle.md`
 - 其他规范与模板：`knowledge/requirements.md`、`knowledge/proposal-template.md`、`knowledge/context-management.md`、`knowledge/artifacts.md`
 
 **子技能：**
@@ -838,7 +841,7 @@ bash "{技能目录}/scripts/source-cleanup.sh" restore "{staged-name}"
 - 下载/安装 Skill 前必须做安全审查
 - 安全评级为 BLOCK 时必须停止，不能继续
 - 不要因为"看起来没问题"就跳过安全审查
-- **v5.2新增：必须检查语义-行为一致性和组合攻击风险**
+- **必须检查语义-行为一致性和组合攻击风险**
 
 ### G5: 棘轮机制不可违反
 - 优化时分数只能上升，退步必须回滚

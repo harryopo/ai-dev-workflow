@@ -59,6 +59,9 @@ projects/节省token_skill/
 npm
 skills-lock.json
 
+# 回收站（删除前的可恢复备份，不入版本库）
+.trash/
+
 # 工具缓存
 .mimosa/
 
