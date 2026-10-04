@@ -1,6 +1,6 @@
 ---
 name: super-memory
-version: 2.1.1
+version: 2.2.0
 description: |
   记忆与知识管理工作台：把错误/学习/纠正结构化记到 .learnings/，把会话成果归档到当前 agent 的记忆库，
   阶段性对文档与记忆做洁癖同步，把成熟学习提炼为项目规则。

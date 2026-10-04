@@ -70,6 +70,7 @@ done
 ---
 name: <与文件名一致的 kebab-case>
 description: <一行，将来靠它判断相关性，写具体>
+last_verified: <YYYY-MM-DD，可选；写了它 neat 才能提示超龄重验>
 metadata:
   type: user | project | feedback | reference
 ---

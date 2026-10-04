@@ -2,6 +2,26 @@
 
 本项目遵循"改动即记录"。版本号以 SKILL.md frontmatter 的 `version` 为权威，与本文件最新小节、`evals/evals.json` 的 `version` 三处同步演进（verify.py 校验一致）。
 
+## 2.2.0 — 2026-10-03
+
+开源机制移植第一批（任务 1–3，见 `references/v2.2.0-实施计划.md`）：mem0 巩固协议、A-Mem 互链、Graphiti 双时间戳。全部零外部依赖，纯提示词层。
+
+### 新增
+
+- **巩固四操作**（来源 mem0）：`knowledge-tiers.md` 新增权威节——写入长期库前 grep 相似旧条目后四选一并写明判定：ADD 新建 / UPDATE 改旧条目保留原 ID / **SUPERSEDE**（对应 DELETE，按"只降级不删除"铁律改造：旧条目标 `[已失效]`+原因+替代指针留档）/ NOOP 等价不写。接入 handoff A3 与 promote 第 5 步（2b）。
+- **Related 互链**（来源 A-Mem Zettelkasten）：长期库条目格式加 `**Related**` 必填字段（确无写"无"）；入库前必须检索相关旧条目双向互链；旧条目因互链小幅补充只加一行登记日期，不算改写历史。
+- **双时间戳**（来源 Graphiti bi-temporal）：条目格式加 `**生效**`（事实在现实中的起点）与 `**记录**`（写入/最近改写日），语义区分写入规范。
+- agent 记忆库条目 frontmatter 增加可选 `last_verified`；超 90 天未验证的条目 neat 盘点时列出"建议重验或降级"，不代判不删除（`knowledge-tiers.md` 有效性维护）。
+
+### 实测
+
+- evals 新增 3 例并全部实跑 PASS：`core-consolidate-supersede`（SUPERSEDE 留痕，未 ADD 平行条目、未删除）、`core-related-linking`（双向互链 + 双时间戳语义正确 + 旧条目只补一行）、`edge-stale-memory-prompt`（超龄列出提示，未代判未删除）。用例总数 11 → 14，状态全 pass。
+- verify.py 新增静态检查：v2.2.0 格式字段（生效/记录/Related）、巩固四操作四词、last_verified 超龄规则在规范中齐备；黄金样本同步含新字段。
+
+### 未做
+
+- hooks 自动触发、记忆体检并入 neat、README 与部署（任务 4–6，见 2.3.0）。
+
 ## 2.1.1 — 2026-10-03
 
 实测复核驱动的修复版：handoff A5 的统计命令对自家模板格式全部报 0——v2.0.0 修过的"promote 筛选命令失效"同类问题，在 v2.1.0 新写的 handoff 里复发。

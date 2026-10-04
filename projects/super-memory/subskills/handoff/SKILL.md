@@ -74,6 +74,8 @@ find . -maxdepth 2 -iname "HANDOFF.md" -not -path "*/node_modules/*"
 
 目录**按需创建**：只建本轮真有内容的分类（五分类语义见 `../../references/knowledge-tiers.md`），不预铺空文件、不为了凑骨架写空条目。
 
+**写入前先巩固**：grep 相似旧条目后按**四操作**四选一并写明判定——ADD 新建 / UPDATE 改旧条目保留原 ID / SUPERSEDE 旧条目标 `[已失效]`+替代指针不删 / NOOP 等价不写（详见 `../../references/knowledge-tiers.md`）。新条目入库前必须检索相关旧条目，双向写 `**Related**` 互链；条目带 `**生效**`/`**记录**` 双时间戳。
+
 ### A4. 版本记录只追加
 
 第十节每条记录含：更新时间（绝对日期）、更新主体、核心变更摘要、本次沉淀的知识标签。

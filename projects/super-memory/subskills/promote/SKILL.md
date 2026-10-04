@@ -75,6 +75,7 @@ grep -rE "^## \[[A-Z]+-[0-9]{8}-[0-9]+\].*(best_practice|correction)" .learnings
 
 1. 读目标文件全文，找对应章节，没有就新建。
 2. **插入前先 grep 同关键字**，已有等价规则 → 改那条，不叠第二条。
+2b. 目标是 `.ai/knowledge/` 时：先按**巩固四操作**判定（ADD/UPDATE/SUPERSEDE/NOOP，见 `../../references/knowledge-tiers.md`），并检索相关旧条目双向 `**Related**` 互链、带 `**生效**`/`**记录**` 双时间戳。
 3. 一条规则 ≤ 2 句，bullet 形式。
 4. 规则里提到的路径、命令、工具，必须在代码里真实存在——写之前 `ls` 或 `grep` 确认一次。
 

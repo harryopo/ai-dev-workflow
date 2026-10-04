@@ -91,7 +91,8 @@ print("  图例存在:", "ok" if "★ = 必需节" in tpl else "缺失")
 
 print("=== A5 统计命令 vs 黄金样本（防'命令与格式脱节'复发）===")
 golden_handoff = "- `[V]` `src/x/y.ts:42` 做了什么 — 要点 — 验证：npm test"
-golden_knowledge = "**置信度**：[V]　　**最后验证**：2026-10-03　　**适用版本**：main"
+golden_knowledge = "**置信度**：[V]　　**生效**：2026-10-01　　**记录**：2026-10-03　　**最后验证**：2026-10-03　　**适用版本**：main" \
+                   "\n**Related**：K-20261001-001"
 pats = set(re.findall(r'grep -[a-zA-Z]+E "([^"]+)"', hs))
 hit_h = [p for p in sorted(pats) if re.search(p, golden_handoff)]
 hit_k = [p for p in sorted(pats) if re.search(p, golden_knowledge)]
@@ -103,6 +104,9 @@ tiers = open("references/knowledge-tiers.md", encoding="utf-8").read()
 spots = [".learnings/", ".ai/HANDOFF.md", ".ai/knowledge/", "agent 记忆库", "规则文件"]
 missing = [s for s in spots if s not in tiers]
 print("  五处落点全覆盖:", "ok" if not missing else missing)
+print("  v2.2.0 格式字段齐:", "ok" if all(s in tiers for s in ["**生效**", "**记录**", "**Related**"]) else "缺字段")
+print("  巩固四操作齐:", "ok" if all(s in tiers for s in ["ADD", "UPDATE", "SUPERSEDE", "NOOP"]) else "缺")
+print("  last_verified 超龄规则:", "ok" if "90 天" in tiers and "last_verified" in tiers else "缺")
 
 parent = open("SKILL.md", encoding="utf-8").read()
 subs = sorted(glob.glob("subskills/*/SKILL.md"))
