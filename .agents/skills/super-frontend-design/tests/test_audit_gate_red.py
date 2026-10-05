@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Negative control for scripts/audit_integrity.py.
 
-Copies the skill to a scratch dir, injects one known defect at a time (11 cases:
-10 injected defects plus one bad-flag rejection), and requires the gate to fail
+Copies the skill to a scratch dir, injects one known defect at a time (13 cases:
+12 injected defects plus one bad-flag rejection), and requires the gate to fail
 with the expected check name. A gate that cannot go
 red is not measuring anything.
 """
@@ -62,6 +62,17 @@ CASES = [
          .replace("| 特殊规则（V50-V56） | 7 |", "| 特殊规则（V50-V56） | 5 |"),
          encoding="utf-8"),
      "layer-sum"),
+    ("gate-points-at-missing-script",
+     lambda d: (d / "rules/gates.json").write_text(
+         (d / "rules/gates.json").read_text(encoding="utf-8")
+         .replace("scripts/token_lint.py", "scripts/token_lint_renamed.py", 1),
+         encoding="utf-8"),
+     "gate-inventory"),
+    ("gate-count-claim-drift",
+     lambda d: (d / "SKILL.md").write_text(
+         (d / "SKILL.md").read_text(encoding="utf-8")
+         .replace("六道门禁", "三道门禁", 1), encoding="utf-8"),
+     "gate-inventory"),
     ("policy-prose-number-drift",
      lambda d: (d / "subskills/review/SKILL.md").write_text(
          (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")

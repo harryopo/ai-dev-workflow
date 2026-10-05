@@ -946,7 +946,8 @@ Web Interface Guidelines 合规性审查确保界面遵循现代 Web 平台的�
 > **这些自动化检查已有可执行脚本，必须真跑而不是心算**：
 > `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>` 覆盖 §2.16–§2.18 的静态判定（28 条规则，含 A1/A2 的 alt 与 label），
 > `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>` 覆盖 Token 纪律（未定义引用、死 Token、与 DESIGN.md 契约双向对账），
-> `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>` 覆盖必须渲染才能量的项（对比度、横向滚动、触摸目标、焦点指示），
+> `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>` 覆盖必须渲染才能量的项（对比度、横向滚动、触摸目标、焦点指示），加 `--apca` 会用 colorjs.io 再量一遍感知对比度 Lc（阈值取自 `rules/policy.json`），
+> `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物>` 用 stylelint + html-validate 真解析：抓拼错的属性名、无效 hex、重复 id、缺 `type` 的按钮、没 alt 的图，以及"颜色/字体没走 var()"（需项目本地 `.sfd-tools`；未安装时退出码 2，报告里要写明"结构层未参与"，不得默认视为通过），
 > 有参考图/基线截图时再跑 `python ${SKILL_DIR}/scripts/visual_diff.py check <产物.html> --reference <参考图.png>`（白屏与内容密度骤变会单独报 hard，尺寸不符时报告会写明"未比对面积"）。
 > 把各脚本的输出原样贴进审查报告；退出码非 0 时不得给出"通过"结论。
 

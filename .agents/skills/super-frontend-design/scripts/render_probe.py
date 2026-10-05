@@ -7,7 +7,7 @@ style and geometry can answer: contrast, touch-target size, horizontal overflow,
 heading jumps, focus indication, missing alt/label.
 
 Usage:
-    python scripts/render_probe.py <file.html> [...] [--json] [--widths 320,375,768]
+    python scripts/render_probe.py <file.html> [...] [--json] [--widths 320,375,768] [--apca]
                                   [--strict]
 Exit: 0 clean, 1 hard findings, 2 bad invocation / browser unavailable / nothing
 to probe. An unfinished load is a warning (offline environment), never a design defect,
@@ -16,6 +16,7 @@ and is never silently skipped.
 
 import argparse
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -24,9 +25,45 @@ for _s in (sys.stdout, sys.stderr):
     if hasattr(_s, "reconfigure"):
         _s.reconfigure(encoding="utf-8")
 
-KNOWN = {"--json", "--strict", "--widths", "--timeout"}
+KNOWN = {"--json", "--strict", "--widths", "--timeout", "--apca"}
+SKILL_DIR = Path(__file__).resolve().parent.parent
+
+
+class ProbeError(Exception):
+    pass
+
+
+def apca_targets():
+    """Lc 阈值只认 rules/policy.json，脚本里不重复写数字。"""
+    policy = SKILL_DIR / "rules" / "policy.json"
+    if not policy.is_file():
+        raise ProbeError("--apca 需要 rules/policy.json 提供 Lc 阈值，文件不存在")
+    for p in json.loads(policy.read_bytes().decode("utf-8"))["policies"]:
+        if p.get("id") == "apca-contrast":
+            body = p["apca"]["body"]
+            large = p["apca"]["large"]
+            return float(body), float(large)
+    raise ProbeError("rules/policy.json 里没有 apca-contrast 条目")
+
+
+def apca_lc(pairs):
+    """把前景/背景交给 colorjs.io 算 APCA Lc（算法不自己实现，避免自造近似值）。"""
+    helper = SKILL_DIR / "scripts" / "apca_contrast.mjs"
+    payload = json.dumps([{"fg": p["fg"], "bg": p["bg"]} for p in pairs])
+    try:
+        proc = subprocess.run(["node", str(helper)], input=payload.encode("utf-8"),
+                              capture_output=True, timeout=120)
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ProbeError("--apca 需要 node + .sfd-tools（colorjs.io），调用失败：%s" % exc)
+    if proc.returncode != 0:
+        raise ProbeError("--apca 计算不可用：%s"
+                         % proc.stderr.decode("utf-8", "replace").strip()[:200])
+    try:
+        return json.loads(proc.stdout.decode("utf-8", "replace"))
+    except ValueError as exc:
+        raise ProbeError("--apca 返回不是 JSON：%s" % str(exc)[:120])
 JS_CONTRAST = r"""
-() => {
+(onlyFail) => {
   const lum = (r,g,b) => {
     const f = c => { c /= 255; return c <= 0.03928 ? c/12.92 : Math.pow((c+0.055)/1.055, 2.4); };
     return 0.2126*f(r) + 0.7152*f(g) + 0.0722*f(b);
@@ -73,9 +110,11 @@ JS_CONTRAST = r"""
     const large = size >= 24 || (size >= 18.66 && weight >= 700);
     sel.push({tag: el.tagName.toLowerCase(), cls: el.className && String(el.className).slice(0,40),
               ratio: Math.round(ratio*100)/100, need: large ? 3.0 : 4.5,
+              fg: [Math.round(F.r), Math.round(F.g), Math.round(F.b)],
+              bg: [Math.round(bg.r), Math.round(bg.g), Math.round(bg.b)],
               size: size, text: el.textContent.trim().slice(0,28)});
   });
-  return sel.filter(x => x.ratio < x.need);
+  return onlyFail ? sel.filter(x => x.ratio < x.need) : sel;
 }
 """
 
@@ -138,10 +177,6 @@ JS_FOCUS = r"""
 """
 
 
-class ProbeError(Exception):
-    pass
-
-
 def load_playwright():
     try:
         from playwright.sync_api import sync_playwright  # noqa: F401
@@ -150,7 +185,7 @@ def load_playwright():
         raise ProbeError("需要本机 Playwright（当前不可用）：%s" % exc)
 
 
-def probe_file(path, widths, timeout_ms):
+def probe_file(path, widths, timeout_ms, apca=False):
     sync_playwright = load_playwright()
     findings = []
     url = path.resolve().as_uri()
@@ -195,11 +230,37 @@ def probe_file(path, widths, timeout_ms):
                                        "%s type=%s name=%s" % (l["tag"], l["type"], l["name"]),
                                        "有标签", "表单控件无可关联标签"))
                 if width == widths[0]:
-                    for c in page.evaluate(JS_CONTRAST):
+                    pairs = page.evaluate(JS_CONTRAST, False)
+                    for c in (x for x in pairs if x["ratio"] < x["need"]):
                         findings.append(mk(path, "text-contrast-below-threshold", "hard",
                                            "%s.%s ratio=%.2f need=%.1f（%s）" % (
                                                c["tag"], c["cls"], c["ratio"], c["need"], c["text"]),
                                            "%.1f" % c["need"], "文字对比度不达标（WCAG 2.x 相对亮度）"))
+                    if apca:
+                        body_lc, large_lc = apca_targets()
+                        lcs = apca_lc(pairs)
+                        if len(lcs) != len(pairs):
+                            raise ProbeError("--apca 返回 %d 条，量了 %d 组颜色，对不上" % (len(lcs), len(pairs)))
+                        # 同一个 class 的几十个元素会各报一条；按 class 归并才看得懂，
+                        # 也才不会让 139 条警告把整份报告淹掉
+                        groups = {}
+                        for x, lc in zip(pairs, lcs):
+                            if lc is None:
+                                continue
+                            thr = body_lc if x["need"] >= 4.5 else large_lc
+                            if lc < thr:
+                                key = (x["tag"], str(x["cls"]), thr)
+                                g = groups.setdefault(key, {"count": 0, "worst": lc, "text": x["text"]})
+                                g["count"] += 1
+                                if lc < g["worst"]:
+                                    g["worst"] = lc
+                                    g["text"] = x["text"]
+                        for (tag, cls, thr), g in sorted(groups.items(), key=lambda kv: kv[1]["worst"]):
+                            findings.append(mk(path, "apca-contrast-below-threshold", "warn",
+                                               "%s.%s ×%d 处，最低 Lc=%.1f（%s）" % (
+                                                   tag, cls, g["count"], g["worst"], g["text"]),
+                                               "%.0f" % thr,
+                                               "APCA Lc 不达标（感知对比度，与 WCAG 比值互补）"))
                     for f in page.evaluate(JS_FOCUS):
                         findings.append(mk(path, "focus-indication-missing", "warn",
                                            "%s（%s）" % (f["tag"], f["text"]), "-",
@@ -227,6 +288,8 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true")
     ap.add_argument("--widths", default="375,1440")
     ap.add_argument("--timeout", type=int, default=15000)
+    ap.add_argument("--apca", action="store_true",
+                    help="额外用 colorjs.io 量 APCA Lc（需 node + 项目本地 .sfd-tools）")
     ns = ap.parse_args(argv)
 
     try:
@@ -251,7 +314,7 @@ def main(argv=None):
     try:
         all_findings = []
         for f in files:
-            all_findings += probe_file(f, widths, ns.timeout)
+            all_findings += probe_file(f, widths, ns.timeout, ns.apca)
     except ProbeError as exc:
         sys.stderr.write("ERROR  %s\n" % exc)
         return 2

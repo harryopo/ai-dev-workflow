@@ -1,0 +1,14 @@
+{
+  "name": "sfd-design-lint-tools",
+  "private": true,
+  "version": "1.0.0",
+  "description": "super-frontend-design 结构层的依赖清单。复制到仓库根的 .sfd-tools 后 npm install 即可（项目本地安装，不入版本库、不动全局环境）。",
+  "dependencies": {
+    "colorjs.io": "0.7.1",
+    "html-validate": "11.16.2",
+    "postcss-html": "2.0.0",
+    "stylelint": "17.16.0",
+    "stylelint-config-html": "2.0.0",
+    "stylelint-declaration-strict-value": "1.12.1"
+  }
+}

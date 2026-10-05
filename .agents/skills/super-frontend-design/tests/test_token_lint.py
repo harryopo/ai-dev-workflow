@@ -14,6 +14,11 @@ import sys
 import tempfile
 from pathlib import Path
 
+# Windows 下 stdout 默认 gbk，FAIL 正文会变乱码
+for _s in (sys.stdout, sys.stderr):
+    if hasattr(_s, "reconfigure"):
+        _s.reconfigure(encoding="utf-8")
+
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent
 LINTER = SKILL / "scripts" / "token_lint.py"

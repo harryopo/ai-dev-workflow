@@ -65,7 +65,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 5. 代码质量检查
 
 **评估方法：**
-- 运行 26 条探测器规则（Grep 模式匹配）：可静态判定的部分跑 `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>`，Token 纪律跑 `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>`，需渲染的项跑 `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>`；三者的 JSON 输出即为本 Assessment 的证据来源，未覆盖的规则仍按 §4 手工核对
+- 运行 26 条探测器规则（Grep 模式匹配）：可静态判定的部分跑 `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>`，Token 纪律跑 `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>`，需渲染的项跑 `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>`，CSS/标记真解析跑 `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物目录>`（结构层未安装时它会 exit 2，报告须写明"结构层未参与"）；各者的 JSON 输出即为本 Assessment 的证据来源，未覆盖的规则仍按 §4 手工核对
 - 检查代码结构和实现细节
 - 验证 WCAG 合规性
 - 检查性能指标（LCP、CLS、FID）

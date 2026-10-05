@@ -1,0 +1,11 @@
+{
+  "comment": "交付门禁清单。SKILL.md 与 review 里写的「N 道门禁」必须等于这里的条数；每条 script 必须存在并被 §6 索引引用；文档里凡出现 `scripts/<脚本>` 且带「门禁」字样的，必须在这里登记，否则新增的检查会悄悄脱离交付流程。",
+  "gates": [
+    {"id": "audit-integrity", "script": "scripts/audit_integrity.py", "when": "改过本 Skill 任何文件", "optional": false},
+    {"id": "slop-scan", "script": "scripts/slop_scan.py", "when": "产出 UI 代码", "optional": false},
+    {"id": "token-lint", "script": "scripts/token_lint.py", "when": "产出 UI 代码", "optional": false},
+    {"id": "structure-lint", "script": "scripts/structure_lint.mjs", "when": "产出 UI 代码（需项目本地 .sfd-tools，未装则 exit 2 并说明）", "optional": true},
+    {"id": "render-probe", "script": "scripts/render_probe.py", "when": "产出 UI 代码（需 Playwright）", "optional": false},
+    {"id": "visual-diff", "script": "scripts/visual_diff.py", "when": "有参考图或基线截图时", "optional": false}
+  ]
+}

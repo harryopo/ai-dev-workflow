@@ -89,3 +89,7 @@ spec-kit/
 .agents/skills/super-frontend-design/canvas-fonts/
 # 上面第 42 行的 research/ 会连带排除 subskills/research，这里单独放回
 !.agents/skills/super-frontend-design/subskills/research/
+
+# 结构层依赖与临时探针目录（项目本地安装，不入版本库）
+.sfd-tools/
+.sfd-probe/

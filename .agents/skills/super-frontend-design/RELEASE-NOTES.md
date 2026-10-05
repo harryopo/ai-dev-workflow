@@ -15,6 +15,19 @@
 - 新增 `tests/test_token_lint.py`（12 项）、`tests/test_visual_diff.py`（13 项）、`tests/test_render_probe.py`（6 项，需 Playwright，跑不了时退出码 2 而非报过）
 - `tests/test_audit_gate_red.py` 注入缺陷由 5 类增至 10 类（含政策措辞漂移、判定表阈值漂移、分层评分表不相加），另有 1 项校验参数拼错时拒跑
 
+## 2026-10-05 结构层接入（用户授权后安装，版本号仍为 v2.7.0）
+- 新增 `scripts/structure_lint.mjs`：用 stylelint 真解析 CSS、html-validate 真校验标记，补上正则做不到的判定（拼错属性名、无效 hex、重复 id、缺 `type` 的按钮、缺 alt 的图、颜色/字体没走 `var()`）
+- 新增 `rules/stylelint.config.json`、`rules/html-validate.config.json` 两份规则表（都是数据）；`border`/`outline` 这类"宽度+样式+颜色"混写的简写不纳入 token 检查，避免 `1px solid var(--x)` 被误判
+- 新增 `scripts/apca_contrast.mjs`：APCA Lc 交给 colorjs.io 计算（不自己写近似算法），`render_probe.py --apca` 消费；Lc 阈值只写在 `rules/policy.json`
+- 新增 `rules/gates.json` 六道门禁清单与 `gate-inventory` 校验：脚本必须存在、必须被索引、文档"N 道门禁"必须与清单条数一致、文档里称作门禁却没登记的脚本报错
+- `templates/sfd-tools/package.json` 提供依赖清单（stylelint 17.16.0 / html-validate 11.16.2 / postcss-html 2.0.0 / stylelint-config-html 2.0.0 / stylelint-declaration-strict-value 1.12.1 / colorjs.io 0.7.1，六个包全部 MIT 且带 LICENSE 文件），装在仓库根 `.sfd-tools`（已加 .gitignore，不动全局环境）
+- 实测：15 个真实页面扫出硬判 65 条、警告 199 条；抽查 5 组命中原文（`.text-white{color:#fff}`、三个 `<aside>` 无区分标签、图标按钮无可访问文本、缺 `type` 的按钮、重复 id）全部为真问题
+- `no-inline-style` 由硬判降为 warn：动态宽度/进度条这类写法在真实项目里是常规手段（15 个页面里 197 条），硬判会淹没门禁；需要它计入失败时用 `--strict`
+- 新增 `tests/test_structure_lint.py`（9 项）、`tests/test_render_probe.py` 增至 10 项（含黑字白底 |Lc|≈107.9、#767676 白底 ≈77.0 的参考值锚定）；`test_audit_gate_red.py` 增至 13 项
+- 三种"看起来过了其实没测"的情形一律 exit 2：结构层没装、`--tools` 指错目录、stylelint/html-validate 规则名配错
+- APCA 结果按 class 归并再报告：同一个真实页面初测 139 条逐元素警告，归并后 17 组（含"×36 处，最低 Lc=53.3"这类计数），否则警告会把整份审查报告淹掉
+- 五个测试脚本的输出也统一强制 UTF-8（此前 FAIL 正文在中文 Windows 下显示为乱码）
+
 ## 2026-10-04 修复（版本号仍为 v2.7.0）
 - 修正 critique 探测器规则条数标注：59 → 26（Verify 10 + Refuse 10 + 实现完整性 6）
 - slop-test 补齐 V41 断号，清单为 56 条；SKILL.md / review / critique / README 的引用同步更新

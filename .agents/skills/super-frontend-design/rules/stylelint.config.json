@@ -1,0 +1,42 @@
+{
+  "plugins": ["stylelint-declaration-strict-value"],
+  "rules": {
+    "scale-unlimited/declaration-strict-value": [
+      ["color", "background", "background-color", "border-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "fill", "stroke", "font-family"],
+      {
+        "severity": "error",
+        "ignoreValues": ["inherit", "initial", "unset", "revert", "revert-layer", "none", "transparent", "auto", "currentColor"],
+        "message": "${property} 的值没走 var()/token：设计系统被绕过"
+      }
+    ],
+    "color-no-invalid-hex": [true, {"severity": "error"}],
+    "property-no-unknown": [
+      true,
+      {
+        "severity": "error",
+        "ignoreProperties": ["print-color-adjust", "-webkit-background-clip", "-webkit-text-fill-color", "background-clip", "text-fill-color"]
+      }
+    ],
+    "function-no-unknown": [
+      true,
+      {
+        "severity": "warning",
+        "ignoreFunctions": ["light-dark", "color-mix", "oklch", "oklab", "contrast-color", "toggle", "attr", "clamp", "min", "max", "env", "cross-fade", "image-set", "src", "-apple-system-font"]
+      }
+    ],
+    "declaration-block-no-duplicate-properties": [
+      true,
+      {"severity": "warning", "ignore": ["consecutive-duplicates-with-different-values", "consecutive-duplicates-with-same-prefixless-values"]}
+    ],
+    "no-duplicate-selectors": [true, {"severity": "warning"}],
+    "no-invalid-position-at-import-rule": [true, {"severity": "error"}],
+    "unit-no-unknown": [true, {"severity": "error"}],
+    "at-rule-no-unknown": [
+      true,
+      {
+        "severity": "warning",
+        "ignoreAtRules": ["tailwind", "apply", "theme", "source", "utility", "variant", "custom-variant", "config", "layer", "property", "container"]
+      }
+    ]
+  }
+}

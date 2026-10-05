@@ -492,6 +492,13 @@ def check_policy_consistency(root, f):
                 problems.append("%s: 找不到 scripts/render_probe.py，无法核对 %s" % (p["id"], key))
             elif re.search(r"(?<![\d.])%s(?![\d])" % re.escape(str(val)), probe_text) is None:
                 problems.append("%s: render_probe.py 里找不到 %s=%s" % (p["id"], key, val))
+        if p.get("probe_source"):
+            src = root / p["probe_source"]
+            if not src.is_file():
+                problems.append("%s: 声明的读取方不存在：%s" % (p["id"], p["probe_source"]))
+            elif "policy.json" not in read(src):
+                problems.append("%s: %s 必须从 rules/policy.json 取阈值，不能把数字抄第二份"
+                                % (p["id"], p["probe_source"]))
 
         prose = p.get("prose") or {}
         patterns = [re.compile(x) for x in prose.get("patterns", [])]
@@ -533,6 +540,62 @@ def check_policy_consistency(root, f):
     else:
         f.ok("policy-consistency", "%d 条政策与 %d 处文档措辞、判定表阈值双向一致"
              % (len(policies), hits_total))
+
+
+def check_gate_inventory(root, f):
+    """Every delivery gate must be registered, exist, be indexed, and be counted right.
+
+    An unregistered check drifts out of the delivery flow silently; a stale
+    'N 道门禁' in SKILL.md makes the agent stop running gates one too early.
+    """
+    gf = root / "rules" / "gates.json"
+    if not gf.is_file():
+        f.fail("gate-inventory", "rules/gates.json 不存在，门禁清单没有真值源")
+        return
+    gates = json.loads(gf.read_bytes().decode("utf-8"))["gates"]
+    registered = {g["script"] for g in gates}
+    mds = markdown_files(root)
+    indexed = set()
+    for md in mds:
+        for m in re.finditer(r"scripts/[\w.-]+\.(?:py|mjs)", read(md)):
+            indexed.add(m.group(0))
+
+    problems = []
+    for g in gates:
+        if not (root / g["script"]).is_file():
+            problems.append("%s 指向的脚本不存在：%s" % (g["id"], g["script"]))
+        if g["script"] not in indexed:
+            problems.append("%s 的脚本没被任何 markdown 索引：%s" % (g["id"], g["script"]))
+    unlisted = []
+    for rel in sorted(indexed - registered):
+        for md in mds:
+            if any(rel in line and "门禁" in line for line in read(md).splitlines()):
+                unlisted.append("%s（见 %s）" % (rel, md.relative_to(root).as_posix()))
+                break
+    if unlisted:
+        problems.append("文档里称作门禁但没登记进 rules/gates.json：%s" % "; ".join(unlisted))
+
+    claims = {}
+    cn = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9, "十": 10}
+    for md in [root / "SKILL.md", root / "subskills" / "review" / "SKILL.md"]:
+        if not md.exists():
+            continue
+        for m in re.finditer(r"([一二三四五六七八九十]|\d+)\s*道门禁", strip_code_fences(read(md))):
+            tok = m.group(1)
+            n = int(tok) if tok.isdigit() else cn[tok]
+            claims.setdefault(n, []).append(md.relative_to(root).as_posix())
+    for n, where in sorted(claims.items()):
+        if n != len(gates):
+            problems.append("文档写 %d 道门禁（%s），清单里实际 %d 道"
+                            % (n, ", ".join(sorted(set(where))), len(gates)))
+    if not claims:
+        problems.append("SKILL.md / review 里没有任何「N 道门禁」的数量声明，清单无人对账")
+
+    if problems:
+        for p in problems:
+            f.fail("gate-inventory", p)
+    else:
+        f.ok("gate-inventory", "%d 道门禁都存在、已索引，数量声明一致" % len(gates))
 
 
 def check_layer_sum(root, f):
@@ -593,7 +656,7 @@ def main(argv=None):
                check_subskill_claims, check_cross_claims, check_part_claims,
                check_index_numbers, check_index_completeness, check_fences,
                check_frontmatter, check_round_consistency, check_policy_consistency,
-               check_layer_sum, check_tools):
+               check_gate_inventory, check_layer_sum, check_tools):
         fn(root, f)
 
     if ns.json:

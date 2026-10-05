@@ -60,6 +60,22 @@
       }
     },
     {
+      "id": "apca-contrast",
+      "name": "APCA 感知对比度阈值（正文 Lc 60，大文本与图标 Lc 45）",
+      "value": 60,
+      "also_allowed": [45],
+      "rule_ids": [],
+      "apca": {"body": 60, "large": 45},
+      "probe_source": "scripts/render_probe.py",
+      "prose": {
+        "patterns": [
+          "Lc\\s*(?:≥|>=)?\\s*(\\d+)"
+        ],
+        "exclude": [],
+        "min_hits": 2
+      }
+    },
+    {
       "id": "wcag-contrast",
       "name": "WCAG 对比度阈值（正文 4.5:1，大文本与焦点环 3:1，AAA 正文 7:1）",
       "value": 4.5,
