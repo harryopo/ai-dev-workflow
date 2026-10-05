@@ -1,0 +1,37 @@
+# 换行策略：仓库内一律存 LF，检出也用 LF。
+# 本机 core.autocrlf=true 会在检出时把 LF 换成 CRLF，导致 git diff 出现整文件的假改动；
+# 这里的 eol=lf 覆盖它，只对本仓库生效，不动全局 git 配置。
+* text=auto eol=lf
+
+# Windows 脚本：CRLF 才不会被旧版 cmd/PowerShell 挑剔
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制与图片：不做任何换行处理
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.pdf binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.zip binary
+*.gz binary
+*.tgz binary
+*.7z binary
+*.mp4 binary
+*.webm binary
+*.docx binary
+*.xlsx binary
+*.pptx binary
+*.pyc binary
+*.exe binary
+*.dll binary
+*.lib binary
+*.obj binary
