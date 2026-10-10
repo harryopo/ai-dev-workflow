@@ -70,8 +70,7 @@ for c in d["cases"]:
     sts[c["status"]] = sts.get(c["status"], 0) + 1
 print("  状态分布:", sts, "| 未实跑残留:", sts.get("not_executed", 0))
 
-print("=== 结构最小要求（项目 CLAUDE.md 第2节）==="
-      )
+print("=== 结构最小要求 ===")
 for need in ["SKILL.md", "evals/evals.json"]:
     print("  %-20s %s" % (need, "存在" if os.path.exists(need) else "缺失"))
 
@@ -107,6 +106,13 @@ print("  五处落点全覆盖:", "ok" if not missing else missing)
 print("  格式字段齐(生效/记录/Related):", "ok" if all(s in tiers for s in ["**生效**", "**记录**", "**Related**"]) else "缺字段")
 print("  巩固四操作齐:", "ok" if all(s in tiers for s in ["ADD", "UPDATE", "SUPERSEDE", "NOOP"]) else "缺")
 print("  last_verified 超龄规则:", "ok" if "90 天" in tiers and "last_verified" in tiers else "缺")
+
+print("=== 寻址与编号规范 ===")
+addr = open("references/memory-addressing.md", encoding="utf-8").read()
+print("  通用探测含 dotglob:", "ok" if "dotglob" in addr else "❌ 缺")
+print("  多命中裁决顺序:", "ok" if "裁决顺序" in addr else "❌ 缺")
+print("  K-NNN 生成命令:", "ok" if "K-$D" in tiers and "wc -l" in tiers else "❌ 缺")
+print("  knowledge 淘汰不隔离:", "ok" if "不隔离" in tiers else "❌ 缺")
 
 parent = open("SKILL.md", encoding="utf-8").read()
 subs = sorted(glob.glob("subskills/*/SKILL.md"))

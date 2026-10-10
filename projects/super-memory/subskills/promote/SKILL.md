@@ -96,7 +96,7 @@ grep -rE "^## \[[A-Z]+-[0-9]{8}-[0-9]+\].*(best_practice|correction)" .learnings
 
 - 回读目标文件，确认规则在、位置对、没和现有规则打架
 - 确认原条目 `Status` 已变 `promoted`
-- `grep -E "今天|昨天|最近|上周|today|yesterday|recently" <目标文件>` 清零
+- `grep -E "今天|昨天|刚刚|最近|上周|today|yesterday|recently" <目标文件>` 清零
 
 ## 其他来源
 
@@ -104,4 +104,4 @@ grep -rE "^## \[[A-Z]+-[0-9]{8}-[0-9]+\].*(best_practice|correction)" .learnings
 |---|---|---|
 | neat 精简时发现精华 | 该条属规则而非叙事 | 直接进规则文件 |
 | save 归档的跨项目适用偏好 | 用户明确认可 | 按 `../../references/memory-addressing.md` 分流到用户级记忆 |
-| 用户说"把这个做成 skill" | 明确要求 | 交给 skill 开发工作台，不在本命令里生成 |
+| 用户说"把这个做成 skill" | 明确要求 | 交给 skill 开发工作台（`skill-workspace`），不在本命令里生成 |

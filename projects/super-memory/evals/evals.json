@@ -1,7 +1,7 @@
 {
   "skill": "super-memory",
   "executed_at": "2026-10-03",
-  "note": "2026-10-03 全部 15 例实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 15/15 PASS。boundary-delete-quarantine 与 core-doctor-findings 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。",
+  "note": "2026-10-03 全部 15 例首轮实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 15/15 PASS。boundary-delete-quarantine 与 core-doctor-findings 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。重跑纪律：任何行为相关改动后，受影响的用例必须在沙箱重跑并把结果登记到对应提交信息；2026-10-10 修复轮重跑 4 例（addressing / capture / promote / consolidate-supersede）全部仍 PASS。",
   "cases": [
     {
       "id": "core-addressing-two-level",
@@ -9,7 +9,7 @@
       "status": "pass",
       "prompt": "这次会话你发现这个项目的部署必须走 env 里的目标路径，另外确认我偏好中文汇报。会话结束，保存记忆。",
       "expect": [
-        "写前先输出记忆位探测结果（规则文件 / 宿主探测 / 兜底 三选其一，并打印实际路径）",
+        "写前先输出记忆位探测结果（宿主自述 / 规则文件 / 通用探测 / 兜底 之一，并打印实际路径）",
         "部署约束写入项目级 memory 目录，中文汇报偏好写入用户级 memory 目录",
         "写前在两个目录的 MEMORY.md 里 grep 过关键字；命中已有条目则 Edit 而非新建",
         "新条目 frontmatter 与目标目录现存条目字段结构一致",

@@ -18,15 +18,15 @@
 
 ```bash
 # 从本仓库导出（在仓库根目录执行）
-git archive HEAD projects/super-memory | mkdir -p ~/.agents/skills/super-memory
+mkdir -p ~/.agents/skills/super-memory
 git archive HEAD projects/super-memory | tar -x --strip-components=2 -C ~/.agents/skills/super-memory
 ```
 
-安装位按宿主而定：`~/.agents/skills/`（Claude Code 等）、`~/.zcode/skills/` 或项目 `.agents/skills/`。装完跑 `python scripts/verify.py` 应全绿。
+安装位按宿主而定：`~/.agents/skills/`、`~/.zcode/skills/`、`~/.claude/skills/` 或项目 `.agents/skills/`。装完跑 `python scripts/verify.py` 应全绿。
 
 ## 写记忆前：寻址
 
-本 skill 不假设宿主。写入前按三步定位（`references/memory-addressing.md`）：项目规则文件的记忆章节 → 宿主目录探测（`~/.qoder/…`、`~/.claude/…`）→ 兜底项目根 `memory/`。格式照现存条目抄，不自创。
+本 skill 不假设宿主。写入前按四层定位（`references/memory-addressing.md`）：宿主自述 → 规则文件的记忆章节 → 通用探测（glob 扫全部宿主）→ 兜底项目根 `memory/`。格式照现存条目抄，不自创。
 
 ## 与其他机制的共存
 

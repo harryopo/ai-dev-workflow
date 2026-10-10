@@ -101,7 +101,7 @@ Area 按项目实际取（`frontend` `backend` `infra` `tests` `docs` `config` �
 
 ```bash
 # 待处理条目数（三种形态全覆盖）
-grep -rEc "Status\**:[[:space:]]*pending" .learnings/ 2>/dev/null | awk -F: '{s+=$2} END{print "pending:", s+0}'
+grep -rEc "Status\**:[[:space:]]*pending" .learnings/ 2>/dev/null | awk -F: '{s+=$NF} END{print "pending:", s+0}'
 
 # 高优先级待处理
 grep -rE "Priority\**:[[:space:]]*(high|critical)" .learnings/ || echo "无命中"
