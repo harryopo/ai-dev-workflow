@@ -79,6 +79,11 @@ codes = ["[V]", "[W]", "[Q]", "[R]", "[F]"]
 hs = open("subskills/handoff/SKILL.md", encoding="utf-8").read()
 print("  五个置信度码齐且互不重复:", all(c in hs for c in codes),
       "| 码数:", len(set(codes)), "| 无符号重叠:", len(set(c.split()[0] for c in codes)) == 5)
+is_ = open("subskills/intake/SKILL.md", encoding="utf-8").read()
+print("  handoff 指向 intake:", "ok" if "intake" in hs else "❌ 缺")
+print("  handoff 进度可扫读质量条:", "ok" if "进度可扫读" in hs else "❌ 缺")
+print("  intake 五码齐:", "ok" if all(c in is_ for c in codes) else "❌ 缺")
+print("  intake 引用 discovery/scaffold:", "ok" if "intake-memory-discovery" in is_ and "intake-scaffold" in is_ else "❌ 缺")
 
 tpl = open("references/handoff-template.md", encoding="utf-8").read()
 secs = re.findall(r"^## \*?\u2605?\*?(\d+)\.", tpl, re.M)
@@ -119,7 +124,7 @@ subs = sorted(glob.glob("subskills/*/SKILL.md"))
 print("  子命令目录数:", len(subs), [os.path.basename(os.path.dirname(p)) for p in subs])
 notrouted = [p for p in subs if norm(p) not in parent.replace(BS, "/")]
 print("  未在主入口路由表中出现的子技能:", notrouted or "无")
-for kw in ["handoff", "[V]", "knowledge-tiers"]:
+for kw in ["handoff", "intake", "[V]", "knowledge-tiers"]:
     print("  主入口提到 %s: %s" % (kw, kw in parent))
 
 print("  用例总数:", len(d["cases"]))

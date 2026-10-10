@@ -6,7 +6,7 @@ super-memory 的写入端默认靠触发词（用户开口）或 agent 自觉。
 
 | 时机 | 注入内容 | 解决什么 |
 |---|---|---|
-| SessionStart | 提醒读 `.ai/HANDOFF.md` 必需节 + 记忆索引 | 记忆冷启动 |
+| SessionStart | 提醒走 intake 接手（读交接与记忆索引） | 记忆冷启动 |
 | PreCompact | 上下文压缩前提醒先跑 capture + handoff | 压缩丢上下文前抢救关键信息 |
 | SessionEnd / Stop | 提醒跑 capture → handoff → save 最小闭环 | 被动收尾 |
 
@@ -21,7 +21,7 @@ super-memory 的写入端默认靠触发词（用户开口）或 agent 自觉。
         "hooks": [
           {
             "type": "command",
-            "command": "if [ -f .ai/HANDOFF.md ]; then echo '[super-memory] 新会话开工前先读 .ai/HANDOFF.md 必需节（★）与记忆索引，按 handoff 读取端流程 B 核验。'; fi"
+            "command": "if [ -f .ai/HANDOFF.md ]; then echo '[super-memory] 新会话开工前走 intake 接手：读交接必需节（★）与记忆索引，结论过代码核验再开工。'; fi"
           }
         ]
       }

@@ -2,17 +2,18 @@
 
 记忆与知识管理工作台：把错误/学习/纠正结构化记到 `.learnings/`，把会话成果归档到 agent 记忆库，里程碑时对文档与记忆做洁癖同步，把成熟学习提炼为项目规则。纯 Markdown 文件驱动，**无外部服务、无向量库**，检索靠 grep + frontmatter + 索引。
 
-## 五个子命令
+## 六个子命令
 
 | 子命令 | 什么时候走 |
 |---|---|
 | capture | 错误 / 用户纠正 / 知识过时 / 更好做法 → 写 `.learnings/` |
-| handoff | 会话交接（写 `.ai/HANDOFF.md`）或接手项目（读取端核验）；顺带把已验证通用内容升档 `.ai/knowledge/` |
+| handoff | 会话结束/断点暂停：写 `.ai/HANDOFF.md` 交接，并把已验证通用内容升档 `.ai/knowledge/`（写入端） |
+| intake | 接手项目 / 继续上次会话 / 新会话开工：探测记忆文档、真值核验、出接手简报；新项目初始化骨架 |
 | save | 会话结束，把跨会话偏好与事实归档 agent 记忆库并更新索引 |
 | neat | 里程碑：尺寸体检 → 盘点 → 变更矩阵 → 删除审查 → 修改 → 自检 → 摘要 |
 | promote | 反复出现的学习提炼成规则写进项目规则文件 |
 
-里程碑完整流程：`capture → handoff → save → neat → promote`。触发词与反例见 `SKILL.md`。
+里程碑完整流程：`capture → handoff → save → neat → promote`；接手/新会话开工走 `intake`。触发词与反例见 `SKILL.md`。
 
 ## 安装
 
@@ -40,4 +41,4 @@ git archive HEAD projects/super-memory | tar -x --strip-components=2 -C ~/.agent
 
 ## 评测
 
-`evals/evals.json` 为可执行规格：每例在沙箱建 fixture、按 skill 规则真实走流程、逐项核对 expect 与 fail。2026-10-03 已 15/15 实跑通过。跑法：为每例建独立 fixture 项目（宿主探测类用例把 `HOME` 指向沙箱假 home），执行后把 `status` 回写为 `pass`。
+`evals/evals.json` 为可执行规格（18 例）：每例在沙箱建 fixture、按 skill 规则真实走流程、逐项核对 expect 与 fail。2026-10-03 首轮 15/15 实跑通过；2026-10-10 intake 新增 3 例实跑通过、受影响的 5 例重跑通过。跑法：为每例建独立 fixture 项目（宿主探测类用例把 `HOME` 指向沙箱假 home），执行后把 `status` 回写为 `pass`。

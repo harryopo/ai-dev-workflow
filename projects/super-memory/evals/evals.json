@@ -1,7 +1,7 @@
 {
   "skill": "super-memory",
   "executed_at": "2026-10-03",
-  "note": "2026-10-03 全部 15 例首轮实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 15/15 PASS。boundary-delete-quarantine 与 core-doctor-findings 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。重跑纪律：任何行为相关改动后，受影响的用例必须在沙箱重跑并把结果登记到对应提交信息；2026-10-10 修复轮重跑 4 例（addressing / capture / promote / consolidate-supersede）全部仍 PASS。",
+  "note": "2026-10-03 全部 15 例首轮实跑：在 /tmp 沙箱为每例建独立 fixture，按 skill 规则真实执行流程并逐项核对 expect/fail，结果 15/15 PASS。boundary-delete-quarantine 与 core-doctor-findings 的 AskUserQuestion 确认门为模拟用户选择（选①），其余步骤均真实执行；宿主探测类用例以 HOME 指向沙箱假 home，避免污染真实记忆库。重跑纪律：任何行为相关改动后，受影响的用例必须在沙箱重跑并把结果登记到对应提交信息。2026-10-10 修复轮重跑 4 例（addressing / capture / promote / consolidate-supersede）全部仍 PASS。2026-10-10 intake 新增轮共 18 例：新增 3 例实跑 PASS（scan-and-brief 的探测/画像/核验命令与 init 的骨架结构、discover-scattered 的中文名与日期变体命中及诱饵排除均为沙箱实测；简报格式与整理不擅动等输出要求为静态断言+演示核对），改名后 boundary-intake-read-vs-code 与 core-handoff-write（handoff 有编辑）重跑 PASS。",
   "cases": [
     {
       "id": "core-addressing-two-level",
@@ -127,16 +127,17 @@
       ]
     },
     {
-      "id": "boundary-handoff-read-vs-code",
+      "id": "boundary-intake-read-vs-code",
       "kind": "boundary",
       "status": "pass",
       "prompt": "接手这个项目，HANDOFF 里说部署脚本已经改成增量发布了，你直接照它继续做下一步。",
       "expect": [
-        "按 HANDOFF → .ai/knowledge/ → 架构文档 → 代码 的顺序读",
+        "按 intake 接手流程读：记忆文档探测 → 交接文档 → 知识库 → 架构文档 → 代码",
         "照代码核验那条「增量发布」：找到脚本文件与函数，确认实现与描述一致",
         "输出「交接文档 vs 实际代码」差异表，一致项与差异项都列出，附 file:line 证据",
         "发现不符时第一时间指出并更新该条置信度与说明，不默默沿用也不默默改历史记录",
-        "优先处理标记 [Q] 与 [R] 的项，再看下一步行动清单"
+        "优先处理标记 [Q] 与 [R] 的项，再看下一步行动清单",
+        "简报与文件内容统一用 [V][W][Q][R][F] 字母码（含图例），不出现 emoji"
       ],
       "fail": [
         "不核验代码就按文档描述继续开发",
@@ -271,6 +272,63 @@
         "对重复条目直接删除不合并",
         "漏检任何一项",
         "0 命中报成检查通过而不分辨原因"
+      ]
+    },
+    {
+      "id": "core-intake-scan-and-brief",
+      "kind": "core",
+      "status": "pass",
+      "prompt": "接手这个项目，把情况摸清楚。",
+      "expect": [
+        "输出项目画像四项（定位与场景/技术栈/所处阶段/根路径与一级目录），依据为 README、配置文件与 git log -10",
+        "按 intake-memory-discovery 清单探测记忆文档（容器+文件名模式），排除 src/tests 等误报目录",
+        "命中文件按角色分类（交接/进度/概览/架构/决策/任务/规范/踩坑）后按优先级读，读完声明「全部结论待代码核验」",
+        "六项核验矩阵中至少贴出构建命令与依赖版本的实测比对（以命令输出为准）",
+        "输出接手简报六要素，其中「进度三问」（到哪了/停在哪/下一步）直接可答",
+        "差异表每条附 file:line 证据；简报统一字母码 [V][W][Q][R][F] 且附一行图例"
+      ],
+      "fail": [
+        "不核验代码就按文档描述下结论",
+        "只读了 .ai/HANDOFF.md 就宣称摸清（未跑探测清单）",
+        "简报出现 emoji 置信度符号",
+        "差异只字不提或没有 file:line"
+      ]
+    },
+    {
+      "id": "core-intake-init",
+      "kind": "core",
+      "status": "pass",
+      "prompt": "这是一个新项目，还没有任何记忆文件，帮我初始化。",
+      "expect": [
+        "判据成立（无 .ai/ 且用户明说初始化）→ 走场景 B",
+        "只建必备 3 件：.ai/HANDOFF.md（首版十节，★ 必需节标题不省）、.ai/knowledge/README.md（索引）、docs/wiki/index.md",
+        "每个文件只含标题+一行用途+占位，不写空节全文、不预铺空分类目录（knowledge 五分类、wiki 子目录都不建）",
+        "wiki index 内含维护四规则（代码即真理/分层索引/交叉引用/时效标记）",
+        "输出「建了什么 / 跳过什么（理由）/ 下一步接线（handoff、capture、neat）」",
+        "不擅自 git init、不填充臆测内容"
+      ],
+      "fail": [
+        "预铺知识库五分类空目录或 wiki 空子目录",
+        "建了 .learnings/（应由 capture 首次写入时自建）",
+        "往骨架里写入臆测的计划/进度内容"
+      ]
+    },
+    {
+      "id": "core-intake-discover-scattered",
+      "kind": "core",
+      "status": "pass",
+      "prompt": "接着上个会话继续开发。（fixture 记忆散落：根 HANDOFF.md + docs/交接文档-20260914.md + .learnings/ + memory/MEMORY.md 并存）",
+      "expect": [
+        "探测清单扫出全部散落记忆文档（含中文名与日期后缀变体），排除代码目录同名误报",
+        "按角色分类：HANDOFF 与交接文档同为交接类（读最新/最全者），.learnings 为踩坑暂存、memory 为宿主记忆层",
+        "输出记忆文件地图（角色/路径/置信度/是否最新）",
+        "判定「同一职能 ≥2 份」成立 → 给出整理建议：默认索引归位（不动原文件），物理归并需用户确认",
+        "未经确认不移动/合并任何文件；用户未表态时整理建议停留在建议层"
+      ],
+      "fail": [
+        "未经确认直接 mv/合并散落文档",
+        "只认 .ai/HANDOFF.md 一个名字，漏掉中文名与日期变体",
+        "把代码文件（handoff_manager.py 类）误判为记忆"
       ]
     }
   ]

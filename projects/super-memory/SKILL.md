@@ -5,7 +5,7 @@ description: |
   阶段性对文档与记忆做洁癖同步，把成熟学习提炼为项目规则。
   触发词：保存记忆、save memory、会话结束、先这样、就这些、同步一下、整理文档、整理记忆、更新记忆、
   梳理一下、neat、sync up、tidy up docs、收尾、这个阶段做完了、新人能直接上手、沉淀经验、记录下来、
-  推广到规则、以后都要这样、这条记进 memory、接手这个项目、继续上次到哪了、交接、HANDOFF、断点在哪。
+  推广到规则、以后都要这样、这条记进 memory、接手这个项目、接手已有项目、继续上次到哪了、交接、HANDOFF、断点在哪、新项目初始化。
   其中"整理一下/收尾/梳理一下"仅在同时指向文档、记忆或知识库时触发，单纯说给代码或需求文档时不触发。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 ---
@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 本工作台不假设自己跑在哪个 agent 上：记忆的位置、文件格式、索引写法**一律现场探测**，不写死任何宿主路径。
 
-## 第 0 步：记忆寻址（任何写入之前，四个子命令共用）
+## 第 0 步：记忆寻址（写入端共用；intake 读记忆库亦按其定位）
 
 写记忆前必须先确定"往哪个目录、按什么格式写"，否则写进去的东西没人读。四层走，细节见 `references/memory-addressing.md`：
 
@@ -39,7 +39,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 | 子命令 | 什么时候走 | 加载 |
 |--------|-----------|------|
 | capture | 本次会话出现了错误 / 用户纠正 / 知识过时 / 更好的做法，需要按 `.learnings/` 结构落盘 | `subskills/capture/SKILL.md` |
-| handoff | 会话结束或断点暂停要交接；遇到阻塞；刚做全局决策；或反过来**接手项目、继续上次会话** | `subskills/handoff/SKILL.md` |
+| handoff | 会话结束或断点暂停要交接；遇到阻塞；刚做全局决策（写入端） | `subskills/handoff/SKILL.md` |
+| intake | 接手项目 / 继续上次会话 / 新会话开工要全文阅读；启动新项目要初始化骨架 | `subskills/intake/SKILL.md` |
 | save | 会话结束、交付完成，把跨会话用得上的偏好与事实归档进 agent 记忆库并更新索引 | `subskills/save/SKILL.md` |
 | neat | 里程碑：对文档 + 记忆做洁癖审查（尺寸体检 → 盘点 → 识别变更 → 实际修改 → 自检 → 摘要） | `subskills/neat/SKILL.md` |
 | promote | 某条学习反复出现或用户说"以后都要这样"，提炼成规则写进项目文档 | `subskills/promote/SKILL.md` |
@@ -59,7 +60,7 @@ capture 补录遗漏 → handoff 写交接并升档长期库 → save 归档跨�
 → neat 洁癖同步 → promote 提炼硬规则
 ```
 
-单项需求走快速通道，直接进对应子命令。接手别人的项目则只走 handoff 的读取端（流程 B）。
+单项需求走快速通道，直接进对应子命令。接手别人的项目 / 新会话开工则走 `intake`。
 
 ## 不触发 / 反例
 
