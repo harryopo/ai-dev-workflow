@@ -34,7 +34,7 @@ output/
 .memory/
 .temp_*
 skills/
-memory/
+/memory/
 .learnings/
 .mcp.json
 archive/
@@ -64,14 +64,17 @@ skills-lock.json
 
 # 工具缓存
 .mimosa/
+# 仅排除仓库根目录的 workbuddy 缓存；流程架构图/.workbuddy/ 的调研记忆要入库
+/.workbuddy/
+
+# 流程架构图：第三方下载的源码与生成中间文件
+流程架构图/开源项目/
+流程架构图/diagrams/**/*.log
+流程架构图/diagrams/**/*.err
+流程架构图/diagrams/**/validation.json
 
 # 嵌套 git 仓库（独立管理，不入父仓库）
 harryopo.github.io/
-opensource-reference/architecture-diagram-generator/
-opensource-reference/fireworks-tech-graph/
-opensource-reference/bmad-method/
-opensource-reference/superpowers/
-opensource-reference/wshobson-agents/
 agents-md-spec/
 anthropics-skills/
 antigravity-awesome-skills/
