@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.7.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.8.0-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -156,7 +156,7 @@ super-frontend-design/
 ├── SKILL.md                        # 主入口：路由 + 工作流 + 约束
 ├── references/                     # 参考知识
 │   ├── desktop-patterns.md         # 桌面应用模式库（10模式）
-│   ├── professional-software.md    # 专业软件设计模式（7款分析）
+│   ├── professional-software.md    # 专业软件设计模式（11款分析）
 │   ├── token-mapping.md            # 跨平台 Design Token 映射
 │   ├── motion-patterns.md          # 桌面端动效方案库
 │   ├── macrostructures.md          # 21种 Macrostructure 路由
@@ -166,6 +166,8 @@ super-frontend-design/
 │   ├── ux-guidelines.md            # 99条UX准则
 │   ├── anti-ai-slop.md             # 14条反AI味规则
 │   ├── premium-design-rules.md     # 16条高级感规范
+│   ├── admin-enterprise-patterns.md # B端/企业软件设计模式库
+│   ├── design-systems/             # 4个内置设计系统预设（TDesign/Ant/M3/shadcn）
 │   └── ...
 ├── subskills/                      # 子命令实现
 │   ├── research/SKILL.md           # 15维度调研
@@ -196,6 +198,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.8.0 | 2026-10-11 | 软件设计增强（B端模式库+4款专业软件分析）、字号层级/圆角收敛门禁检查、4个内置设计系统预设、国内企业级组件库接入 |
 | v2.7.0 | 2026-08-10 | 新增桌面端支持（Electron/Tauri/PySide6/SwiftUI），新增 4 个参考文件，新增 4 个 Prompt 模板 |
 | v2.6.0 | 2026-08-09 | 新增 refine 子命令（polish/bolder/quieter/distill/harden） |
 | v2.5.0 | 2026-08-09 | 集成 GSAP 动效系统，增强双代理评估 |

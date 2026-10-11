@@ -1,5 +1,38 @@
 # super-frontend-design Release Notes
 
+## v2.8.0 (2026-10-11) — 软件设计增强 + 字体层级门禁 + 设计系统预设
+
+### 字体层级与风格统一检查
+- `rules/stylelint.config.json`：`declaration-strict-value` 属性清单加入 `font-size`——字号必须走 `var(--font-size-*)`，与颜色/字体同等严格度（font-size 是单值属性，天然适配 strict-value）
+- `slop_scan.py` + `rules/slop-table.json` 新增两条 measure 规则（28 → 30 条）：
+  - `font-size-step-count`（hard，阈值 8）：distinct 字号档位超过 8 报警；px/rem 归一计数（1rem=16px），em/var() 跳过不猜；阈值政策化 `rules/policy.json → font-size-count`
+  - `radius-value-count`（warn，阈值 4）：distinct 圆角档位超过 4 报警，锚定 DESIGN.md 契约的 radius Token 档位；政策 `radius-count`
+- `render_probe.py` 新增 `JS_FONTSCALE` 渲染量测：标题 computed 字号逐级不增（倒挂报 `font-scale-inverted`）、H1/正文计算字号比不足报 `heading-body-ratio-low`——阈值 1.5 政策化 `heading-body-ratio`（取自 review §2.1.1 既有条文，运行时从 policy.json 读取，脚本不抄数字）
+- `rules/policy.json` 政策从 6 条扩到 9 条（新增 font-size-count / radius-count / heading-body-ratio，全部带 prose 对账与 min_hits）
+- review §2.16 Typography 硬检查 T1–T8 扩为 T1–T10（T9 档位数→slop_scan 自动判定、T10 标题梯度→render_probe）；typography.md §1/§7 同步；顺带修正 review T2 阈值（≥48px）与 typography.md（≥32px）的漂移
+- 夹具与测试：`slop_red.html` 种入 11 档字号与 6 档圆角触发样本、`slop_clean.html` 字号改走 Token（配合 strict-value）；`test_slop_scan.py` 8 → 9 项、`test_structure_lint.py` 9 → 10 项（font-size 严格校验契约）、`test_render_probe.py` 10 → 11 项（字号层级量测契约）、`test_audit_gate_red.py` 的规则数注入缺陷随真值更新（原注入"28→30"，真值已是 30，改为注入 30→31）
+- 全仓"28 条规则"声称同步为 30（SKILL.md 索引与 review 两处）
+
+### 软件前端设计增强
+- 新增 `references/admin-enterprise-patterns.md`：B 端管理后台/企业软件设计模式库——数据表格（对齐/等宽数字/固定列/排序）、表单系统（分区/分步/校验时机/编辑态与查看态）、筛选与保存视图、批量操作、权限与状态可见性、异步任务与导入导出、三态纪律、四个布局模板（列表/详情/仪表盘/设置）、与 C 端差异对照、交付检查清单
+- `references/professional-software.md` 新增四款分析（7 → 11 款）：Trae（AI IDE：对话×画布共栖、diff 预览、任务拆解流）、DaVinci Resolve（页面化工作区、时间线交互）、Blender（快捷键驱动、视口即时反馈）、Warp（块化输出、智能输入框）；对照表扩到 11 列、提取指南补 4 行；原对照表/提取指南/检查清单顺延为 §13-15
+- design 子技能新增 Part 17（B 端场景路由、产品类型→参考映射、与 C 端工作流的差异执行要点）；Part 15 两张映射表同步
+
+### 设计系统预设与组件库接入
+- 新增 `references/design-systems/` 四个 Token 级预设（严格按 `design-system-template.md` 的 9-section 格式）：`tdesign.md`（--td-* 变量映射）、`ant-design.md`（antd 5 theme.token + cssVar）、`material-3.md`（tonal palette + M3 shape/type scale）、`shadcn-style.md`（OKLCH 中性系，display 字体避开门禁黑名单）；每个预设都声明"是种子不是免调研通行证"
+- design-context §5：DESIGN.md 来源新增"内置预设"路径；design Part 2 新增预设推荐表（style-match 起点）；theme 预设主题章节加企业级预设引用
+- design Part 7 新增"国内企业级组件库"小节：TDesign / Ant Design / Element Plus / Arco Design 的适用场景、Token 定制入口（--td-* / theme.token / --el-* / Arco 变量）、与三层 Design Token 的映射方式、反 AI 味注意点；`component-block-catalog.md` 全局索引补 4 库
+
+### 版本
+- 版本号 v2.7.0 → v2.8.0（SKILL.md frontmatter、README 徽章与版本历史、evals.json）
+- 验证：audit_integrity 全项 PASS；6 套契约测试 68 项全绿（token 12 / slop 9 / audit_gate_red 13 / structure 10 / render_probe 11 / visual_diff 13）
+
+## 2026-10-11 对账（版本号仍为 v2.7.0）
+- `evals/evals.json` 的 version 字段从 2.4.0 对齐到 2.7.0；静态核对全部 10 条路由样本与 SKILL.md 路由表触发词一致
+- `design-002`「全流程」样本的 expected_routing 由 `creative → theme → design → review` 修正为 `research → design-context → creative → theme → design → review`（原期望违反 SKILL.md「路由到 design 必先 research」铁律），expected_output 同步为六阶段
+- version-log.md 补记 2026-10-05 两轮加固条目（此前该日志停在 10-04，与 RELEASE-NOTES.md 漂移）
+- 复跑 audit_integrity.py 与全部 6 套测试（token 12 / slop 8 / audit_gate_red 13 / structure 9 / render_probe 10 / visual_diff 13）全部通过
+
 ## 2026-10-05 修复与门禁扩展（版本号仍为 v2.7.0）
 - 新增 `scripts/token_lint.py`：Token 未定义引用、死 Token、与 DESIGN.md 契约双向对账（纯标准库，无 npm 依赖）
 - 新增 `scripts/visual_diff.py`：页面截图与参考图逐像素对账，含白屏检测与内容密度骤变兜底（Playwright + Pillow/numpy）

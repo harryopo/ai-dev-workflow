@@ -62,6 +62,11 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 > 实际应用的 Token 必须从 creative 子技能的「视觉论文」的 5 个方向（配色/排版/布局/材质/动效）推导生成。
 > 仅在以下情况可参考预设：(1) 用户明确说"给我推荐几个主题看看"；(2) creative 产出偏差需要验证方向。
 
+> **企业级设计系统预设**：除上述 10 个风格主题外，`references/design-systems/` 还有
+> tdesign / ant-design / material-3 / shadcn-style 四个 Token 级预设（9-section DESIGN.md
+> 格式）。B 端场景或用户点名某个设计系统时，以对应预设为 Token 推导的参照系——
+> 同样禁止直接复制，品牌色以 Design Brief 与视觉论文为准（详见 design 子技能 Part 2）。
+
 #### 2.1 Ocean Depths - 专业沉稳的海洋主题
 
 **色彩调色板：**

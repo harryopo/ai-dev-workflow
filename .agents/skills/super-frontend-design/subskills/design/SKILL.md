@@ -326,6 +326,21 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 | 12 | `blur-purpose` | 使用模糊表示背景消除（模态、sheet），而非装饰（Apple HIG） |
 | 13 | `primary-action` | 每个屏幕应只有一个主要 CTA；次要行动视觉上从属（Apple HIG） |
 
+### 内置设计系统预设（style-match 的起点）
+
+`references/design-systems/` 下有四个 Token 级预设（9-section DESIGN.md 格式，见
+design-context §5）。命中以下场景时优先以对应预设为种子，再经视觉论文校准品牌色与字体：
+
+| 场景信号 | 推荐预设 | 理由 |
+|---------|---------|------|
+| 腾讯生态 / 全栈含小程序 / 求稳的 B 端 | `design-systems/tdesign.md` | 稳固克制，TDesign 组件库 Token 直接对接 |
+| React 中后台 / B 端模式最全诉求 | `design-systems/ant-design.md` | antd 5 token 体系即此预设的原始层 |
+| 消费级移动端 / 跨端 / 动效表达诉求 | `design-systems/material-3.md` | M3 色彩角色化 + 动效规范最成熟 |
+| 开发者工具 / SaaS 控制台 / 现代轻量 | `design-systems/shadcn-style.md` | 与 Part 8 shadcn/ui 无缝衔接 |
+
+> 预设只是种子不是结论：品牌色/字体/禁忌以 Design Brief 为准；预设与视觉论文冲突时
+> 视觉论文优先（跨模块冲突规则见主 SKILL.md §7.5）。
+
 ### 可用风格列表（50+）
 
 | # | 风格名称 | 关键特征 | 适用产品类型 |
@@ -872,6 +887,31 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 - **动效**：withAnimation + Spring
 - **参考模板**：`templates/prompt-templates/swiftui.md`
 - **参考规范**：`references/desktop-patterns.md`
+
+### 国内企业级组件库（B 端推荐）
+
+B 端场景（Part 17）优先选企业级组件库——表格、表单、上传、日期选择等重组件不自研。
+选型按技术栈与品牌人格定，Token 定制一律走库的官方变量入口，禁止散弹式 CSS 覆盖：
+
+| 组件库 | 技术栈 | Token 定制入口 | 设计人格 |
+|--------|--------|---------------|---------|
+| **TDesign**（腾讯） | React / Vue3 / 移动端 / 小程序 / Flutter 全栈 | CSS 变量 `--td-*`（--td-brand-color 等）+ LESS 编译期变量；官方主题生成器可产全量变量 | 稳固务实，腾讯系 B 端多年实践，中庸克制 |
+| **Ant Design**（蚂蚁） | React（antd 5.x）；Vue 走社区版 | ConfigProvider `theme.token`（CSS-in-JS）+ 开启 `cssVar: true` 得 `--ant-*` 变量 | 企业级确定性、即时反馈，B 端模式最全 |
+| **Element Plus** | Vue 3 专属 | SCSS 变量编译期定制 + CSS 变量 `--el-*`（--el-color-primary 等）运行时覆盖 | Vue 生态 B 端事实标准，朴素直接 |
+| **Arco Design**（字节） | React + Vue3 | Less 变量 + CSS 变量（色板语义命名 `--color-text-1` 等，`--arcoblue-*` 系列） | 字节系中后台，暗色模式成熟 |
+
+**与本 Skill 三层 Token 的对接（所有库通用）**：
+
+1. 库的原生变量（`--td-*`/`--el-*`/…）视为**原始 Token 层**；
+2. 在 `:root` 建语义映射：`--color-primary: var(--td-brand-color)`——产物代码只引用语义层；
+3. 主题定制只改库的 Token 入口，不写 `antd-table .xxx { … }` 式全局覆盖补丁
+   （覆盖补丁在库升级时全碎，且绕过 Token 纪律）；
+4. 反 AI 味衔接：库默认样式不违反门禁，但**自定义样式**的颜色与字号必须全部走
+   `var()`（structure_lint 的 strict-value 照常生效）；默认圆角/密度是好的起点，
+   不要再叠渐变、彩色阴影与圆角卡片堆去"装点"它。
+
+**选型速查**：腾讯生态/全栈覆盖 → TDesign；B 端模式最全、React 优先 → Ant Design；
+Vue 3 项目要朴素可控 → Element Plus；字节系/重暗色 → Arco Design。
 
 ---
 
@@ -1476,6 +1516,10 @@ WindowInsets.safeDrawing.asPaddingValues()
 | Arc | 空间导航 + 分屏浏览 | 浏览器、信息聚合 |
 | Discord | 服务器图标 + 频道分组 | 社交工具、社区平台 |
 | Spotify | 沉浸体验 + 底部控件 | 媒体播放、内容消费 |
+| Trae | 对话×画布双栏 + 任务拆解流 | AI IDE、AI 编程工具 |
+| DaVinci Resolve | 页面化工作区 + 时间线 | 音视频编辑、时间密集型工具 |
+| Blender | 快捷键驱动 + 视口即时反馈 | 3D 创作、重交互专业软件 |
+| Warp | 块化输出 + 智能输入框 | 终端、命令行工具 |
 
 ### 设计决策提取指南
 
@@ -1488,6 +1532,10 @@ WindowInsets.safeDrawing.asPaddingValues()
 | 浏览器 | Arc | — |
 | 社交工具 | Discord | — |
 | 媒体播放 | Spotify | — |
+| AI IDE / AI 编程工具 | Trae | VS Code |
+| 音视频编辑 | DaVinci Resolve | — |
+| 3D 创作 | Blender | — |
+| 终端 / 命令行工具 | Warp | — |
 | 通用效率工具 | Linear + VS Code | — |
 
 ---
@@ -1675,3 +1723,37 @@ WindowInsets.safeDrawing.asPaddingValues()
 - [ ] 全网搜索参考已解构优化（非直接照搬）？
 - [ ] Design Token 系统已应用？
 - [ ] 跨领域借鉴已考虑？
+
+---
+
+## Part 17: B端/企业软件设计模式参考
+
+> 用户需求命中「后台 / admin / 管理系统 / ERP / CRM / 中台 / 运营平台 / 内部工具 /
+> 数据表格 / 审批流 / 权限」时，加载 `references/admin-enterprise-patterns.md` 获取完整模式库。
+> 交互品质基准另参考 Part 15（Linear / Notion 的键盘优先与信息密度）。
+
+### B端产品类型→优先参考
+
+| 产品类型 | 优先参考章节 | 补充参考 |
+|---------|-------------|---------|
+| 管理后台 / 运营系统 | admin-enterprise §2 表格 + §4 筛选 + §9 列表页模板 | Linear（键盘优先） |
+| ERP / CRM / 审批流 | admin-enterprise §3 表单 + §6 权限 + §9 详情页模板 | Notion（分区结构） |
+| 数据仪表盘 | admin-enterprise §9 仪表盘模板 | — |
+| 设置中心 | admin-enterprise §3 表单 + §9 设置页模板 | — |
+| 内部工具（轻量） | admin-enterprise §2 + §8 三态纪律 | — |
+
+### B端执行要点（与 C 端工作流的差异）
+
+1. **模式复用优先**：B 端靠用户肌肉记忆，布局用 §9 的四个模板起步，不做结构创新；
+   创新空间留给微交互、空态文案与任务编排
+2. **效率三件套必做**：筛选条件进 URL、批量操作接任务中心、表格列配置可持久化
+3. **五态纪律**：列表页的首次/空结果/加载/失败/无权限五个状态缺一不可（§8）
+4. **视觉收敛**：正文 14px 主导、中性色主导、动效只做 150-250ms 状态反馈；
+   禁止把营销页的 Hero/渐变/大字搬进后台（§10 差异表）
+5. **门禁照常**：反 AI 味与 Token 纪律不因 B 端豁免，交付前六道门禁照跑
+
+### 与技术栈的衔接
+
+B 端场景优先考虑企业级组件库（Part 7 国内企业级组件库小节：TDesign / Ant Design /
+Element Plus / Arco Design），其表格、表单、上传、日期选择等重组件无需自研；
+Token 定制入口与反 AI 味注意点见该小节。

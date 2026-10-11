@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.7.0
+version: 2.8.0
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -432,7 +432,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/design-system-template.md | DESIGN.md 输出模板 | design-context 子命令 |
 | references/slop-test.md | hallmark 56 条 Slop Test 规则 | review 子命令 |
 | references/desktop-patterns.md | 桌面应用设计模式库 | design 子命令（Electron/Tauri/PySide6/SwiftUI） |
-| references/professional-software.md | 专业软件设计模式（Figma/VSCode/Notion/Linear） | design 子命令（效率工具/专业软件） |
+| references/professional-software.md | 专业软件设计模式（Figma/VSCode/Notion/Linear/Trae/DaVinci/Blender/Warp） | design 子命令（效率工具/专业软件） |
+| references/admin-enterprise-patterns.md | B端/企业软件设计模式库（数据表格/表单/权限/布局模板） | design 子命令（管理后台/ERP/内部工具） |
 | references/token-mapping.md | 跨平台 Design Token 映射 | design 子命令（跨平台输出） |
 | references/motion-patterns.md | 桌面端动效方案库 | animate 子命令（桌面应用） |
 | templates/viewer.html | p5.js 交互模板 | creative 子命令 |
@@ -444,9 +445,13 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | templates/prompt-templates/flutter.md | Flutter Prompt 模板 | design 子命令（Flutter 栈） |
 | canvas-fonts/ | 字体资源（TTF + OFL 授权） | creative 子命令 |
 | themes/ | 10 个预设主题数据 | theme 子命令 |
+| references/design-systems/tdesign.md | TDesign 风格设计系统预设（9-section） | design-context / theme 子命令 |
+| references/design-systems/ant-design.md | Ant Design 风格设计系统预设（9-section） | design-context / theme 子命令 |
+| references/design-systems/material-3.md | Material 3 风格设计系统预设（9-section） | design-context / theme 子命令 |
+| references/design-systems/shadcn-style.md | shadcn 风格设计系统预设（9-section） | design-context / theme 子命令 |
 | scripts/search.py | CLI 搜索工具 | design 子命令 |
 | scripts/audit_integrity.py | 结构自检门禁：断链/孤儿资源/数字对账/政策数字对账/围栏配对 | 交付前自检 |
-| scripts/slop_scan.py | 静态反 AI 味门禁：28 条规则扫 html/css，退出码 0/1/2；`--only 规则号` 可单点复检 | review / critique |
+| scripts/slop_scan.py | 静态反 AI 味门禁：30 条规则扫 html/css，退出码 0/1/2；`--only 规则号` 可单点复检 | review / critique |
 | scripts/render_probe.py | 渲染量测门禁：对比度/横向滚动/触摸目标/焦点/alt/label（Playwright 离线）；`--apca` 加量 APCA 感知对比度 Lc | review / critique |
 | scripts/apca_contrast.mjs | APCA Lc 计算器（colorjs.io，stdin 收前景/背景，算不出给 null 不猜） | render_probe --apca |
 | scripts/token_lint.py | Token 门禁：未定义引用、死 token、与 DESIGN.md 契约双向对账（纯标准库） | design / review |

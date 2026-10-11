@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.4.0",
+  "version": "2.8.0",
   "evals": [
     {
       "id": "core-001",
@@ -88,8 +88,8 @@
       "category": "design",
       "subcommand": "design",
       "prompt": "做一个全流程：从灵感探索到最终审查，主题是AI搜索产品",
-      "expected_routing": "creative → theme → design → review",
-      "expected_output": ["4个子命令顺序执行", "Design Token贯穿", "审查报告"],
+      "expected_routing": "research → design-context → creative → theme → design → review",
+      "expected_output": ["六阶段顺序执行（先 research 调研产出 Design Brief）", "Design Token贯穿", "审查报告"],
       "anti_pattern": ["不应跳过任何阶段", "不应各阶段风格不一致"]
     }
   ]

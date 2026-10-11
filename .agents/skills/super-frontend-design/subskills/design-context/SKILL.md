@@ -81,6 +81,12 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 ## 5. DESIGN.md 模板
 
+> **DESIGN.md 的三个来源**：① Design Brief 推导（默认路径）② 从现有代码/参考设计提取
+> （extract 模式）③ **内置设计系统预设**——`references/design-systems/` 下有
+> tdesign / ant-design / material-3 / shadcn-style 四个 9-section 预设，与本章模板
+> 同构，可作为 init 的起点：按 Design Brief 的场景与人格选中一个后，**仍须经
+> research 调研校准**（预设的基线色只是种子，品牌色、字体、禁忌以调研结论为准）。
+
 ```markdown
 # Design System
 
