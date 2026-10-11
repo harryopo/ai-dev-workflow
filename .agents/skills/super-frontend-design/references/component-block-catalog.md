@@ -150,3 +150,10 @@
 | Motion (motion/react) | React 动画库（2025年更名后统一使用 Motion） | https://motion.dev |
 | shadcn/ui | React 基础组件 | https://ui.shadcn.com |
 | Inspira UI | Vue/Nuxt 3D 动画组件 | https://inspira-ui.com |
+| TDesign | 企业级组件库（React/Vue/移动端/小程序/Flutter） | https://tdesign.tencent.com |
+| Ant Design | 企业级组件库（React；Vue 走社区版） | https://ant.design |
+| Element Plus | 企业级组件库（Vue 3） | https://element-plus.org |
+| Arco Design | 企业级组件库（React/Vue3） | https://arco.design |
+
+> 企业级组件库的 Token 定制入口、与语义 Token 层的映射方式见 design 子技能 Part 7
+> 「国内企业级组件库」小节；B 端模式参考 `references/admin-enterprise-patterns.md`。
