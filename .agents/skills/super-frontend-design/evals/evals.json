@@ -91,6 +91,33 @@
       "expected_routing": "research → design-context → creative → theme → design → review",
       "expected_output": ["六阶段顺序执行（先 research 调研产出 Design Brief）", "Design Token贯穿", "审查报告"],
       "anti_pattern": ["不应跳过任何阶段", "不应各阶段风格不一致"]
+    },
+    {
+      "id": "v28-001",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "帮我做一个内部运营管理后台，带数据表格和审批流",
+      "expected_routing": "research → design-context → design（加载 Part 17 与 references/admin-enterprise-patterns.md）",
+      "expected_output": ["B端布局模板起步", "表格/筛选/批量操作模式", "企业级组件库选型"],
+      "anti_pattern": ["不应直接输出通用SaaS模板", "不应跳过admin-enterprise模式库"]
+    },
+    {
+      "id": "v28-002",
+      "category": "core",
+      "subcommand": "design-context",
+      "prompt": "用 TDesign 的风格初始化这个项目的设计上下文",
+      "expected_routing": "design-context（引用 design-systems/tdesign.md 预设作为种子）",
+      "expected_output": ["9-section DESIGN.md", "--td-* 变量映射", "提示预设需经调研校准"],
+      "anti_pattern": ["不应跳过调研直接复制预设", "不应把预设基线色当成最终品牌色"]
+    },
+    {
+      "id": "v28-003",
+      "category": "boundary",
+      "subcommand": "design",
+      "prompt": "优化一下这个后台页面的排版层级",
+      "expected_routing": "research（重新调研）→ design-context → design，不是 review",
+      "expected_output": ["重新调研字号与交互节奏", "按 admin-enterprise 模式重排层级"],
+      "anti_pattern": ["不应路由到review只给评分", "不应跳过调研直接改样式"]
     }
   ]
 }

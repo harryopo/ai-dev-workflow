@@ -96,3 +96,4 @@ spec-kit/
 # 结构层依赖与临时探针目录（项目本地安装，不入版本库）
 .sfd-tools/
 .sfd-probe/
+.sfd-dogfood/
