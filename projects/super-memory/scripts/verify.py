@@ -82,8 +82,13 @@ print("  五个置信度码齐且互不重复:", all(c in hs for c in codes),
 is_ = open("subskills/intake/SKILL.md", encoding="utf-8").read()
 print("  handoff 指向 intake:", "ok" if "intake" in hs else "❌ 缺")
 print("  handoff 进度可扫读质量条:", "ok" if "进度可扫读" in hs else "❌ 缺")
+print("  handoff 追加式头部指针:", "ok" if "追加式头部指针" in hs else "❌ 缺")
 print("  intake 五码齐:", "ok" if all(c in is_ for c in codes) else "❌ 缺")
 print("  intake 引用 discovery/scaffold:", "ok" if "intake-memory-discovery" in is_ and "intake-scaffold" in is_ else "❌ 缺")
+print("  intake 全面分析+三角验证+newermt:",
+      "ok" if all(k in is_ for k in ["全面分析", "新鲜度三角", "newermt"]) else "❌ 缺")
+disc = open("references/intake-memory-discovery.md", encoding="utf-8").read()
+print("  discovery 全面分析三层次+实战案例:", "ok" if "全面分析三层次" in disc and "33 个提交" in disc else "❌ 缺")
 
 tpl = open("references/handoff-template.md", encoding="utf-8").read()
 secs = re.findall(r"^## \*?\u2605?\*?(\d+)\.", tpl, re.M)
