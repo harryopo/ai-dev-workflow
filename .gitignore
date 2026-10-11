@@ -97,3 +97,8 @@ spec-kit/
 .sfd-tools/
 .sfd-probe/
 .sfd-dogfood/
+
+# IDE 本地配置与 CLI 运行时目录（2026-10-11 清理：一次性脚本与产物已归档/移出）
+.qoder/
+.zcode/
+.scratch/

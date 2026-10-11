@@ -1,0 +1,134 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Cache
+.cache/
+*.cache
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Output
+output/
+# deep-research-ultra 调研会话产物（账本/报告）
+.research/
+
+# Temporary
+*-temp.md
+*.tmp
+*.bak
+
+# 不需要的目录
+.agents/
+.trae/
+.claude/
+.memory/
+.temp_*
+skills/
+/memory/
+.learnings/
+.mcp.json
+archive/
+docs/
+research/
+
+# 不需要的项目
+projects/book-methodology-skills/
+projects/idea-to-dev/
+projects/site-cloner/
+projects/skill-dev/
+projects/skill-review/
+projects/super-frontend-design/
+projects/token-optimizer/
+projects/windows-desktop-dev/
+projects/测评/
+projects/待优化skill/
+projects/节省token_skill/
+
+# 临时文件
+20.205.243.166
+npm
+skills-lock.json
+
+# 回收站（删除前的可恢复备份，不入版本库）
+.trash/
+
+# 工具缓存
+.mimosa/
+# 仅排除仓库根目录的 workbuddy 缓存；流程架构图/.workbuddy/ 的调研记忆要入库
+/.workbuddy/
+
+# 流程架构图：第三方下载的源码与生成中间文件
+流程架构图/开源项目/
+流程架构图/diagrams/**/*.log
+流程架构图/diagrams/**/*.err
+流程架构图/diagrams/**/validation.json
+
+# 嵌套 git 仓库（独立管理，不入父仓库）
+harryopo.github.io/
+opensource-reference/architecture-diagram-generator/
+opensource-reference/fireworks-tech-graph/
+opensource-reference/bmad-method/
+opensource-reference/superpowers/
+opensource-reference/wshobson-agents/
+agents-md-spec/
+anthropics-skills/
+antigravity-awesome-skills/
+claude-task-master/
+everything-claude-code/
+spec-kit/
+
+# 白名单：super-frontend-design 开发副本纳入版本控制（放在末尾才能覆盖上面的目录排除）
+# 逐层放行：.agents 下只放出 skills/，skills/ 下只放出这一个 skill，字体资源不入库
+!.agents/
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/super-frontend-design/
+.agents/skills/super-frontend-design/canvas-fonts/
+# 上面第 42 行的 research/ 会连带排除 subskills/research，这里单独放回
+!.agents/skills/super-frontend-design/subskills/research/
+
+# 结构层依赖与临时探针目录（项目本地安装，不入版本库）
+.sfd-tools/
+.sfd-probe/
+
+# ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
+.git/
+.hg/
+.svn/
+node_modules/
+bower_components/
+jspm_packages/
+site-packages/
+venv/
+coverage/
+htmlcov/
+lcov-report/
+cmakefiles/
+cmake-build-*/
+bazel-*/
+pods/
+deriveddata/
+storybook-static/
+playwright-report/
+test-results/
+allure-results/
+allure-report/
+cdk.out/
+*.egg-info/
+*.dist-info/
+eggs/
+pip-wheel-metadata/
+wheels/
+# ----- ↑ 以上为 ZCode 默认排除规则（自定义规则请写在本行下方，不会被同步/恢复改动）-----
+# 自定义规则写在下方（本行提示可删除）
