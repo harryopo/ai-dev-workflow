@@ -14,30 +14,32 @@
 
 **Tier 2 — 常用但项目特化**：
 
-`ARCHITECTURE.md` `DECISIONS.md` `MAP.md` `SECURITY.md` `INDEX.md` `known_issues.md` `coding_standards.md` `dev-state.md` `DEV-JOURNAL.md` `ROADMAP.md` `00-目标与进度.md` `踩坑记录.md` `项目进度*` `SESSION_*.md` `handoff-notes.md` `current-state.md` `project-map.md` kiro 风格 `project_*.md`/`user_profile.md`/`feedback_*.md`
+`ARCHITECTURE.md` `DECISIONS.md` `MAP.md` `SECURITY.md` `INDEX.md` `known_issues.md` `coding_standards.md` `dev-state*`（可能是 1MB 级进度真源，只看增量） `current-state.md` `project-map.md` `handoff-notes.md` `*现状*` `*规划*` `00-目标与进度.md` `踩坑记录.md` `项目进度*` `SESSION_*.md` kiro 风格 `project_*.md`/`user_profile.md`/`feedback_*.md`
 
 **Tier 3 — 日期/编号变体**（用正则，别漏）：
 
 `*-YYYYMMDD.md`（交接文档-20260911） · `*-YYYY-MM-DD.md`（交接总账-2026-09-25） · `*_YYYY-MM-DD_主题.md`（SESSION_2026-06-22_…） · `YYYY-MM-DD.md`（纯日期日记） · `vYYYY-MM-DD` / `*_V2.md`
 
-**排除清单**（防误报，实测踩过）：
+**排除清单**（防误报，实战踩过）：
 
-- `src/`、`tests/` 下的同名文件（`handoff_manager.py`、`profile-handoff.ts` 是代码不是记忆）
-- `node_modules/`、`.git/`、`dist/`、`build/`、`venv/`
-- 第三方/参考目录整棵（一个 opensource-reference 含 150+ 个 AGENTS.md）
+- `src/`、`tests/`、**`src-tauri/` 等源码树**下的同名文件（`handoff_manager.py`、`profile-handoff.ts` 是代码不是记忆）——最稳的办法是给 find 加 `-name "*.md"`：记忆文档必然是 .md，代码与 htmlcov 产物一次排除
+- 工具状态目录：`.trae/specs/`（每特性一个 tasks.md，是规格不是进度）、`htmlcov/`、`node_modules/`、`.git/`、`dist/`、`build/`、`venv/`
+- 第三方/参考目录整棵（一个 opensource-reference 含 150+ 个 AGENTS.md；也可能就在项目根内）
+- 主题页误报：`docs/repowiki/*记忆*` 这类是"讲记忆系统的 wiki 页"，不是记忆本体——靠第二步角色嗅探排除，不靠文件名
 
-参考命令：
+参考命令（2026-10-10 实战修订版）：
 
 ```bash
 # Tier1 容器快速探测
-for d in .ai .learnings memory .memory .codex-memory docs/handoff docs/handoffs docs/wiki; do
+for d in .ai .learnings memory .memory .codex-memory docs/handoff docs/handoffs docs/wiki docs/repowiki; do
   [ -d "$d" ] && echo "DIR  $d"
 done
-# 文件名探测（排除噪声目录）
-find . -maxdepth 4 \( -iname "*handoff*" -o -iname "*handover*" -o -iname "*交接*" -o -iname "*记忆*" \
-  -o -iname "MEMORY.md" -o -iname "PROGRESS*" -o -iname "TASKS.md" \) \
-  -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/src/*" -not -path "*/tests/*" \
-  -not -path "*/opensource-reference/*" 2>/dev/null
+# 文件名探测（限 .md；排除源码树/工具态/第三方）
+find . -maxdepth 4 -name "*.md" \( -iname "*handoff*" -o -iname "*handover*" -o -iname "*交接*" -o -iname "*记忆*" \
+  -o -iname "MEMORY.md" -o -iname "PROGRESS*" -o -iname "TASKS.md" -o -iname "dev-state*" \
+  -o -iname "*现状*" -o -iname "*规划*" \) \
+  -not -path "*/node_modules/*" -not -path "*/.git/*" -not -path "*/src/*" -not -path "*/src-tauri/*" \
+  -not -path "*/tests/*" -not -path "*/opensource-reference/*" -not -path "*/.trae/*" 2>/dev/null
 ```
 
 ## 二、角色分类（不看文件名死认，读首 30 行判）
@@ -54,6 +56,8 @@ find . -maxdepth 4 \( -iname "*handoff*" -o -iname "*handover*" -o -iname "*交�
 | 踩坑 | known_issues/LEARNINGS/踩坑记录 ∥ 问题-根因-解法 | 8 |
 
 一个文件可能同时是"进度+交接"（多数中文交接文档如此）→ 按最高优先角色读一次即可，别重复读。
+
+**平行标记体系**（实战常见）：项目可能自用 ✅⚠️❓📌 等符号而非 [V][W][Q][R][F]（例：HANDOFF 用 ✅=已验证、⚠️=进行中/有风险、❓=待确认、📌=已固化）。读取时**按语义映射**到字母码（✅→[V]、⚠️→[W] 或 [R]、❓→[Q]、📌→[F]），简报里注明映射关系；不要因符号不同判记忆无效。
 
 ## 三、整理两模式（仅当散落/重叠时启用）
 
