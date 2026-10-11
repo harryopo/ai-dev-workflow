@@ -1,5 +1,8 @@
 # super-frontend-design Release Notes
 
+## 2026-10-11 加固（版本号仍为 v2.8.0）
+- `scripts/visual_diff.py` 新增 `clean_path()` 路径契约：所有 CLI 路径参数（位置参数、`--out`、`--reference`）在 argparse 之后统一校验——拒绝空值与 `..` 段、展开 `~`，fail-closed 报错退出 2。本工具是本地 CLI、路径来自操作者本人，这道校验不是安全边界，而是把"手滑写出 ../ 相对层级"挡在读写盘之前；起因是 Mimosa L3 把 main 的 argv→Path 参数流判为 path-traversal 高危（两个扫描引擎均 0 发现，判为误报），以显式校验收敛参数流
+
 ## v2.8.0 (2026-10-11) — 软件设计增强 + 字体层级门禁 + 设计系统预设
 
 ### 字体层级与风格统一检查

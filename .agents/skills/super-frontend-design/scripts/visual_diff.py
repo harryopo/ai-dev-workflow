@@ -43,6 +43,21 @@ def require_imaging():
         raise DiffError("需要 Pillow + numpy（当前不可用）：%s" % exc)
 
 
+def clean_path(value, what):
+    """门禁路径契约：拒绝空值与 .. 段，展开 ~，产出规整后的 Path。
+
+    本工具是本地 CLI，路径来自操作者本人；这道校验不是安全边界，
+    而是把"手滑写出 ../ 相对层级"挡在读写盘之前，fail-closed 报错而非猜意图。
+    """
+    text = str(value).strip()
+    if not text:
+        raise DiffError("%s 路径不能为空" % what)
+    p = Path(text).expanduser()
+    if ".." in p.parts:
+        raise DiffError("%s 路径不允许包含 .. 段（请传绝对路径或当前目录内相对路径）：%s" % (what, text))
+    return p
+
+
 def screenshot(html, out, width, height):
     try:
         from playwright.sync_api import sync_playwright
@@ -143,6 +158,15 @@ def main(argv=None):
     ap.add_argument("--max-diff", type=float, default=2.0)
     ap.add_argument("--json", action="store_true")
     ns = ap.parse_args(argv)
+
+    try:
+        ns.out = str(clean_path(ns.out, "--out"))
+        ns.inputs = [str(clean_path(x, "输入")) for x in ns.inputs]
+        if ns.reference:
+            ns.reference = str(clean_path(ns.reference, "--reference"))
+    except DiffError as exc:
+        sys.stderr.write("ERROR  %s\n" % exc)
+        return 2
 
     if ns.mode not in SUBCOMMANDS:
         sys.stderr.write("ERROR  需要子命令之一: %s\n" % ", ".join(SUBCOMMANDS))
