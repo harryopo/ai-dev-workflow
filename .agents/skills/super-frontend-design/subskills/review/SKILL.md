@@ -912,18 +912,20 @@ Web Interface Guidelines 合规性审查确保界面遵循现代 Web 平台的�
 
 #### 2.16 Typography 硬检查（基于 references/typography.md）
 
-> 加载 `references/typography.md`，逐项检查以下 8 条。
+> 加载 `references/typography.md`，逐项检查以下 10 条。
 
 | # | 检查项 | 检测方式 | 不通过 |
 |:---:|------|---------|:---:|
 | T1 | ALL CAPS letter-spacing | Grep `text-transform:.*upper` 检查是否有 `letter-spacing` | 🔴 |
-| T2 | Display tracking | 检查 ≥48px 元素是否有 `letter-spacing: -0.02em` 或更紧 | 🟡 |
+| T2 | Display tracking | 检查 ≥32px 元素是否有负 letter-spacing（32px+ 应 -0.01em~-0.02em，48px+ 应 -0.02em~-0.03em） | 🟡 |
 | T3 | Body line-height | 检查 15-18px 文本 `line-height` ≥ 1.5 | 🟡 |
 | T4 | 行宽 | 检查 body copy `max-width` ≤ 75ch | 🟡 |
 | T5 | Typeface 数量 | 统计不同 font-family 第一字体 ≤ 2 | 🟡 |
 | T6 | system-ui 标题 | Grep h1-h6 中 `font-family:.*system-ui`（非 var(--font-display)） | 🔴 |
 | T7 | Weight 数量 | 统计 font-weight 种类 ≤ 3 | 🟢 |
 | T8 | justify | Grep `text-align: justify` | 🔴 |
+| T9 | 字号档位超过 8 种，或圆角档位超过 4 种 | `python scripts/slop_scan.py <页面> --only font-size-step-count,radius-value-count` | 🟡 |
+| T10 | 标题字号层级倒挂；H1 与正文字号比 < 1.5:1 | `python scripts/render_probe.py <页面>`，finding 为 `font-scale-inverted` / `heading-body-ratio-low` | 🟡 |
 
 **检查结果格式**：
 
@@ -944,10 +946,10 @@ Web Interface Guidelines 合规性审查确保界面遵循现代 Web 平台的�
 > 基于 Grep 模式匹配的可访问性硬检查。与 §2.2 的可访问性语义审查互补 — §2.2 做定性判断，§2.17 做自动化定量检测。
 >
 > **这些自动化检查已有可执行脚本，必须真跑而不是心算**：
-> `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>` 覆盖 §2.16–§2.18 的静态判定（28 条规则，含 A1/A2 的 alt 与 label），
+> `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>` 覆盖 §2.16–§2.18 的静态判定（30 条规则，含 A1/A2 的 alt 与 label），
 > `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>` 覆盖 Token 纪律（未定义引用、死 Token、与 DESIGN.md 契约双向对账），
-> `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>` 覆盖必须渲染才能量的项（对比度、横向滚动、触摸目标、焦点指示），加 `--apca` 会用 colorjs.io 再量一遍感知对比度 Lc（阈值取自 `rules/policy.json`），
-> `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物>` 用 stylelint + html-validate 真解析：抓拼错的属性名、无效 hex、重复 id、缺 `type` 的按钮、没 alt 的图，以及"颜色/字体没走 var()"（需项目本地 `.sfd-tools`；未安装时退出码 2，报告里要写明"结构层未参与"，不得默认视为通过），
+> `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>` 覆盖必须渲染才能量的项（对比度、横向滚动、触摸目标、焦点指示、标题字号层级），加 `--apca` 会用 colorjs.io 再量一遍感知对比度 Lc（阈值取自 `rules/policy.json`），
+> `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物>` 用 stylelint + html-validate 真解析：抓拼错的属性名、无效 hex、重复 id、缺 `type` 的按钮、没 alt 的图，以及"颜色/字体/字号没走 var()"（需项目本地 `.sfd-tools`；未安装时退出码 2，报告里要写明"结构层未参与"，不得默认视为通过），
 > 有参考图/基线截图时再跑 `python ${SKILL_DIR}/scripts/visual_diff.py check <产物.html> --reference <参考图.png>`（白屏与内容密度骤变会单独报 hard，尺寸不符时报告会写明"未比对面积"）。
 > 把各脚本的输出原样贴进审查报告；退出码非 0 时不得给出"通过"结论。
 
@@ -980,7 +982,7 @@ Web Interface Guidelines 合规性审查确保界面遵循现代 Web 平台的�
 
 #### 2.18 hallmark 56条Slop Test反AI味全面检查
 
-> 其中可静态判定的部分（判定表 28 条规则）由 `python ${SKILL_DIR}/scripts/slop_scan.py` 执行，判定阈值见 `rules/slop-table.json`；56 项里剩下需要渲染或语义判断的条目仍按本节人工核对。脚本未覆盖的条目要在报告里显式写出"未自动判定"，不得默认视为通过。
+> 其中可静态判定的部分（判定表 30 条规则）由 `python ${SKILL_DIR}/scripts/slop_scan.py` 执行，判定阈值见 `rules/slop-table.json`；56 项里剩下需要渲染或语义判断的条目仍按本节人工核对。脚本未覆盖的条目要在报告里显式写出"未自动判定"，不得默认视为通过。
 
 > 加载 `references/slop-test.md`，执行分层检查。与 §0.5（七宗罪硬检查）互补 — §0.5是Block级快速检查，§2.18是 56 项 Slop Test 深度检查。
 

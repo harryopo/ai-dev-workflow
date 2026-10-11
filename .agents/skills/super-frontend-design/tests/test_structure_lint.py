@@ -102,6 +102,19 @@ def test_var_tokens_are_not_flagged(fails, tmp):
                      % [(x["file"], x["line"]) for x in wrong])
 
 
+def test_font_size_requires_token(fails, tmp):
+    """字号纳入 strict-value：裸 px 字号必被抓，var() 字号放行。"""
+    page = Path(tmp) / "font-size.html"
+    page.write_text("<!DOCTYPE html><html lang=\"zh\"><head><meta charset=\"utf-8\">"
+                    "<style>:root{--font-size-body:16px}"
+                    ".hard{ font-size: 13px; } .ok{ font-size: var(--font-size-body); }</style>"
+                    "</head><body><p class=\"hard\">甲</p><p class=\"ok\">乙</p></body></html>", encoding="utf-8")
+    d = data(run(page, "--json"))
+    hits = [x for x in d["hard"] if x["rule"].endswith("declaration-strict-value")]
+    if len(hits) != 1:
+        fails.append("exactly the bare 13px font-size must be flagged, got %d" % len(hits))
+
+
 def test_unknown_property_and_bad_markup_are_flagged(fails, tmp):
     page = Path(tmp) / "typo.css"
     page.write_text(".a { colour: red; }\n", encoding="utf-8")
@@ -177,7 +190,7 @@ def test_misconfigured_rule_is_not_a_green_light(fails, tmp):
 
 
 def main():
-    tests_needs = 9
+    tests_needs = 10
     if not node_available() or not tools_dir():
         print("SKIP  node 或 .sfd-tools 结构层不可用，structure_lint 的 %d 项契约测试未实测" % tests_needs)
         print("-" * 60)
@@ -188,6 +201,7 @@ def main():
     tmp = Path(tempfile.mkdtemp(prefix="sfd-structure-"))
     simple = [test_clean_fixture_passes, test_red_fixture_flags_markup]
     with_tmp = [test_hardcoded_color_is_flagged, test_var_tokens_are_not_flagged,
+                test_font_size_requires_token,
                 test_unknown_property_and_bad_markup_are_flagged,
                 test_inline_style_is_warn_not_hard, test_bad_invocation_exits_2,
                 test_missing_tools_dir_is_an_error, test_misconfigured_rule_is_not_a_green_light]

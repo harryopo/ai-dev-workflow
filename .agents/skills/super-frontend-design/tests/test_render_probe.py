@@ -198,6 +198,19 @@ def test_findings_are_readable_utf8(fails):
         fails.append("expected Chinese finding text to survive; got %r" % out[:120])
 
 
+def test_font_scale_planted_deficit(fails):
+    """h2 比 h1 大 + h1/正文比不足 1.5 —— 两个字号层级 finding 都要量出来。"""
+    page = write(TMP, "fontscale.html",
+                 "<style>h1{font-size:18px} h2{font-size:24px}</style>"
+                 "<h1>主标题</h1><h2>小节</h2><p>正文文字。</p>")
+    d = data(run(page, "--json", "--widths", "375"))
+    rules = {x["rule"] for x in d["warn"]}
+    if "font-scale-inverted" not in rules:
+        fails.append("h2(24px) > h1(18px) must report font-scale-inverted; got %s" % sorted(rules))
+    if "heading-body-ratio-low" not in rules:
+        fails.append("h1 18px / body 16px = 1.125 must report heading-body-ratio-low")
+
+
 def node_layer_ready():
     """--apca 需要 node + 项目本地 .sfd-tools 里的 colorjs.io。"""
     for cand in (os.environ.get("SFD_TOOLS"),
@@ -220,7 +233,7 @@ def main():
     if not browser_ready():
         print("SKIP  本机没有可用的 Playwright/Chromium，render_probe 的契约测试未实测")
         print("-" * 60)
-        print("checks=0 failures=0 skipped=10")
+        print("checks=0 failures=0 skipped=11")
         # 没量到不等于量对了：退出码 2，禁止把"跑不了"读成"通过"
         print("RESULT: SKIP（未实测，不作为通过证据）")
         return 2
@@ -228,7 +241,8 @@ def main():
              test_missing_alt_is_measured, test_horizontal_overflow_is_measured_both_ways,
              test_bad_invocation_exits_2, test_apca_measures_planted_deficits,
              test_apca_helper_reference_values, test_apca_helper_fails_closed,
-             test_apca_target_comes_from_policy, test_findings_are_readable_utf8]
+             test_apca_target_comes_from_policy, test_findings_are_readable_utf8,
+             test_font_scale_planted_deficit]
     for fn in tests:
         try:
             if fn(fails) == "SKIP":

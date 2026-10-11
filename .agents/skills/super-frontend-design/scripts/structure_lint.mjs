@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /* 结构层门禁：把 slop_scan 的纯正则做不到的两件事变成退出码 —— CSS 真解析（stylelint）
    与标记真校验（html-validate）。需要 .sfd-tools 里的 npm 包（项目本地安装，不入版本库）。
-   两份规则表都是数据：rules/stylelint.config.json 只管"颜色/字体必须走 var()"、拼错属性、
+   两份规则表都是数据：rules/stylelint.config.json 只管"颜色/字体/字号必须走 var()"
+   （font-size 是单值属性，适合 strict-value）、拼错属性、
    无效 hex、未知函数、重复声明；间距与裸 hex 的 token 纪律仍由 slop_scan 负责，不重复判。
    strict-value 要求整个值都是变量，所以 border/outline 这类"宽度+样式+颜色"混写的简写不纳入
    （1px solid var(--x) 会被误判），它们的裸 hex 由 slop_scan 的 bare-hex-outside-root 兜住。

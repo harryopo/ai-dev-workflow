@@ -2,7 +2,7 @@
   "plugins": ["stylelint-declaration-strict-value"],
   "rules": {
     "scale-unlimited/declaration-strict-value": [
-      ["color", "background", "background-color", "border-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "fill", "stroke", "font-family"],
+      ["color", "background", "background-color", "border-color", "border-top-color", "border-right-color", "border-bottom-color", "border-left-color", "outline-color", "fill", "stroke", "font-family", "font-size"],
       {
         "severity": "error",
         "ignoreValues": ["inherit", "initial", "unset", "revert", "revert-layer", "none", "transparent", "auto", "currentColor"],

@@ -438,6 +438,55 @@ def bare_1fr_track(blocks, threshold):
     return out
 
 
+def font_size_step_count(blocks, threshold):
+    """typography.md §1：每页面可见字号 ≤ 6–8 种。
+
+    只数能从源码定下来的值：px 与 rem（按 1rem=16px 归一）；em 依赖父级字号、
+    var()/calc() 解析不了，一律跳过不猜。:root 里的字号 Token 也计入——
+    字号阶的档位是设计系统的一部分，绕开 Token 另立档位同样算失守。
+    """
+    sizes = {}
+    for lineno, sel, body in blocks:
+        value = _decl(body or "", "font-size")
+        if value is None and sel and sel.strip().startswith("--"):
+            value = sel.split(":", 1)[1] if ":" in sel else None
+        if _unmeasurable(value):
+            continue
+        m = re.fullmatch(r"\s*(\d+(?:\.\d+)?)(px|rem)\s*", value)
+        if not m:
+            continue
+        px = float(m.group(1)) * (16 if m.group(2) == "rem" else 1)
+        key = "%gpx" % px
+        sizes.setdefault(key, []).append(lineno)
+    if len(sizes) > threshold:
+        sample = min(min(v) for v in sizes.values())
+        ordered = ", ".join(sorted(sizes, key=lambda k: float(k[:-2])))
+        return [("distinct=%d 档: %s" % (len(sizes), ordered), sample)]
+    return []
+
+
+def radius_value_count(blocks, threshold):
+    """design-system-template §4 的 radius 契约（sm/md/lg/full）：圆角值应收敛到档位。
+
+    只数 px 主值（多值简写取第一个）；百分比、var()/calc() 跳过。
+    """
+    vals = {}
+    for lineno, sel, body in blocks:
+        value = _decl(body or "", "border-radius")
+        if _unmeasurable(value):
+            continue
+        m = re.match(r"\s*(\d+(?:\.\d+)?)px\b", value)
+        if not m:
+            continue
+        key = "%spx" % m.group(1)
+        vals.setdefault(key, []).append(lineno)
+    if len(vals) > threshold:
+        sample = min(min(v) for v in vals.values())
+        ordered = ", ".join(sorted(vals, key=lambda k: float(k[:-2])))
+        return [("distinct=%d 档: %s" % (len(vals), ordered), sample)]
+    return []
+
+
 MEASURES = {
     "distinct_font_families": lambda ctx, r: distinct_font_families(ctx["blocks"], r["threshold"]),
     "outlier_face_overuse": lambda ctx, r: outlier_face_overuse(ctx["blocks"], r["threshold"]),
@@ -455,6 +504,8 @@ MEASURES = {
     "numbered_eyebrow_count": lambda ctx, r: numbered_eyebrow_count(ctx["html_text"], r["threshold"]),
     "banned_display_font_used": lambda ctx, r: banned_display_font_used(ctx["blocks"], r["threshold"]),
     "bare_1fr_track": lambda ctx, r: bare_1fr_track(ctx["blocks"], r["threshold"]),
+    "font_size_step_count": lambda ctx, r: font_size_step_count(ctx["blocks"], r["threshold"]),
+    "radius_value_count": lambda ctx, r: radius_value_count(ctx["blocks"], r["threshold"]),
 }
 
 

@@ -139,18 +139,39 @@ def test_emoji_rule_is_position_sensitive(fails):
         tmp.unlink()
 
 
+def test_font_and_radius_step_counts(fails):
+    """字号档位与圆角档位：红夹具必超阈值且给出 distinct 总数，clean 夹具保持沉默。"""
+    res = run(str(HERE / "slop_red.html"), "--json",
+              "--only", "font-size-step-count,radius-value-count")
+    if res.returncode == 2:
+        fails.append("single-rule rerun must not fail closed: %s" % res.stderr[:120])
+        return
+    hits = {x["rule"]: x["measured"] for x in
+            json.loads(res.stdout)["hard"] + json.loads(res.stdout)["warn"]}
+    for rule in ("font-size-step-count", "radius-value-count"):
+        if rule not in hits:
+            fails.append("%s must fire on the red fixture" % rule)
+        elif "distinct=" not in hits[rule]:
+            fails.append("%s measured lacks the distinct count: %r" % (rule, hits[rule]))
+    clean = run(str(HERE / "slop_clean.html"), "--json",
+                "--only", "font-size-step-count,radius-value-count")
+    if clean.returncode != 0:
+        fails.append("clean fixture must stay silent for the two step-count rules")
+
+
 def main():
     fails = []
     for fn in (test_red_catches_every_rule, test_clean_is_silent,
                test_line_numbers_point_at_the_right_line, test_empty_input_is_not_a_pass,
                test_unknown_flag_fails_closed, test_waiver_requires_reason,
                test_inline_ignore_without_reason_is_reported,
-               test_emoji_rule_is_position_sensitive):
+               test_emoji_rule_is_position_sensitive,
+               test_font_and_radius_step_counts):
         fn(fails)
     for f in fails:
         print("FAIL  %s" % f)
     print("-" * 60)
-    print("checks=%d failures=%d" % (8, len(fails)))
+    print("checks=%d failures=%d" % (9, len(fails)))
     print("RESULT: PASS" if not fails else "RESULT: FAIL")
     return 1 if fails else 0
 

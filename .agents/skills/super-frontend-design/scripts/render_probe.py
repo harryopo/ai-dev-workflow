@@ -62,6 +62,17 @@ def apca_lc(pairs):
         return json.loads(proc.stdout.decode("utf-8", "replace"))
     except ValueError as exc:
         raise ProbeError("--apca 返回不是 JSON：%s" % str(exc)[:120])
+
+
+def heading_ratio_target():
+    """H1/正文比阈值只认 rules/policy.json（heading-body-ratio），脚本里不抄数字。"""
+    policy = SKILL_DIR / "rules" / "policy.json"
+    if not policy.is_file():
+        raise ProbeError("字号比阈值需要 rules/policy.json（heading-body-ratio），文件不存在")
+    for p in json.loads(policy.read_bytes().decode("utf-8"))["policies"]:
+        if p.get("id") == "heading-body-ratio":
+            return float(p["h1_body"]["min_ratio"])
+    raise ProbeError("rules/policy.json 里没有 heading-body-ratio 条目")
 JS_CONTRAST = r"""
 (onlyFail) => {
   const lum = (r,g,b) => {
@@ -176,6 +187,34 @@ JS_FOCUS = r"""
 }
 """
 
+JS_FONTSCALE = r"""
+() => {
+  const out = {body: null, levels: {}, inverted: [], ratio: null};
+  out.body = parseFloat(getComputedStyle(document.body).fontSize);
+  const maxByLevel = {};
+  document.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach(h => {
+    const st = getComputedStyle(h);
+    if (st.display === 'none' || st.visibility === 'hidden') return;
+    const lvl = parseInt(h.tagName[1], 10);
+    const size = parseFloat(st.fontSize);
+    if (!(lvl in maxByLevel) || size > maxByLevel[lvl]) maxByLevel[lvl] = size;
+  });
+  out.levels = maxByLevel;
+  const present = Object.keys(maxByLevel).map(Number).sort((a, b) => a - b);
+  for (let i = 1; i < present.length; i++) {
+    const lo = present[i - 1], hi = present[i];
+    if (maxByLevel[hi] > maxByLevel[lo] + 0.5) {   // 0.5px 容差吸收浏览器默认字号取整
+      out.inverted.push({from: 'h' + lo, to: 'h' + hi,
+                         smaller: maxByLevel[lo], larger: maxByLevel[hi]});
+    }
+  }
+  if (maxByLevel[1] !== undefined && out.body > 0) {
+    out.ratio = Math.round((maxByLevel[1] / out.body) * 100) / 100;
+  }
+  return out;
+}
+"""
+
 
 def load_playwright():
     try:
@@ -265,6 +304,20 @@ def probe_file(path, widths, timeout_ms, apca=False):
                         findings.append(mk(path, "focus-indication-missing", "warn",
                                            "%s（%s）" % (f["tag"], f["text"]), "-",
                                            "聚焦后 outline/阴影无变化（headless 下 :focus-visible 可能与真实键盘不同）"))
+                    fs = page.evaluate(JS_FONTSCALE)
+                    for inv in fs["inverted"]:
+                        findings.append(mk(path, "font-scale-inverted", "warn",
+                                           "%s %.1fpx < %s %.1fpx" % (inv["from"], inv["smaller"],
+                                                                      inv["to"], inv["larger"]),
+                                           "逐级不增", "标题字号层级倒挂（低级标题比高级标题大）"))
+                    if fs["ratio"] is not None:
+                        need = heading_ratio_target()
+                        if fs["ratio"] < need:
+                            findings.append(mk(path, "heading-body-ratio-low", "warn",
+                                               "h1 %.1fpx / body %.1fpx = %.2f" % (
+                                                   fs["levels"]["1"], fs["body"], fs["ratio"]),
+                                               ">= %.1f" % need,
+                                               "H1 与正文字号比不足（review §2.1.1：字号比 ≥ 1.5:1）"))
                 page.close()
         finally:
             browser.close()

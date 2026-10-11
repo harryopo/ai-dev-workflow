@@ -17,7 +17,7 @@
 | Small | 13–14 px | UI 标签、辅助文字 |
 | Caption | 11–12 px | 脚注、时间戳 |
 
-每页面可见字号 ≤ 6–8 种。
+每页面可见字号 ≤ 6–8 种。档位数由 `scripts/slop_scan.py` 的 `font-size-step-count` 自动判定（px 与 rem 归一计数，em/var() 跳过不猜），标题层级是否倒挂由 `scripts/render_probe.py` 量计算后的实际字号（见 §7 T9/T10）。
 
 ---
 
@@ -101,3 +101,5 @@ Weight 700+ 极少需要。如果你的设计用了 Bold on Bold，说明其他�
 | T6 | `font-family: system-ui` 在标题元素 | Grep `h[1-6].*font-family.*system-ui` | 🔴 High |
 | T7 | Weight 超过 3 个 | 统计 `font-weight` 值种类 | 🟢 Low |
 | T8 | `text-align: justify` 在 body copy | Grep `text-align:\s*justify` | 🔴 High |
+| T9 | 字号档位超过 8 种，或圆角档位超过 4 种 | `python scripts/slop_scan.py <页面> --only font-size-step-count,radius-value-count` | 🟡 Medium |
+| T10 | 标题字号层级倒挂（h2 比 h1 大）；H1 与正文字号比 < 1.5:1 | `python scripts/render_probe.py <页面>`，finding 为 `font-scale-inverted` / `heading-body-ratio-low` | 🟡 Medium |

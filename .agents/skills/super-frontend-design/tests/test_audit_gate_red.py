@@ -54,7 +54,7 @@ CASES = [
     ("stale-rule-table-count",
      lambda d: (d / "SKILL.md").write_text(
          (d / "SKILL.md").read_text(encoding="utf-8")
-         .replace("28 条规则", "30 条规则", 1), encoding="utf-8"),
+         .replace("30 条规则", "31 条规则", 1), encoding="utf-8"),
      "cross-claim"),
     ("layer-table-does-not-add-up",
      lambda d: (d / "subskills/review/SKILL.md").write_text(

@@ -90,6 +90,52 @@
         "exclude": ["字号比", "面积比", "柱宽"],
         "min_hits": 4
       }
+    },
+    {
+      "id": "font-size-count",
+      "name": "一份设计允许的 distinct 字号档位数（typography.md §1：≤ 6–8 种）",
+      "value": 8,
+      "also_allowed": [6],
+      "rule_ids": ["font-size-step-count"],
+      "prose": {
+        "patterns": [
+          "(?:字号|font-size)[^\\n]{0,16}?(\\d+)\\s*种",
+          "(\\d+)\\s*种(?:[^，。；\\n]{0,8}?)(?:字号|font-size)"
+        ],
+        "exclude": [],
+        "min_hits": 1
+      }
+    },
+    {
+      "id": "radius-count",
+      "name": "一份设计允许的 distinct 圆角档位数（DESIGN.md 契约 radius Token：sm/md/lg/full）",
+      "value": 4,
+      "also_allowed": [],
+      "rule_ids": ["radius-value-count"],
+      "prose": {
+        "patterns": [
+          "(?:圆角|radius)[^\\n]{0,16}?(\\d+)\\s*种",
+          "(\\d+)\\s*种(?:[^，。；\\n]{0,8}?)(?:圆角|radius)"
+        ],
+        "exclude": [],
+        "min_hits": 1
+      }
+    },
+    {
+      "id": "heading-body-ratio",
+      "name": "H1 与正文的计算字号比下限（review §2.1.1：字号比 ≥ 1.5:1）",
+      "value": 1.5,
+      "also_allowed": [],
+      "rule_ids": [],
+      "h1_body": {"min_ratio": 1.5},
+      "probe_source": "scripts/render_probe.py",
+      "prose": {
+        "patterns": [
+          "(?:字号比|heading)[^\\n]{0,20}?(\\d+(?:\\.\\d+)?)\\s*:1"
+        ],
+        "exclude": [],
+        "min_hits": 1
+      }
     }
   ]
 }

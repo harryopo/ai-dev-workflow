@@ -113,6 +113,14 @@
 
     {"id": "eyebrow-on-every-section", "kind": "measure", "severity": "warn", "scope": "html",
      "source": "V51 / craft refuse-01", "fn": "numbered_eyebrow_count", "threshold": 2,
-     "message": "每个 section 都挂 01 / XXX 式 eyebrow"}
+     "message": "每个 section 都挂 01 / XXX 式 eyebrow"},
+
+    {"id": "font-size-step-count", "kind": "measure", "severity": "hard", "scope": "css",
+     "source": "typography.md#1", "fn": "font_size_step_count", "threshold": 8,
+     "message": "distinct 字号档位超过 8 种（含 rem 归一），字号阶没有纪律"},
+
+    {"id": "radius-value-count", "kind": "measure", "severity": "warn", "scope": "css",
+     "source": "design-system-template#4", "fn": "radius_value_count", "threshold": 4,
+     "message": "distinct 圆角档位超过 4 种，圆角没有收敛到 DESIGN.md 的 radius Token"}
   ]
 }
