@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "evals": [
     {
       "id": "core-001",
@@ -118,6 +118,33 @@
       "expected_routing": "research（重新调研）→ design-context → design，不是 review",
       "expected_output": ["重新调研字号与交互节奏", "按 admin-enterprise 模式重排层级"],
       "anti_pattern": ["不应路由到review只给评分", "不应跳过调研直接改样式"]
+    },
+    {
+      "id": "v28-004",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "这个项目是我开发到一半的产品，按现有风格把前端重构一下",
+      "expected_routing": "research（现有风格审计）→ design-context（统一设计稿）→ 用户确认 → design（按稿重构）",
+      "expected_output": ["风格画像", "不一致点清单（附文件:行号）", "统一方案 AskUserQuestion 确认", "设计稿确认后才动代码"],
+      "anti_pattern": ["不应跳过审计直接开工", "不应问从零新风格的问卷（想参考哪家产品/什么风格）", "不应路由到review", "不应未经设计稿确认就改代码"]
+    },
+    {
+      "id": "v28-005",
+      "category": "boundary",
+      "subcommand": "design-context",
+      "prompt": "统一下这个项目的风格，但不要换风格",
+      "expected_routing": "现有风格重构流程（§3.6）：research 审计 → design-context 设计稿 → ⛔用户确认",
+      "expected_output": ["门禁测量作为审计证据", "品牌人格从证据推导并确认"],
+      "anti_pattern": ["不应重新做 15 维度新风格调研", "不应跳过设计稿确认门"]
+    },
+    {
+      "id": "v28-006",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "项目根有 DESIGN.md，给我加一个设置页面",
+      "expected_routing": "design（先读 DESIGN.md，以其为风格基准）",
+      "expected_output": ["遵循既有 Token 系统", "新增页面与既有风格一致"],
+      "anti_pattern": ["不应重新发起新风格调研", "不应偏离 DESIGN.md 规范而不确认"]
     }
   ]
 }

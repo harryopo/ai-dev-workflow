@@ -1,5 +1,13 @@
 # super-frontend-design Release Notes
 
+## v2.8.1 (2026-10-11) — 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化）
+- 路由新增「按现有风格重构 / 统一风格」分支（SKILL.md §3.6 现有风格重构流程）：保持现有风格的请求走「现状审计 → 统一设计稿 → ⛔用户确认 → 按稿重构」，不再误走"换新风格"的 5 轮问卷或被整体跳过调研；只说"重构"未提风格时，调研第一步先问「保持现有风格统一收敛 / 换新风格」再分流
+- research 新增「现有风格审计模式」并列于 5 轮问卷：扫描现有代码 + 门禁测量（token_lint / slop_scan 的 font-size-step-count、radius-value-count、bare-hex-outside-root）作为机器证据 → 风格画像 + 不一致点清单（附文件:行号）→ AskUserQuestion 逐项确认统一方案；品牌人格 / 情绪板从现有证据推导后确认（铁律区补"重构场景的合法替代"说明）
+- 设计稿确认硬门：design-context 生成的 DESIGN.md 在该流程中作为「统一设计稿」呈现用户，明确确认后才进入实现；design §0 新增 `refactor-mode: style-audit` 额外前置（检查 pass-data.yaml 的 `spec-confirmed` 字段，缺失即拒绝执行）
+- 风格固化 + 后续约束：design 交付清单新增"询问是否将统一风格写入项目根 DESIGN.md/PRODUCT.md"；主 SKILL.md 新增「项目设计规范优先」规则——项目存在 DESIGN.md 时，任何后续设计 / 优化 / refine / theme / animate 请求先读并以它为基准；refine / theme 子技能同步加前置检查
+- §0 边界澄清：明确"跨会话 / 跨项目历史偏好（禁止）"与"本项目现有代码 / DESIGN.md（合法且必要的审计对象）"的界限，防止审计被误读为"读历史偏好"而跳过
+- evals 13 → 16 条（v28-004 按现有风格重构 / v28-005 统一风格不换风格 / v28-006 有 DESIGN.md 的后续请求）
+
 ## 2026-10-11 加固（版本号仍为 v2.8.0）
 - `scripts/visual_diff.py` 新增 `clean_path()` 路径契约：所有 CLI 路径参数（位置参数、`--out`、`--reference`）在 argparse 之后统一校验——拒绝空值与 `..` 段、展开 `~`，fail-closed 报错退出 2。本工具是本地 CLI、路径来自操作者本人，这道校验不是安全边界，而是把"手滑写出 ../ 相对层级"挡在读写盘之前；起因是 Mimosa L3 把 main 的 argv→Path 参数流判为 path-traversal 高危（两个扫描引擎均 0 发现，判为误报），以显式校验收敛参数流
 

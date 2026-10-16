@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.8.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.8.1-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -198,6 +198,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.8.1 | 2026-10-11 | 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化 + 项目设计规范优先约束） |
 | v2.8.0 | 2026-10-11 | 软件设计增强（B端模式库+4款专业软件分析）、字号层级/圆角收敛门禁检查、4个内置设计系统预设、国内企业级组件库接入 |
 | v2.7.0 | 2026-08-10 | 新增桌面端支持（Electron/Tauri/PySide6/SwiftUI），新增 4 个参考文件，新增 4 个 Prompt 模板 |
 | v2.6.0 | 2026-08-09 | 新增 refine 子命令（polish/bolder/quieter/distill/harden） |

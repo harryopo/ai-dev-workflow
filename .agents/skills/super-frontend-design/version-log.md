@@ -1,3 +1,7 @@
+v2.8.1 (2026-10-11)
+- 现有风格重构流程（SKILL.md §3.6）：路由拆支（保持现有风格 vs 换新风格）+ research「现有风格审计模式」（门禁作审计器：token_lint / slop_scan 档位规则）+ 设计稿确认硬门（design-context 呈现 + design §0 `refactor-mode: style-audit` 前置）+ 风格固化询问 + 「项目设计规范优先」约束链（refine/theme 同步加前置检查）+ §0 边界澄清
+- evals 13 → 16 条（v28-004/005/006）
+
 v2.8.0 (2026-10-11)
 - 字号层级与风格统一检查：stylelint strict-value 加 font-size；slop_scan 新增 font-size-step-count（阈值 8）与 radius-value-count（阈值 4），判定表 28 → 30 条；render_probe 量计算字号（font-scale-inverted / heading-body-ratio-low）；policy.json 政策 6 → 9 条
 - review Typography 检查 T1–T8 → T1–T10（含 T2 阈值 48px → 32px 修正）
