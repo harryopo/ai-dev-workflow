@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.8.1",
+  "version": "2.9.0",
   "evals": [
     {
       "id": "core-001",
@@ -145,6 +145,42 @@
       "expected_routing": "design（先读 DESIGN.md，以其为风格基准）",
       "expected_output": ["遵循既有 Token 系统", "新增页面与既有风格一致"],
       "anti_pattern": ["不应重新发起新风格调研", "不应偏离 DESIGN.md 规范而不确认"]
+    },
+    {
+      "id": "v29-001",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "帮我做一个产品官网，参考 Stripe 的感觉",
+      "expected_routing": "research（第 1 轮：先问参考维度 → 参考对象；C 端场景按距离分级）",
+      "expected_output": ["参考维度追问（交互/布局/色彩/感觉）", "参考距离=原理解构：Stripe 仅作原理输入，不给具体色值", "反参考询问"],
+      "anti_pattern": ["不应把 Stripe 的紫蓝渐变直接提取进 Token", "不应问完参考就直接设计", "不应跳过参考维度分层"]
+    },
+    {
+      "id": "v29-002",
+      "category": "boundary",
+      "subcommand": "research",
+      "prompt": "我不想让网站看起来像那些 AI 生成的 SaaS 产品，帮我做个落地页",
+      "expected_routing": "research（反参考记录 + 饱和赛道回避）",
+      "expected_output": ["反参考写入 Design Brief", "注入 DESIGN.md Anti-references section", "review 检查反参考遵守与饱和赛道"],
+      "anti_pattern": ["不应只当作一句普通需求忽略", "不应产出紫蓝渐变 SaaS 风（饱和赛道 #2）"]
+    },
+    {
+      "id": "v29-003",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "参考 Linear 的布局做一个内部管理工具",
+      "expected_routing": "research（Operate 场景：参考距离=结构借鉴、Token 原创）",
+      "expected_output": ["借鉴 Linear 的信息组织与布局骨架", "色彩/字体从品牌人格推导而非复制 Linear 的暗色系"],
+      "anti_pattern": ["不应继承 Linear 的暗色配色与紫色 accent", "不应跳过参考距离判定"]
+    },
+    {
+      "id": "v29-004",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "情绪板：温暖、手工、安静",
+      "expected_routing": "research（第 4 轮：情绪板 → 参数推导，强制）",
+      "expected_output": ["色相策略（暖色相/类似色）", "字体气质与材质结论", "推导落进 DESIGN.md 对应 section"],
+      "anti_pattern": ["不应只记录三个关键词而没有推导", "不应让情绪板停留在沟通话术"]
     }
   ]
 }

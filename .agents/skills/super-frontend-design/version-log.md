@@ -1,4 +1,9 @@
-v2.8.1 (2026-10-11)
+v2.9.0 (2026-10-16)
+- 参考机制 2.0（去同质化 Phase 1）：参考维度追问 + 反参考字段（借 impeccable）+ 参考距离分级（自研：Operate 结构借鉴 / C 端原理解构外观原创）+ 反收敛样本池（跨领域 + 形态 archetype 表）+ 饱和赛道黑名单（references/saturated-lanes.md，review 检查 8→10 项）+ 情绪板强制参数推导
+- 落点：research（第1/4轮 + 距离分级 + 提取 Step 0 + Brief 模板）、design（解构四步禁同层混合）、design-context（Anti-references section）、review（§0 #9/#10）、SKILL.md（术语表/pass-data/铁律 7）
+- evals 16 → 20 条
+
+v2.8.1 (2026-10-16)
 - 现有风格重构流程（SKILL.md §3.6）：路由拆支（保持现有风格 vs 换新风格）+ research「现有风格审计模式」（门禁作审计器：token_lint / slop_scan 档位规则）+ 设计稿确认硬门（design-context 呈现 + design §0 `refactor-mode: style-audit` 前置）+ 风格固化询问 + 「项目设计规范优先」约束链（refine/theme 同步加前置检查）+ §0 边界澄清
 - evals 13 → 16 条（v28-004/005/006）
 

@@ -1,6 +1,16 @@
 # super-frontend-design Release Notes
 
-## v2.8.1 (2026-10-11) — 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化）
+## v2.9.0 (2026-10-16) — 参考机制 2.0：参照系修复（去同质化 Phase 1）
+- **参考维度追问**：第 1 轮"想参考哪家"改造为分层提问——先问参考维度（交互模式 / 布局骨架 / 色彩体系 / 整体感觉，multiSelect），再问参考对象；参考不再默认"全套"。目标受众问题移入第 2 轮（第 1 轮 4 问上限）
+- **反参考机制**（借 impeccable 的 anti-references）：第 1 轮新增"要避开什么"（可跳过）；写入 Design Brief、pass-data.yaml（`anti-references`）、DESIGN.md 新增 Anti-references section；review §0 新增 #9 反参考遵守检查
+- **参考距离分级**（自研）：场景决定参考能走多深——Operate 结构借鉴/Token 原创；Persuade·Experience 原理解构、外观原创（只取"为什么"，色值不进 Token）；Read 结构为主。用户显式要求复制时允许 Token 提取但须标记"显式复制请求"且其余维度强制差异化。落点：research「参考距离分级」表 + Token 提取流程 Step 0 + design 解构四步（提取范围收窄 + **禁止同层混合**"A 布局 + B 配色" + 外观 Token 来源链：品牌推导 > 视觉论文 > 内置预设）
+- **反收敛样本池**：参考对象问题改四选项（软件参考 / 跨领域参考 / 形态描述 / 不参考）；新增「形态 archetype 表」（6 种形态，借 awesome-design-html）+「跨领域参考」引导（建筑/印刷/工业/自然——接入既有跨领域原则）
+- **饱和赛道黑名单**：新增 `references/saturated-lanes.md`（首发 3 条：Stripe 邻近编辑排版风 / 紫蓝渐变 SaaS 风 / Notion 邻近米色风），含 register 豁免条件与维护规则；review §0 新增 #10 饱和赛道反射检查；§0 检查总数 8 → 10
+- **情绪板升级**：第 4 轮新增强制「情绪板 → 参数推导」表（色相策略 / 字体气质 / 材质 / 动效性格，含示例），推导落进 DESIGN.md 对应 section；Design Brief 与 DESIGN_BRIEF.md 模板同步
+- 主 SKILL.md：§3.5 铁律摘要新增第 7 条（参考不默认全套）；§7.1 术语表新增"反参考""参考距离分级"；§7.2 pass-data 增 `mood-board-derivation` / `anti-references` / `reference-distance` 字段
+- evals 16 → 20 条（v29-001 Stripe 官网 / v29-002 反AI味诉求 / v29-003 Linear 布局后台 / v29-004 情绪板推导）
+
+## v2.8.1 (2026-10-16) — 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化）
 - 路由新增「按现有风格重构 / 统一风格」分支（SKILL.md §3.6 现有风格重构流程）：保持现有风格的请求走「现状审计 → 统一设计稿 → ⛔用户确认 → 按稿重构」，不再误走"换新风格"的 5 轮问卷或被整体跳过调研；只说"重构"未提风格时，调研第一步先问「保持现有风格统一收敛 / 换新风格」再分流
 - research 新增「现有风格审计模式」并列于 5 轮问卷：扫描现有代码 + 门禁测量（token_lint / slop_scan 的 font-size-step-count、radius-value-count、bare-hex-outside-root）作为机器证据 → 风格画像 + 不一致点清单（附文件:行号）→ AskUserQuestion 逐项确认统一方案；品牌人格 / 情绪板从现有证据推导后确认（铁律区补"重构场景的合法替代"说明）
 - 设计稿确认硬门：design-context 生成的 DESIGN.md 在该流程中作为「统一设计稿」呈现用户，明确确认后才进入实现；design §0 新增 `refactor-mode: style-audit` 额外前置（检查 pass-data.yaml 的 `spec-confirmed` 字段，缺失即拒绝执行）

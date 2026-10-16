@@ -176,7 +176,10 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 [品牌人格：如"极客工程师"、"优雅设计师"等]
 
 ## Mood Board
-[情绪板：3个关键词描述设计感觉]
+[情绪板：3个关键词 + 参数推导（色相策略 / 字体气质 / 材质 / 动效性格）]
+
+## Anti-references
+[反参考：来自 research 第 1 轮——明确要避开的方向/品牌/感觉；无则写"无"]
 ```
 
 ---
@@ -268,8 +271,10 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 ## Style
 - 品牌人格: [品牌人格]
-- 情绪板: [情绪板关键词]
+- 情绪板: [情绪板关键词 + 参数推导]
+- 反参考: [要避开的方向/品牌/感觉；无则写"无"]
 - 访客意图: [访客意图]
+- 参考距离等级: [结构借鉴 / 原理解构 / 显式复制]
 - Macrostructure: [推荐结构]
 - Theme: [推荐主题]
 

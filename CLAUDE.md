@@ -7,9 +7,10 @@
 
 ## 1. 在研 Skill 项目位置
 
-- **所有在研 Skill 必须位于 `projects/` 目录下**。
+- **所有在研 Skill 必须位于 `projects/` 目录下**（新建一律如此）。
 - 根目录禁止直接创建新的 Skill 项目目录。
 - 发现一个 Skill 目录不在 `projects/` 下 → 必须移动到 `projects/`。
+- **例外（历史固化，勿动）**：`super-frontend-design` 的开发源码在 `.agents/skills/super-frontend-design/`（本仓库跟踪，历史一贯）；`deep-research-ultra/` 是该项目的**活跃开发检出**（自带 `.git`，其他会话**不得移动 / 清理**，详见 README 第一节）。除这两个例外，其余新 skill 仍须入 `projects/`。
 
 ---
 

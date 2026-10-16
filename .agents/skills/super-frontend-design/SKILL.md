@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.8.1
+version: 2.9.0
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面、按现有风格重构、统一风格。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -292,6 +292,7 @@ research（需求调研+参考搜索）→ design-context（设计上下文初�
 4. 快捷模式仍需至少第 1 轮 + 第 4 轮 + 第 5 轮
 5. animate 子技能执行前必须从 Design Brief 读取动效配置，缺失则必须询问用户
 6. **按现有风格重构**（保持 / 统一现有风格）走 **§3.6 现有风格重构流程**——调研对象是现有代码库，审计与统一方案确认不可跳过
+7. **参考不默认全套**：第 1 轮先问参考维度与反参考；参考处理受「参考距离分级」约束（Operate 结构借鉴 / C 端原理解构、外观原创）——见 research 子技能
 
 **调研输出**：Design Brief（需求简报）+ `output/design-system.md`（9-section 结构化设计系统文件）
 
@@ -472,6 +473,7 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/component-block-catalog.md | Cult UI / Magic UI 组件库 | design 子命令 |
 | references/gsap-animation-guide.md | GSAP 动效最佳实践 | design / animate 子命令 |
 | references/anti-ai-slop.md | 14 条精确反 AI 味规则 | design / review 子命令 |
+| references/saturated-lanes.md | 饱和风格赛道清单（防"参考驱动像"的第二层同质化） | review / critique 子命令 |
 | references/typography.md | Typography 硬规则（字体/字重/行高禁令） | review 子命令 §2.16 |
 | references/premium-design-rules.md | 16 条数值化高级感规范 | design 子命令 |
 | references/css-modern-features.md | CSS 2025-2026 新特性 | design 子命令 |
@@ -555,6 +557,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | Design Token | 三层架构的 CSS 变量系统 | SKILL.md §4 |
 | 去AI味 | 14条精确反AI规则（含七宗罪+软规则+抛光规则） | references/anti-ai-slop.md |
 | 设计禁忌 | 用户指定的绝对不能出现的元素 | SKILL.md §3.5 第4轮 + references/anti-ai-slop.md §9 |
+| 反参考 | 用户明确要避开的方向/品牌/感觉，写入 Design Brief 全程生效 | SKILL.md §3.5 第1轮 |
+| 参考距离分级 | 场景决定参考可走多深：Operate 结构借鉴 / Persuade·Experience 原理解构 / Read 结构为主 | subskills/research/SKILL.md |
 
 ### 7.2 阶段间传递格式
 
@@ -564,6 +568,9 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 ---pass-to-next---
 brand-personality: {品牌人格类型}
 mood-board: [{词1}, {词2}, {词3}]
+mood-board-derivation: {色相策略 / 字体气质 / 材质 / 动效性格}
+anti-references: [{要避开1}, {要避开2}, ...]
+reference-distance: {结构借鉴 | 原理解构 | 显式复制}
 design-taboos: [{禁忌1}, {禁忌2}, ...]
 visual-thesis:
   color-direction: {配色方向}
@@ -575,7 +582,7 @@ visual-thesis:
 ```
 
 **责任划分：**
-- `research` 产出 → 品牌人格 + 情绪板 + 设计禁忌（来自第4轮调研）
+- `research` 产出 → 品牌人格 + 情绪板（含推导）+ 设计禁忌 + 反参考 + 参考距离等级（第 1 轮与第 4 轮调研）
 - `design-context` 产出 → PRODUCT.md + DESIGN.md（设计上下文持久化）
 - `creative` 产出 → 视觉论文（5个方向决策）
 - `theme` 消费 → 品牌人格 + 视觉论文，产出 Design Token
