@@ -49,6 +49,16 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 
 每次设计任务的场景、受众、目标都不同，不可复用历史数据。
 
+> **边界**：本禁令针对跨会话 / 跨项目的历史偏好数据；**本项目自己的 DESIGN.md、PRODUCT.md 与现有代码是合法输入**——「按现有风格重构」流程正是以它们为基准（见上方额外前置与主 SKILL.md §3.6）。
+
+### 现有风格重构场景的额外前置
+
+> 若 Design Brief 标记 `refactor-mode: style-audit`（按现有风格重构，见主 SKILL.md §3.6）：
+> 除 Design Brief 外，还必须已有**经用户确认的统一设计稿**（项目根 DESIGN.md 已生成、用户已明确确认）。
+> 检查 `pass-data.yaml` 的 `spec-confirmed` 字段；缺失或未确认 → **拒绝执行**，返回主入口要求先完成设计稿确认。
+>
+> ⚠️ 呈现设计稿这一步不可跳过——即使用户提前说"直接改不用看了"，也必须先呈现设计稿并请求明确确认。这是防止重构盲改的最后一道闸。
+
 ---
 
 ## Part 1: 艺术方向与高级设计
@@ -1569,6 +1579,7 @@ WindowInsets.safeDrawing.asPaddingValues()
 ### Step 1: 确定设计方向
 
 - **必须接收输入**：Design Brief 中的「设计灵魂」（品牌人格、情绪板、设计禁忌）和 creative 子技能的「视觉论文」
+- **（按现有风格重构流程）**：视觉论文以统一设计稿（DESIGN.md）为准，无需 creative 新方向探索；实施基准 = 统一设计稿 + 统一方案里的「不一致点清单」
 - **视觉论文对齐**：确认设计方向与视觉论文的 5 个决策方向（配色、排版、布局、材质、动效）一致
 - 明确目的、受众、情感基调
 - 写下视觉论文、内容计划、交互论文
@@ -1723,6 +1734,7 @@ WindowInsets.safeDrawing.asPaddingValues()
 - [ ] 全网搜索参考已解构优化（非直接照搬）？
 - [ ] Design Token 系统已应用？
 - [ ] 跨领域借鉴已考虑？
+- [ ] **（现有风格重构流程）已询问用户是否固化风格**：是否将本次统一后的设计规范写入项目根（DESIGN.md / PRODUCT.md），供后续设计沿用？
 
 ---
 

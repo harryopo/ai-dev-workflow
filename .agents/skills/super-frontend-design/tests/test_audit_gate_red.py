@@ -71,7 +71,7 @@ CASES = [
     ("gate-count-claim-drift",
      lambda d: (d / "SKILL.md").write_text(
          (d / "SKILL.md").read_text(encoding="utf-8")
-         .replace("六道门禁", "三道门禁", 1), encoding="utf-8"),
+         .replace("交付前跑六道门禁", "交付前跑三道门禁", 1), encoding="utf-8"),
      "gate-inventory"),
     ("policy-prose-number-drift",
      lambda d: (d / "subskills/review/SKILL.md").write_text(

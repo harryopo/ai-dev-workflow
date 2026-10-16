@@ -53,6 +53,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 - **禁止安全配色**：如果视觉论文指定"冷峻"，不能用默认的蓝色；如果指定"温暖"，不能用默认的橙色
 - **字体必须体现品牌人格**：不能默认使用 Inter，必须从 `scripts/search.py fonts` 中选择与品牌人格匹配的字体
 - **Token 命名必须语义化**：`--color-primary` 不够，应使用 `--color-brand-warm` 或 `--color-accent-rebel` 等体现品牌性格的命名
+- **项目规范优先**：目标项目存在 `DESIGN.md` 时，先读取既有 Token 为基准；预设/新配色与既有规范冲突时，先与用户确认，不默默覆盖
 
 ---
 

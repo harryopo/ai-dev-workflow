@@ -25,6 +25,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 | `/distill` | 去除冗余内容 | 内容过多、信息密度高 |
 | `/harden` | 性能/错误处理加固 | 上线前性能优化 |
 
+> **前置检查**：目标项目若存在 `DESIGN.md`（项目设计规范），执行任何命令前先读取并以它为风格基准；用户要求偏离规范时，明确确认后再执行（见主 SKILL.md「项目设计规范优先」）。
+
 ---
 
 ## 2. 触发条件

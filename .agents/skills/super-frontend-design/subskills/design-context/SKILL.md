@@ -87,6 +87,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 > 同构，可作为 init 的起点：按 Design Brief 的场景与人格选中一个后，**仍须经
 > research 调研校准**（预设的基线色只是种子，品牌色、字体、禁忌以调研结论为准）。
 
+> **设计稿确认门（按现有风格重构流程）**：生成 / 更新 DESIGN.md 后，它即该流程的「统一设计稿」——必须呈现给用户并得到明确确认（"设计稿是否 OK？确认后开始重构"）才能进入 design 实现。即使用户说"直接改"，呈现这一步也不可跳过。
+
 ```markdown
 # Design System
 
@@ -284,10 +286,13 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 ### 7.1 从现有代码库提取
 
+> 本小节是**现有风格重构流程**（主 SKILL.md §3.6）的执行部件：完整审计（扫描范围、门禁测量、不一致点清单、统一方案确认）见 research 子技能「现有风格审计模式」；审计确认后，由本模式把统一方案落成 DESIGN.md。
+
 扫描以下位置提取设计Token：
-- CSS 变量（:root 定义）
-- 设计系统文件（design-system.md、tokens.json）
-- 框架配置（tailwind.config.js、theme.config.ts）
+- CSS 变量（:root 定义）与样式文件实际用法（裸值 / var() 混用）
+- 设计系统文件（design-system.md、tokens.json、项目根 DESIGN.md）
+- 框架配置（tailwind.config.js、theme.config.ts、components.json）
+- 组件 / 页面文件中的硬编码值抽查
 
 ### 7.2 从参考设计提取
 
