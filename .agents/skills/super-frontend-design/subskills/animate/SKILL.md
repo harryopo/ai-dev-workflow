@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:animate
-version: 2.7.0
 description: |
   动效设计模块。支持 Motion（motion/react）和 GSAP 两种动画库，提供时序编排、缓动曲线设计、
   ScrollTrigger滚动驱动、SplitText文字动画、Flip布局过渡、性能优化、无障碍适配（prefers-reduced-motion）。

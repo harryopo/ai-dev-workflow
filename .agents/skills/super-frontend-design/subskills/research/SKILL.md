@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:research
-version: 2.7.0
 description: |
   需求调研与参考解构模块。通过 5 轮 AskUserQuestion 结构化对话明确设计需求（品牌人格、情绪板、设计禁忌），
   全网搜索设计作品平台提取真实UI资产，解构竞品并生成 Design Brief。

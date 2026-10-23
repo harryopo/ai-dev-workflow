@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:creative
-version: 2.7.0
 description: |
   生成艺术与视觉设计模块。支持两种输出模式：交互式p5.js生成艺术（HTML）和静态博物馆级海报（PDF/PNG）。
   从哲学宣言到视觉表达，确定设计的视觉方向与情感基调。

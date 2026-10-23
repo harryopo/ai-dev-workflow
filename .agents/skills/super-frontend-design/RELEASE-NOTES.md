@@ -1,5 +1,11 @@
 # super-frontend-design Release Notes
 
+## v2.9.1 (2026-10-23) — 版本治理收口 + Slop Test 口径补全
+- **子技能版本字段清理**：9 个子技能（research / design-context / creative / theme / design / review / critique / refine / animate）的 frontmatter 各自声明 `version: 2.7.0`，而主 SKILL.md 已是 2.9.0 —— 长期漂移无人发现。子技能是主技能的组成部分，独立版本号无意义，故全部删除。主 SKILL.md 成为唯一版本真值源。
+- **新增 `version-field` 门禁**（`scripts/audit_integrity.py` → `check_version_fields`）：子技能 frontmatter 出现 `version` 即判失败；主 SKILL.md / `evals/evals.json` / README 徽章三处版本号必须一致。防止手滑写回或漏同步版本号。audit 检查项 43 → 46。
+- **Slop Test 56/30 口径补全**：56 条（`references/slop-test.md`，人工核对）与 30 条（`rules/slop-table.json`，脚本静态判定）的关系此前只写在 `review/SKILL.md` §2.18，SKILL.md 索引行、路由段、README 三处只写「56 条」，读者会误以为全部由脚本执行。已在三处补写「其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对」。
+- **未实施**：参考机制 2.0 Phase 2（多方向强制发散 P2-1 / 二阶反射检查 P2-2 / 结构化随机兜底 P2-3）——方案书 `docs/super-frontend-design-参考机制2.0方案书.md` 已就绪，待 Phase 1 验收后执行，本次不含。
+
 ## v2.9.0 (2026-10-16) — 参考机制 2.0：参照系修复（去同质化 Phase 1）
 - **参考维度追问**：第 1 轮"想参考哪家"改造为分层提问——先问参考维度（交互模式 / 布局骨架 / 色彩体系 / 整体感觉，multiSelect），再问参考对象；参考不再默认"全套"。目标受众问题移入第 2 轮（第 1 轮 4 问上限）
 - **反参考机制**（借 impeccable 的 anti-references）：第 1 轮新增"要避开什么"（可跳过）；写入 Design Brief、pass-data.yaml（`anti-references`）、DESIGN.md 新增 Anti-references section；review §0 新增 #9 反参考遵守检查

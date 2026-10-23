@@ -107,3 +107,4 @@ projects/<skill-name>/
 - 版本更新与迁移指南统一移入各项目根目录的 **`CHANGELOG.md`**（新版本在此追加，旧版本不删）。
 - description 只写能力概述 + 触发词，可附一句"版本历史见 CHANGELOG.md"。
 - 目的：降低 skill 被加载时的 token 开销与上下文污染；违反视为缺陷，审查不通过。
+- **例外（`super-frontend-design`，2026-10-23 登记）**：该 skill 使用 `version-log.md`（简洁变更账，追加式）+ `RELEASE-NOTES.md`（详细发布记录）两份日志替代统一 `CHANGELOG.md` —— 两份日志承担不同职能（账 vs 详录），合并会丢失细节。§10 的其余要求（SKILL.md 正文禁写版本演进史、版本号单一真值源）仍全部适用：该 skill 主 `SKILL.md` 为唯一版本真值源，子技能不再各自声明版本号，由 `scripts/audit_integrity.py` 的 `version-field` 检查强制对账。

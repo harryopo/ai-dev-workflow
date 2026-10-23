@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:critique
-version: 2.7.0
 description: |
   深度设计审查模块。基于 impeccable 双代理评估模式（Assessment A: LLM设计审查 + Assessment B: 探测器/代码证据），
   提供 26 条确定性探测器规则检查 + 6维度技术质量审计（可访问性/性能/响应式/主题一致性/实现完整性/动效质量）。

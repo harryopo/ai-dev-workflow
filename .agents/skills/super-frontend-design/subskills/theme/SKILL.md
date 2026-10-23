@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:theme
-version: 2.7.0
 description: |
   主题与品牌系统模块。支持10个预设主题+自定义主题生成+品牌规范应用，输出完整 Design Token 系统（CSS变量）。
   消费 creative 阶段的视觉方向和 design-context 的品牌偏好，产出 design 阶段可直接使用的 Token 定义。

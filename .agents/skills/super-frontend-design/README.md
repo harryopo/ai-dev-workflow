@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.9.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.9.1-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -53,7 +53,7 @@ research（15维度调研）
 | `creative` | 生成艺术、p5.js、粒子系统 | 算法艺术 + 视觉探索 |
 | `design` | 设计页面、UI、重构前端 | 完整设计实现（含桌面端） |
 | `theme` | 配色、字体、主题 | 10预设主题 + 自定义 + Token 输出 |
-| `review` | 审查UI、设计评分 | 19维度检查 + 56条 Slop Test |
+| `review` | 审查UI、设计评分 | 19维度检查 + 56条 Slop Test（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对） |
 | `critique` | 深度审查、双代理审查 | Assessment A+B + 26条 Craft Floor |
 | `refine` | polish、bolder、quieter | 命令式优化接口 |
 | `animate` | 动效、GSAP、桌面动效 | 动效设计 + 跨平台动效方案 |
@@ -198,6 +198,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.9.1 | 2026-10-23 | 版本治理收口：9 个子技能删除各自 version 字段（主 SKILL.md 为唯一真值源）+ 新增 version-field 门禁；Slop Test 56/30 口径在索引与 README 补说明 |
 | v2.9.0 | 2026-10-16 | 参考机制 2.0：参考维度追问 + 反参考 + 参考距离分级 + 反收敛样本池 + 饱和赛道黑名单 + 情绪板参数推导 |
 | v2.8.1 | 2026-10-16 | 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化 + 项目设计规范优先约束） |
 | v2.8.0 | 2026-10-11 | 软件设计增强（B端模式库+4款专业软件分析）、字号层级/圆角收敛门禁检查、4个内置设计系统预设、国内企业级组件库接入 |

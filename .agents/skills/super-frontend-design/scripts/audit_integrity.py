@@ -634,6 +634,67 @@ def check_layer_sum(root, f):
         f.ok("layer-sum", "%d 层相加 = 总计 %d = slop-test 实际条数" % (len(layers), totals[0]))
 
 
+def check_version_fields(root, f):
+    """版本号只能有一个真值源：主 SKILL.md。
+
+    子技能是主技能的组成部分，独立 version 字段只会制造漂移——历史上 9 个子技能
+    的 version 长期停在 2.7.0，而主文件已是 2.9.0，没人发现。这里把它钉死：
+    子技能 frontmatter 出现 version 即失败。
+
+    同时要求主 SKILL.md、evals.json、README 徽章三处版本号一致——版本号一旦分叉，
+    读文档的人和跑脚本的人会各说各话。
+    """
+    main_ver = None
+    m = re.search(r"^version:\s*([0-9]+\.[0-9]+\.[0-9]+)\s*$", read(root / "SKILL.md"), re.M)
+    if m:
+        main_ver = m.group(1)
+
+    bad = 0
+    for sub in sorted((root / "subskills").glob("*/SKILL.md")):
+        text = read(sub)
+        sm = re.match(r"\A---\n(.*?)\n---\n", text, re.S)
+        if not sm:
+            continue
+        vm = re.search(r"^version:\s*(.+)$", sm.group(1), re.M)
+        if vm:
+            f.fail("version-field", "subskills/%s/SKILL.md must not declare version "
+                                    "(主 SKILL.md 是唯一真值源)，发现 version: %s"
+                   % (sub.parent.name, vm.group(1).strip()))
+            bad += 1
+    if not bad:
+        f.ok("version-field", "no subskill declares its own version")
+
+    if not main_ver:
+        f.fail("version-field", "SKILL.md frontmatter has no version: X.Y.Z")
+        return
+
+    evals_path = root / "evals" / "evals.json"
+    if evals_path.exists():
+        try:
+            ev = json.loads(read(evals_path)).get("version")
+        except (ValueError, OSError):
+            ev = None
+        if ev != main_ver:
+            f.fail("version-field", "evals/evals.json version %r != SKILL.md version %r"
+                   % (ev, main_ver))
+            bad += 1
+        else:
+            f.ok("version-field", "evals.json version matches SKILL.md (%s)" % main_ver)
+
+    readme = root / "README.md"
+    if readme.exists():
+        bm = re.search(r"badge/version-([0-9]+\.[0-9]+\.[0-9]+)", read(readme))
+        if not bm:
+            f.fail("version-field", "README.md has no version badge")
+            bad += 1
+        elif bm.group(1) != main_ver:
+            f.fail("version-field", "README badge %r != SKILL.md version %r"
+                   % (bm.group(1), main_ver))
+            bad += 1
+        else:
+            f.ok("version-field", "README badge matches SKILL.md (%s)" % main_ver)
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -656,7 +717,8 @@ def main(argv=None):
                check_subskill_claims, check_cross_claims, check_part_claims,
                check_index_numbers, check_index_completeness, check_fences,
                check_frontmatter, check_round_consistency, check_policy_consistency,
-               check_gate_inventory, check_layer_sum, check_tools):
+               check_gate_inventory, check_layer_sum, check_tools,
+               check_version_fields):
         fn(root, f)
 
     if ns.json:

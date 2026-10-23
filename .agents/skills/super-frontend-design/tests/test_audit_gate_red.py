@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Negative control for scripts/audit_integrity.py.
 
-Copies the skill to a scratch dir, injects one known defect at a time (13 cases:
-12 injected defects plus one bad-flag rejection), and requires the gate to fail
+Copies the skill to a scratch dir, injects one known defect at a time (15 cases:
+14 injected defects plus one bad-flag rejection), and requires the gate to fail
 with the expected check name. A gate that cannot go
 red is not measuring anything.
 """
@@ -85,6 +85,19 @@ CASES = [
                   '"value": 4,\n      "also_allowed": [2]', 1),
          encoding="utf-8"),
      "policy-consistency"),
+    ("subskill-declares-own-version",
+     lambda d: (d / "subskills/research/SKILL.md").write_text(
+         (d / "subskills/research/SKILL.md").read_text(encoding="utf-8")
+         .replace("name: super-frontend-design:research\n",
+                  "name: super-frontend-design:research\nversion: 2.7.0\n", 1),
+         encoding="utf-8"),
+     "version-field"),
+    ("evals-version-lags-skill",
+     lambda d: (d / "evals/evals.json").write_text(
+         (d / "evals/evals.json").read_text(encoding="utf-8")
+         .replace('"version": "2.9.1"', '"version": "2.7.0"', 1),
+         encoding="utf-8"),
+     "version-field"),
 ]
 
 

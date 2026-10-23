@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.9.0
+version: 2.9.1
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面、按现有风格重构、统一风格。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -117,7 +117,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUser
 | creative | 生成艺术、海报、p5.js、算法艺术、视觉设计、flow field、粒子系统 | subskills/creative/SKILL.md | 哲学宣言→视觉表达，p5.js 交互式 + PDF/PNG 静态 |
 | design | 设计页面、UI、组件、landing page、dashboard、app、前端、桌面应用、Electron、Tauri、PySide6、SwiftUI | **必须先加载 subskills/research/SKILL.md 完成调研**，再加载 subskills/design-context/SKILL.md 获取上下文，最后加载 subskills/design/SKILL.md 执行设计 | ⚠️ 无 Design Brief 拒绝执行。支持网页/移动端/桌面端（Electron/Tauri/PySide6/SwiftUI）全场景 |
 | theme | 配色、字体、主题、品牌色、dark mode、调色板、跨平台 Token 输出 | subskills/theme/SKILL.md | 10 预设主题 + 自定义 + 品牌规范，Design Token 输出（CSS/SwiftUI/Compose/WinUI 3/Tailwind v4） |
-| review | 审查UI、设计评分、优化界面、UX检查、可访问性 | subskills/review/SKILL.md | 快速审查：19维度质量检查 + 56条Slop Test反AI味 |
+| review | 审查UI、设计评分、优化界面、UX检查、可访问性 | subskills/review/SKILL.md | 快速审查：19维度质量检查 + 56条Slop Test反AI味（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对） |
 | critique | 深度审查、critique、双代理审查、探测器规则、上线前检查 | subskills/critique/SKILL.md | 深度审查：双代理评估（Assessment A + B）+ 26条Craft Floor探测器规则 |
 | refine | polish、bolder、quieter、distill、harden、优化设计、打磨界面 | subskills/refine/SKILL.md | 命令式设计优化：上线前打磨/增强视觉/降低噪音/精简内容/性能加固 |
 | animate | animate、动效、动画、ScrollTrigger、GSAP、桌面动效、Electron动画、SwiftUI动效 | subskills/animate/SKILL.md | 动效调研前置 → GSAP vs Motion 选择 → 时间线编排；支持网页（GSAP）和桌面（系统原生） |
@@ -229,7 +229,7 @@ research（需求调研+参考搜索）→ design-context（设计上下文初�
    - **→ 完成后触发 review 检查：反 AI 味检查清单是否全部通过？设计灵魂是否体现？**
 
 5. **review/critique 阶段**：设计质量审查
-   - **review（快速审查）**：19维度质量检查 + 56条Slop Test反AI味
+   - **review（快速审查）**：19维度质量检查 + 56条Slop Test反AI味（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余按 review §2.18 人工核对）
    - **critique（深度审查）**：双代理评估（Assessment A + B）+ 26条Craft Floor探测器规则
    - 输入：前端代码 + Design Token 系统 + Design Brief + 设计上下文 + 视觉论文
    - 输出：审查报告 + 具体改进建议

@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:design-context
-version: 2.7.0
 description: |
   设计上下文管理模块。管理 PRODUCT.md + DESIGN.md 项目级设计上下文，支持访客意图分类（Persuade/Operate/Read/Experience）、
   设计Token提取、Shape设计前规划、Design Brief生成。是设计灵魂（品牌人格+情绪板）的持久化载体。

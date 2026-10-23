@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:design
-version: 2.7.0
 description: |
   UI/UX设计实现模块。综合设计智能，包含21种Macrostructure路由、50+风格、161调色板、57字体配对、
   99 UX准则、25图表类型、10技术栈模板、shadcn/ui组件管理、GSAP动效集成。

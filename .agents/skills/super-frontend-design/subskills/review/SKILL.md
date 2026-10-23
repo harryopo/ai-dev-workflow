@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:review
-version: 2.7.0
 description: |
   快速设计审查模块。19维度质量检查 + 56条Slop Test反AI味 + 设计灵魂追溯（品牌人格+情绪板一致性验证）。
   面向快速迭代和日常审查，不替代 critique 的深度代码审计。

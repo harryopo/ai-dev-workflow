@@ -1,3 +1,10 @@
+v2.9.1 (2026-10-23)
+- 版本治理收口：9 个子技能 frontmatter 删除 version 字段（此前全部停在 2.7.0，主文件已 2.9.0），主 SKILL.md 成为唯一版本真值源
+- 新增门禁 check_version_fields：子技能出现 version 即失败；主 SKILL.md / evals.json / README 徽章三处版本号必须一致
+- Slop Test 口径补全：SKILL.md 索引行、§路由段、README 补写「56 条中可静态判定的部分由 slop_scan.py 执行，判定表见 rules/slop-table.json，其余人工核对」（此前关系仅写在 review §2.18，索引层读者看不到）
+- audit_integrity 检查项 43 → 46
+- 未实施：参考机制 2.0 Phase 2（多方向强制发散 / 二阶反射检查 / 结构化随机兜底），方案书已就绪，待 Phase 1 验收后执行
+
 v2.9.0 (2026-10-16)
 - 参考机制 2.0（去同质化 Phase 1）：参考维度追问 + 反参考字段（借 impeccable）+ 参考距离分级（自研：Operate 结构借鉴 / C 端原理解构外观原创）+ 反收敛样本池（跨领域 + 形态 archetype 表）+ 饱和赛道黑名单（references/saturated-lanes.md，review 检查 8→10 项）+ 情绪板强制参数推导
 - 落点：research（第1/4轮 + 距离分级 + 提取 Step 0 + Brief 模板）、design（解构四步禁同层混合）、design-context（Anti-references section）、review（§0 #9/#10）、SKILL.md（术语表/pass-data/铁律 7）

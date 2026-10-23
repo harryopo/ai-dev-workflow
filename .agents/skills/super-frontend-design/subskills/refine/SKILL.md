@@ -1,6 +1,5 @@
 ---
 name: super-frontend-design:refine
-version: 2.7.0
 description: |
   命令式设计优化模块。提供 /polish、/bolder、/quieter、/distill、/harden 五大优化命令，
   支持对现有设计进行精准调整：上线前打磨、增强视觉冲击、降低视觉噪音、精简内容、性能加固。
