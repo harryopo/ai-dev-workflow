@@ -3,6 +3,7 @@
   "gates": [
     {"id": "audit-integrity", "script": "scripts/audit_integrity.py", "when": "改过本 Skill 任何文件", "optional": false},
     {"id": "slop-scan", "script": "scripts/slop_scan.py", "when": "产出 UI 代码", "optional": false},
+    {"id": "signature-check", "script": "scripts/signature_check.py", "when": "产出 UI 代码", "optional": false},
     {"id": "token-lint", "script": "scripts/token_lint.py", "when": "产出 UI 代码", "optional": false},
     {"id": "structure-lint", "script": "scripts/structure_lint.mjs", "when": "产出 UI 代码（需项目本地 .sfd-tools，未装则 exit 2 并说明）", "optional": true},
     {"id": "render-probe", "script": "scripts/render_probe.py", "when": "产出 UI 代码（需 Playwright）", "optional": false},

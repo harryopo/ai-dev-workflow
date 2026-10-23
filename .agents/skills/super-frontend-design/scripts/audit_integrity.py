@@ -749,6 +749,74 @@ def check_phase2_wiring(root, f):
         f.ok("phase2-wiring", "Phase 2 三项机制接线完整（发散 / 沿用方向 / 二阶反射 / 随机兜底）")
 
 
+def check_phase3_wiring(root, f):
+    """Phase 3 签名机制的接线必须始终存在。
+
+    签名机制（signature）是这套 skill 里唯一的**肯定式**检查——前面所有检查都是
+    否定式的（禁这个、禁那个），只排除"确定的坏"，不保证"做对了什么"。如果这层
+    被悄悄拆掉，产出就会退回"干净但可替换"的模板，而且没有任何检查会报警。
+
+    接线点散在五个子技能里（research / creative / theme / design / review+critique），
+    任何一次重构都可能只改其中一处。因此这里做机器层面的存在性校验。
+
+    检查的是「机制存在」，不是「机制写得好」——质量由 evals 与 dogfood 保证。
+    """
+    required = [
+        ("subskills/research/SKILL.md", "签名线索",
+         "research 必须挖掘签名线索——这是反模板的唯一原料来源"),
+        ("subskills/research/SKILL.md", "signature-candidates",
+         "research 必须产出签名候选，不允许零签名进入后续阶段"),
+        ("subskills/creative/SKILL.md", "签名识别符",
+         "creative 的每个方向必须绑定签名识别符"),
+        ("subskills/theme/SKILL.md", "签名专属 Token",
+         "theme 必须为签名推导专属 Token"),
+        ("subskills/design/SKILL.md", "签名落地",
+         "design 必须把签名落成代码并加标记注释"),
+        ("subskills/review/SKILL.md", "签名可识别性",
+         "review 必须做签名可识别性检查（唯一肯定式检查）"),
+        ("subskills/critique/SKILL.md", "签名可识别性",
+         "critique 必须做签名可识别性检查"),
+    ]
+    problems = []
+    for rel, needle, why in required:
+        p = root / rel
+        if not p.is_file():
+            problems.append("%s 不存在" % rel)
+            continue
+        if needle not in read(p):
+            problems.append("%s 缺少「%s」——%s" % (rel, needle, why))
+
+    # 签名检查脚本必须存在，且真的在找标记注释
+    sig = root / "scripts/signature_check.py"
+    if not sig.is_file():
+        problems.append("scripts/signature_check.py 不存在")
+    else:
+        src = read(sig)
+        if not re.search(r"signature\s*:", src):
+            problems.append("signature_check.py 没有匹配签名标记 —— 脚本没有在找它该找的东西")
+        # 留痕字段不能被删：落点清单就是"签名已落地"的证据
+        for field in ("markers", "low_visibility"):
+            if field not in src:
+                problems.append("signature_check.py 缺少字段 %s —— 落点证据不能被删" % field)
+        # 零落点必须判失败，不能判通过
+        if not re.search(r"signature-landing-missing", src):
+            problems.append("signature_check.py 没有零落点失败规则 —— 空签名不得判通过")
+
+    # 灵魂验证问题必须被 review 接管，不能继续是孤儿条款
+    slop = root / "references/anti-ai-slop.md"
+    review = root / "subskills/review/SKILL.md"
+    if slop.is_file() and review.is_file():
+        if "灵魂验证问题" in read(slop) and "灵魂验证问题" not in read(review):
+            problems.append("anti-ai-slop.md 的「灵魂验证问题」仍是孤儿条款 —— "
+                            "review 必须接管它，否则反模板标准无人执行")
+
+    if problems:
+        for p in problems:
+            f.fail("phase3-wiring", p)
+    else:
+        f.ok("phase3-wiring", "Phase 3 签名机制接线完整（挖掘 / 绑定 / Token / 落地 / 审查）")
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -772,7 +840,7 @@ def main(argv=None):
                check_index_numbers, check_index_completeness, check_fences,
                check_frontmatter, check_round_consistency, check_policy_consistency,
                check_gate_inventory, check_layer_sum, check_tools,
-               check_version_fields, check_phase2_wiring):
+               check_version_fields, check_phase2_wiring, check_phase3_wiring):
         fn(root, f)
 
     if ns.json:

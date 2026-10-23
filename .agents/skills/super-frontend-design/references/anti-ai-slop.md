@@ -141,3 +141,6 @@ Accent 色的力量在于稀缺。每屏出现 2 次以上 = 没有主次。
 
 > 如果截屏后一个不参与项目的人能辨认出这是哪个产品的设计 → **有灵魂**
 > 如果不能 → **你交付的是模板**
+
+> 📌 **本条已由 review 检查表 #12「签名可识别性」接管**（v2.11.0）。本节保留为标准的定义出处；执行时看 `subskills/review/SKILL.md` §0 检查表 #12 与 `scripts/signature_check.py`。
+> 落地机制见 `subskills/design/SKILL.md`「签名落地」——签名识别符从 research 挖掘、creative 绑定方向、design 写入代码（`/* signature: */` 标记注释）。

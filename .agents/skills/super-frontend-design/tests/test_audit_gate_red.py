@@ -8,6 +8,7 @@ red is not measuring anything.
 """
 
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -70,8 +71,8 @@ CASES = [
      "gate-inventory"),
     ("gate-count-claim-drift",
      lambda d: (d / "SKILL.md").write_text(
-         (d / "SKILL.md").read_text(encoding="utf-8")
-         .replace("交付前跑六道门禁", "交付前跑三道门禁", 1), encoding="utf-8"),
+         re.sub(r"交付前跑[一二三四五六七八九十]+道门禁", "交付前跑三道门禁",
+                (d / "SKILL.md").read_text(encoding="utf-8"), count=1), encoding="utf-8"),
      "gate-inventory"),
     ("policy-prose-number-drift",
      lambda d: (d / "subskills/review/SKILL.md").write_text(
@@ -94,8 +95,8 @@ CASES = [
      "version-field"),
     ("evals-version-lags-skill",
      lambda d: (d / "evals/evals.json").write_text(
-         (d / "evals/evals.json").read_text(encoding="utf-8")
-         .replace('"version": "2.10.0"', '"version": "2.7.0"', 1),
+         re.sub(r'"version":\s*"[\d.]+"', '"version": "0.0.0"',
+                (d / "evals/evals.json").read_text(encoding="utf-8"), count=1),
          encoding="utf-8"),
      "version-field"),
     ("phase2-divergence-removed",
@@ -113,6 +114,31 @@ CASES = [
          (d / "scripts/random_draw.py").read_text(encoding="utf-8")
          .replace("os.urandom(4)", "random.randrange(4)"), encoding="utf-8"),
      "phase2-wiring"),
+    ("phase3-signature-mining-removed",
+     lambda d: (d / "subskills/research/SKILL.md").write_text(
+         (d / "subskills/research/SKILL.md").read_text(encoding="utf-8")
+         .replace("签名线索", "灵感来源"), encoding="utf-8"),
+     "phase3-wiring"),
+    ("phase3-signature-landing-removed",
+     lambda d: (d / "subskills/design/SKILL.md").write_text(
+         (d / "subskills/design/SKILL.md").read_text(encoding="utf-8")
+         .replace("签名落地", "风格统一"), encoding="utf-8"),
+     "phase3-wiring"),
+    ("phase3-signature-review-removed",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("签名可识别性", "整体观感"), encoding="utf-8"),
+     "phase3-wiring"),
+    ("phase3-signature-checker-gutted",
+     lambda d: (d / "scripts/signature_check.py").write_text(
+         (d / "scripts/signature_check.py").read_text(encoding="utf-8")
+         .replace("signature-landing-missing", "signature-note"), encoding="utf-8"),
+     "phase3-wiring"),
+    ("phase3-soul-question-orphan-again",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("灵魂验证问题", "标准出处"), encoding="utf-8"),
+     "phase3-wiring"),
 ]
 
 

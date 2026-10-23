@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.10.0",
+  "version": "2.11.0",
   "evals": [
     {
       "id": "core-001",
@@ -235,6 +235,60 @@
       "expected_routing": "design（沿用 selected-direction）",
       "expected_output": ["读取 pass-data.yaml 的 selected-direction 作为唯一依据", "视觉论文与该方向一致"],
       "anti_pattern": ["不应重新发散", "不应绕过用户选定方向自行改方向"]
+    },
+    {
+      "id": "v211-001",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "帮我设计一个数据中台的产品官网",
+      "expected_routing": "research（调研含签名线索挖掘）",
+      "expected_output": ["第 4 轮询问签名线索（问题 12.5）", "产出 signature-candidates 至少 1 条", "Design Brief 含签名识别符候选"],
+      "anti_pattern": ["不应跳过签名线索问题", "不应产出零条签名候选"]
+    },
+    {
+      "id": "v211-002",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "按调研结果把这个页面做出来",
+      "expected_routing": "design（签名落地到代码）",
+      "expected_output": ["读取 pass-data.yaml 的 signature 字段", "在 anchor 指定位置实现 expression 描述的签名", "落点处有 /* signature: */ 标记注释"],
+      "anti_pattern": ["不应只在文档里写签名而代码里没有", "不应零落点", "不应把签名藏在页脚"]
+    },
+    {
+      "id": "v211-003",
+      "category": "core",
+      "subcommand": "review",
+      "prompt": "审查一下这个页面的设计质量",
+      "expected_routing": "review（含 #12 签名可识别性检查）",
+      "expected_output": ["执行签名可识别性检查", "统计 /* signature: */ 落点数量与位置", "给出灵魂验证问题的回答"],
+      "anti_pattern": ["不应跳过 #12（唯一肯定式检查）", "不应把零落点判为通过"]
+    },
+    {
+      "id": "v211-004",
+      "category": "edge",
+      "subcommand": "research",
+      "prompt": "我们这个产品也没什么特别的，就是个普通的工具",
+      "expected_routing": "research（用户答不出签名线索 → AI 反推候选）",
+      "expected_output": ["从品牌人格×情绪板×设计类型反推至少 1 条候选", "候选标注 [待用户确认]", "回显候选请求确认"],
+      "anti_pattern": ["不应因为用户说没特色就产出零签名", "不应静默采用 AI 反推的候选"]
+    },
+    {
+      "id": "v211-005",
+      "category": "boundary",
+      "subcommand": "design",
+      "prompt": "改造一下现有后台的风格，统一一下",
+      "expected_routing": "design（现有风格重构通道 → 签名从现有代码推导）",
+      "expected_output": ["签名线索从现有代码与 DESIGN.md 推导", "落点选在现有视觉焦点区", "不新增与现有风格冲突的签名形态"],
+      "anti_pattern": ["不应为重构引入全新风格语言", "不应在重构通道强制走 C 端方向发散"]
+    },
+    {
+      "id": "v211-006",
+      "category": "edge",
+      "subcommand": "review",
+      "prompt": "这个页面的签名我放在页脚了，这样行不行",
+      "expected_routing": "review（签名落点可见性判定）",
+      "expected_output": ["判定为低关注区落点", "🔴 严重：看不见的签名等于没有签名", "建议移至视觉焦点区"],
+      "anti_pattern": ["不应判为通过", "不应建议加装饰性元素绕过问题"]
     }
   ]
 }

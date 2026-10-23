@@ -54,6 +54,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 - 检查设计灵魂体现（品牌人格 + 情绪板）
 - 评估视觉决策的合理性和一致性
 - **二阶反射检查**：构造猜测句「给一个 [品类] 做设计，不要 [反参考]，你会做成什么样？」——能命中本次主题与配色即命中二阶反射，🔴 严重，需回到 creative §0.5 换方向重做（不是参数微调）。细则见 review §0 检查表 #11 与 references/saturated-lanes.md
+- **签名可识别性（肯定式检查）**：核实 `/* signature: */` 标记注释的数量与位置，判"陌生人截屏能否认出是哪个产品"。零落点或落点全在页脚 = 🔴 严重，模板化交付。细则见 review §0 检查表 #12
 
 ### 3.2 Assessment B：探测器/代码证据
 
@@ -65,7 +66,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 5. 代码质量检查
 
 **评估方法：**
-- 运行 26 条探测器规则（Grep 模式匹配）：可静态判定的部分跑 `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>`，Token 纪律跑 `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>`，需渲染的项跑 `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>`，CSS/标记真解析跑 `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物目录>`（结构层未安装时它会 exit 2，报告须写明"结构层未参与"）；各者的 JSON 输出即为本 Assessment 的证据来源，未覆盖的规则仍按 §4 手工核对
+- 运行 26 条探测器规则（Grep 模式匹配）：可静态判定的部分跑 `python ${SKILL_DIR}/scripts/slop_scan.py <产物目录>`，Token 纪律跑 `python ${SKILL_DIR}/scripts/token_lint.py <产物路径>`，签名落地跑 `python ${SKILL_DIR}/scripts/signature_check.py <产物目录>`，需渲染的项跑 `python ${SKILL_DIR}/scripts/render_probe.py <产物.html>`，CSS/标记真解析跑 `node ${SKILL_DIR}/scripts/structure_lint.mjs <产物目录>`（结构层未安装时它会 exit 2，报告须写明"结构层未参与"）；各者的 JSON 输出即为本 Assessment 的证据来源，未覆盖的规则仍按 §4 手工核对
 - 检查代码结构和实现细节
 - 验证 WCAG 合规性
 - 检查性能指标（LCP、CLS、FID）
@@ -329,6 +330,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 | 反参考遵守 | ✅/⚠️/❌ | [说明] |
 | 饱和赛道反射 | ✅/⚠️/❌ | [说明] |
 | 二阶反射检查 | ✅/⚠️/❌ | [猜测句 + 能否命中 + 说明] |
+| 签名可识别性 | ✅/⚠️/❌ | [签名落点数量 + 位置 + 陌生人能否认出] |
 
 ---
 

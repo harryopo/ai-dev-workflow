@@ -1,3 +1,18 @@
+v2.11.0 (2026-10-23)
+- 签名机制落地（反模板的唯一肯定式检查，全流程五处接线）：
+  - research 第 4 轮新增问题 12.5「签名线索」+ 强制推导表（线索类型 → 签名识别符形态 → 落点）；新增铁律 5「不允许零签名进入后续阶段」；Design Brief 增 signature-clues / signature-candidates 字段；快捷模式豁免表声明签名线索始终必问
+  - creative §0.5 发散规格三件套 → 四件套（新增「签名识别符」）；新增签名硬门（签名落点相同 = 同一方向）；并置呈现格式增签名行；pass-data 落盘增 signature 字段
+  - theme 步骤 1 增签名专属 Token 推导（增量、不覆盖主 Token、至少 1 个 --signature-*）
+  - design Step 1 新增「签名落地」小节（3 条硬约束：标记注释必写 / 至少 1 处 / 可见性自检 + 落点选择表 + 落地自检清单）；设计灵魂检查清单增签名项
+  - review §0 检查表增 #12「签名可识别性」并展开（取证 → 对照 → 代入三步法 + 与 #1–#11 的否定/肯定式对比）；设计灵魂评分 11 → 12 项；critique Assessment A 增签名条目 + 报告模板增行
+- 新增 scripts/signature_check.py（第 7 道门禁）：统计 /* signature: */ 落点数量与可见性；零落点 / 全在低关注容器 / 首页无签名判失败；--require-marker 核对指定签名
+- 新增 tests/test_signature_check.py（17 项契约测试）
+- 新增门禁 check_phase3_wiring：校验 7 处接线 + 抽签脚本留痕字段 + 零落点失败规则存在 + 「灵魂验证问题」不得再是孤儿条款；audit 检查项 47 → 48
+- 主 SKILL.md 铁律 9 → 10 条（新增签名落地铁律）；§3.6 与 §8 门禁数 6 → 7；§7.2 pass-data 增 signature 字段；§6 资源索引补新脚本与新测试
+- references/anti-ai-slop.md「灵魂验证问题」由孤儿条款转为 review #12 的标准出处（明确移交关系）
+- evals 26 → 32 条（v211-001~006：签名挖掘 / 签名落地 / 签名审查 / 用户答不出线索 / 重构通道 / 页脚落点）
+- 版本号 2.10.0 → 2.11.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.10.0 (2026-10-23)
 - 参考机制 2.0 Phase 2 全部落地（方案书第三节 Phase 2 三项）：
   - P2-1 多方向强制发散：creative §0.5 新增「方向发散」章节（触发判定 / 发散规格 / 差异维度硬门 / 并置呈现格式 / 并行子代理 / 输出落盘）；design Step 1 新增「方向来源约束」（selected-direction 唯一依据，未选定则拒绝执行）

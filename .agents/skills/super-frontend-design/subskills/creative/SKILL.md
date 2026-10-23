@@ -80,6 +80,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task, A
 | **命名运动** | 1–2 词，像一个真实存在过的设计运动（"混凝土诗歌"而非"方案 A"） |
 | **视觉论文** | 回答标准 5 问（配色/排版/布局/材质/动效），每问给**具体决策**而非形容词 |
 | **关键 Token 提案** | 3–5 个关键 Token 的**具体值**（主色 hex、display 字体名、圆角策略），供用户判断差异 |
+| **签名识别符**（v2.11.0） | 该方向下的签名实现方式——**从 research 的 `signature-candidates` 中选一条并说明如何落地**（"术语用等宽独立成版式单元"/"指标用条带承载而非卡片"）。不允许写"无" |
 
 ### 方向之间的差异要求
 
@@ -95,6 +96,10 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task, A
 
 **判定硬门**：若两个方向的差异维度 < 2，或两者的关键 Token 提案在主色 hex 上相同，则视为同一方向，必须重做。
 
+**签名硬门（v2.11.0）**：若两个方向的签名识别符**落点相同**（例如都用"术语等宽成版式单元"），即使视觉差异维度够，也视为同一方向的不同措辞，必须重做。**签名是方向的指纹，签名相同 = 方向相同。**
+
+> **为什么签名要进差异维度**：视觉上明显不同的两个方向，如果承载的是同一个签名落点，选哪个产出结果都一样——签名才是"这个方向凭什么被认出"的最终答案。
+
 ### 并置呈现格式
 
 用 **AskUserQuestion** 让用户从方向中选一个（**不得替用户默认选定**，也不得跳过）。呈现格式：
@@ -103,6 +108,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task, A
 方向 A｜<命名运动>
   配色：<策略 + 具体值>  排版：<性格 + 字体>  布局：<骨架>  材质：<质感>  动效：<性格>
   关键 Token：--color-primary: #xxx; --font-display: xxx; --radius-*: xxx
+  签名：<签名识别符 + 落地方式>
   取舍：<这个方向换来了什么 / 牺牲了什么>
 
 方向 B｜<命名运动>
@@ -111,6 +117,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Task, A
 方向 C｜<命名运动>
   ...
 ```
+
+签名必须出现在并置呈现里——**让用户在选方向时就能看到"哪个方向更有辨识度"**，这是选方向时最该看的维度之一。
 
 取舍分析必须**诚实**，每个方向都要写清代价（不是三个方向的彩虹屁）。典型代价维度：识别度 vs 亲和力 / 表现力 vs 性能 / 差异化 vs 行业惯例 / 可读性 vs 冲击力。
 
@@ -147,6 +155,10 @@ direction-candidates:
     key-tokens:
       --color-primary: "#xxxxxx"
       --font-display: "Xxx"
+    signature:                # v2.11.0：该方向的签名实现方式
+      identifier: "签名识别符一句话"
+      expression: "落地方式：术语等宽成版式单元 / 指标用条带承载 / ..."
+      anchor: "落在哪个组件或位置"
     trade-off: "换来什么 / 牺牲什么"
 selected-direction: A   # 用户选中的 id
 ```
