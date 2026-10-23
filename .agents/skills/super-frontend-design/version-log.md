@@ -1,3 +1,13 @@
+v2.10.0 (2026-10-23)
+- 参考机制 2.0 Phase 2 全部落地（方案书第三节 Phase 2 三项）：
+  - P2-1 多方向强制发散：creative §0.5 新增「方向发散」章节（触发判定 / 发散规格 / 差异维度硬门 / 并置呈现格式 / 并行子代理 / 输出落盘）；design Step 1 新增「方向来源约束」（selected-direction 唯一依据，未选定则拒绝执行）
+  - P2-2 二阶反射检查：review §0 检查表新增 #11 并展开判定方法（一阶 vs 二阶 + 典型二阶陷阱 + 与 #10 的区别）；critique Assessment A 评估方法与报告模板同步
+  - P2-3 结构化随机兜底：research 新增「结构化随机兜底」章节；新增 scripts/random_draw.py（os.urandom 等概率 + 留痕输出，候选不足 2 个 exit 2）
+- 新增 tests/test_random_draw.py（14 项契约测试）
+- 主 SKILL.md 铁律 7 → 9 条（新增方向发散铁律 + 随机兜底铁律）；§3 creative 阶段补方向发散说明；§6 资源索引补新脚本与新测试
+- evals 20 → 26 条（v210-001~006：C端发散 / 多方向规格 / 二阶反射 / 随机兜底 / B端跳过发散 / 沿用选定方向）
+- 版本号 2.9.1 → 2.10.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.9.1 (2026-10-23)
 - 版本治理收口：9 个子技能 frontmatter 删除 version 字段（此前全部停在 2.7.0，主文件已 2.9.0），主 SKILL.md 成为唯一版本真值源
 - 新增门禁 check_version_fields：子技能出现 version 即失败；主 SKILL.md / evals.json / README 徽章三处版本号必须一致

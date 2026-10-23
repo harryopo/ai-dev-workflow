@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.9.1
+version: 2.10.0
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面、按现有风格重构、统一风格。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -216,6 +216,7 @@ research（需求调研+参考搜索）→ design-context（设计上下文初�
 2. **creative 阶段**：探索视觉方向，生成灵感草图或交互原型
    - 输入：Design Brief + 设计上下文（PRODUCT.md + DESIGN.md）
    - 输出：视觉方向 + 设计哲学宣言
+   - **C 端品牌场景（Persuade / Experience）额外执行「方向发散」**：产出 2–3 个完整独立的方向（命名运动 + 视觉论文 + 关键 Token 提案），并置呈现带取舍分析，用 AskUserQuestion 让用户选一个（见 creative §0.5）。Operate / Read 场景跳过
    - **→ 完成后触发 review 检查：视觉方向是否与需求简报一致？是否有 AI 味？**
 
 3. **theme 阶段**：基于视觉方向确定主题系统
@@ -293,6 +294,8 @@ research（需求调研+参考搜索）→ design-context（设计上下文初�
 5. animate 子技能执行前必须从 Design Brief 读取动效配置，缺失则必须询问用户
 6. **按现有风格重构**（保持 / 统一现有风格）走 **§3.6 现有风格重构流程**——调研对象是现有代码库，审计与统一方案确认不可跳过
 7. **参考不默认全套**：第 1 轮先问参考维度与反参考；参考处理受「参考距离分级」约束（Operate 结构借鉴 / C 端原理解构、外观原创）——见 research 子技能
+8. **C 端品牌场景必须走方向发散**：访客意图为 Persuade / Experience 时，creative 阶段产出 2–3 个并置方向让用户选，design 沿用用户选定方向不得自行改——见 creative §0.5
+9. **"随便"不默选保守项**：用户说"随便/都行/你定"时，在同等合理的 2–3 个候选中做真正的外部抽签（`scripts/random_draw.py`），并回传抽签结果——见 research「结构化随机兜底」
 
 **调研输出**：Design Brief（需求简报）+ `output/design-system.md`（9-section 结构化设计系统文件）
 
@@ -499,13 +502,14 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/design-systems/material-3.md | Material 3 风格设计系统预设（9-section） | design-context / theme 子命令 |
 | references/design-systems/shadcn-style.md | shadcn 风格设计系统预设（9-section） | design-context / theme 子命令 |
 | scripts/search.py | CLI 搜索工具 | design 子命令 |
-| scripts/audit_integrity.py | 结构自检门禁：断链/孤儿资源/数字对账/政策数字对账/围栏配对 | 交付前自检 |
+| scripts/audit_integrity.py | 结构自检门禁：断链/孤儿资源/数字对账/政策数字对账/围栏配对/版本号对账/Phase 2 接线完整性 | 交付前自检 |
 | scripts/slop_scan.py | 静态反 AI 味门禁：30 条规则扫 html/css，退出码 0/1/2；`--only 规则号` 可单点复检 | review / critique |
 | scripts/render_probe.py | 渲染量测门禁：对比度/横向滚动/触摸目标/焦点/alt/label（Playwright 离线）；`--apca` 加量 APCA 感知对比度 Lc | review / critique |
 | scripts/apca_contrast.mjs | APCA Lc 计算器（colorjs.io，stdin 收前景/背景，算不出给 null 不猜） | render_probe --apca |
 | scripts/token_lint.py | Token 门禁：未定义引用、死 token、与 DESIGN.md 契约双向对账（纯标准库） | design / review |
 | scripts/visual_diff.py | 参考图对账：截图、逐像素差异、白屏与内容密度兜底（Playwright + Pillow） | review（有参考图时） |
 | scripts/structure_lint.mjs | 结构层门禁：stylelint 真解析 CSS + html-validate 真校验标记（需项目本地 `.sfd-tools`，无全局安装） | design / review |
+| scripts/random_draw.py | 结构化随机抽签：os.urandom 等概率抽取 + 留痕输出（候选/选中/熵源/时间戳）；候选不足 2 个时 exit 2 | research（用户说"随便"时） |
 | rules/gates.json | 六道门禁清单（脚本路径、触发时机、是否可选），audit_integrity 用它反查文档一致性 | 交付前自检 |
 | rules/stylelint.config.json | 结构层的 CSS 规则表（颜色/字体必须走 var()，属性名/函数/单位真校验） | structure_lint |
 | rules/html-validate.config.json | 结构层的标记规则表（recommended + WCAG 项，关掉排版风格类规则） | structure_lint |
@@ -522,7 +526,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | tests/test_visual_diff.py | visual_diff 契约测试（13 项）：白屏兜底、尺寸不符未比对面积、UTF-8 输出 | 交付前自检 |
 | tests/test_render_probe.py | render_probe 契约测试（10 项）：真浏览器量对比度/横向滚动/alt + APCA 参考值锚定；无 Playwright 时退出 2，不许"没量到"当成通过 | 交付前自检 |
 | tests/test_structure_lint.py | structure_lint 契约测试（9 项）：var() 不误判、硬编码色必抓、配错规则名/指错 --tools 都 exit 2 | 交付前自检 |
-| tests/test_audit_gate_red.py | 往副本注入 12 类缺陷 + 1 项参数拼写拒跑（共 13 项），证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
+| tests/test_audit_gate_red.py | 往副本注入 17 类缺陷 + 1 项参数拼写拒跑（共 18 项），证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
+| tests/test_random_draw.py | random_draw 契约测试：等概率性、去重、单候选必拒、留痕字段完整 | 交付前自检 |
 
 **预设主题列表：**
 
@@ -559,6 +564,10 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | 设计禁忌 | 用户指定的绝对不能出现的元素 | SKILL.md §3.5 第4轮 + references/anti-ai-slop.md §9 |
 | 反参考 | 用户明确要避开的方向/品牌/感觉，写入 Design Brief 全程生效 | SKILL.md §3.5 第1轮 |
 | 参考距离分级 | 场景决定参考可走多深：Operate 结构借鉴 / Persuade·Experience 原理解构 / Read 结构为主 | subskills/research/SKILL.md |
+| 方向发散 | C 端品牌场景在 creative 阶段产出 2–3 个完整独立方向由用户选一 | subskills/creative/SKILL.md §0.5 |
+| 差异维度 | 判定多方向是否真为不同方向的硬门：配色/排版/布局/材质/动效中至少 2 项显著不同 | subskills/creative/SKILL.md §0.5 |
+| 二阶反射 | 品类 + 反参考一起给对手，仍能猜到本次主题与配色 | subskills/review/SKILL.md §0 #11 |
+| 结构化随机 | 用户说"随便"时在同等合理候选中做外部抽签，而非默选保守项 | subskills/research/SKILL.md |
 
 ### 7.2 阶段间传递格式
 
@@ -572,6 +581,18 @@ mood-board-derivation: {色相策略 / 字体气质 / 材质 / 动效性格}
 anti-references: [{要避开1}, {要避开2}, ...]
 reference-distance: {结构借鉴 | 原理解构 | 显式复制}
 design-taboos: [{禁忌1}, {禁忌2}, ...]
+visitor-intent: {Persuade | Operate | Read | Experience}
+direction-candidates:            # 仅 C 端品牌场景（visitor-intent = Persuade/Experience）
+  - id: {A | B | C}
+    movement: {命名运动}
+    color-strategy: {策略 + 具体值}
+    typography: {性格 + 字体}
+    layout: {骨架}
+    material: {质感}
+    motion: {性格}
+    key-tokens: {{--token: value}, ...}
+    trade-off: {换来什么 / 牺牲什么}
+selected-direction: {A | B | C}  # 用户选定；缺此项时 design 必须停止并退回 creative
 visual-thesis:
   color-direction: {配色方向}
   typography-direction: {排版方向}
@@ -582,12 +603,12 @@ visual-thesis:
 ```
 
 **责任划分：**
-- `research` 产出 → 品牌人格 + 情绪板（含推导）+ 设计禁忌 + 反参考 + 参考距离等级（第 1 轮与第 4 轮调研）
+- `research` 产出 → 品牌人格 + 情绪板（含推导）+ 设计禁忌 + 反参考 + 参考距离等级 + 访客意图分类（第 1 轮与第 4 轮调研）
 - `design-context` 产出 → PRODUCT.md + DESIGN.md（设计上下文持久化）
-- `creative` 产出 → 视觉论文（5个方向决策）
-- `theme` 消费 → 品牌人格 + 视觉论文，产出 Design Token
-- `design` 消费 → Design Token + 品牌人格 + 视觉论文 + 设计禁忌 + 设计上下文，产出可运行代码
-- `review/critique` 消费 → 代码 + Design Token + 品牌人格 + 视觉论文 + 情绪板 + 设计禁忌 + 设计上下文，产出审查报告
+- `creative` 产出 → 视觉论文（5个方向决策）+（C 端品牌场景）方向候选与用户选定项
+- `theme` 消费 → 品牌人格 + 视觉论文 + 选定方向，产出 Design Token
+- `design` 消费 → Design Token + 品牌人格 + 视觉论文 + 选定方向 + 设计禁忌 + 设计上下文，产出可运行代码
+- `review/critique` 消费 → 代码 + Design Token + 品牌人格 + 视觉论文 + 情绪板 + 设计禁忌 + 反参考 + 设计上下文，产出审查报告
 
 ### 7.3 统一输出模板
 

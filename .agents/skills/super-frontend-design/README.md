@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.9.1-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.10.0-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -38,11 +38,13 @@
 ```
 research（15维度调研）
   → design-context（设计上下文初始化）
-    → creative（灵感探索）
+    → creative（灵感探索 · C端品牌场景在此发散 2-3 个方向）
       → theme（确定主题/配色）
-        → design（设计实现）
+        → design（设计实现 · 沿用用户选定方向）
           → review/critique（质量审查）
 ```
+
+> **C 端品牌场景（Persuade / Experience）多一道方向发散**：creative 阶段产出 2–3 个完整独立方向（命名运动 + 视觉论文 + 关键 Token 提案），并置呈现带取舍分析，由用户选定其一；design 沿用该方向。B 端（Operate）与内容站（Read）跳过此步。详见 `subskills/creative/SKILL.md` §0.5。
 
 ### 九个子命令路由
 
@@ -50,7 +52,7 @@ research（15维度调研）
 |--------|--------|------|
 | `research` | 需求调研、设计参考、找参考 | 15维度调研 + 全网搜索 |
 | `design-context` | 设计上下文、初始化项目 | PRODUCT.md + DESIGN.md 生成 |
-| `creative` | 生成艺术、p5.js、粒子系统 | 算法艺术 + 视觉探索 |
+| `creative` | 生成艺术、p5.js、粒子系统 | 算法艺术 + 视觉探索 + C端方向发散 |
 | `design` | 设计页面、UI、重构前端 | 完整设计实现（含桌面端） |
 | `theme` | 配色、字体、主题 | 10预设主题 + 自定义 + Token 输出 |
 | `review` | 审查UI、设计评分 | 19维度检查 + 56条 Slop Test（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对） |
@@ -172,13 +174,22 @@ super-frontend-design/
 ├── subskills/                      # 子命令实现
 │   ├── research/SKILL.md           # 15维度调研
 │   ├── design-context/SKILL.md     # 设计上下文
-│   ├── creative/SKILL.md           # 灵感探索
+│   ├── creative/SKILL.md           # 灵感探索（C端 §0.5 方向发散）
 │   ├── design/SKILL.md             # 设计实现（含桌面/移动端）
 │   ├── theme/SKILL.md              # 主题系统
 │   ├── review/SKILL.md             # 快速审查
 │   ├── critique/SKILL.md           # 深度审查
 │   ├── refine/SKILL.md             # 命令式优化
 │   └── animate/SKILL.md            # 动效设计（含桌面动效）
+├── scripts/
+│   ├── audit_integrity.py          # 结构自检门禁（46 项）
+│   ├── slop_scan.py                # 静态反 AI 味门禁（30 条）
+│   ├── token_lint.py               # Token 门禁
+│   ├── structure_lint.mjs          # CSS/HTML 结构门禁
+│   ├── render_probe.py             # 渲染量测门禁（Playwright）
+│   ├── visual_diff.py              # 参考图逐像素对账
+│   ├── random_draw.py              # 结构化随机抽签（os.urandom 等概率）
+│   └── apca_contrast.mjs           # APCA Lc 计算器
 ├── templates/
 │   └── prompt-templates/
 │       ├── react-tailwind.md       # React+Tailwind 模板
@@ -198,6 +209,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.10.0 | 2026-10-23 | 参考机制 2.0 Phase 2 原创引擎接线：C 端品牌场景方向发散（creative §0.5）+ 二阶反射检查（review §0 #11 / critique）+ 结构化随机兜底（research + random_draw.py） |
 | v2.9.1 | 2026-10-23 | 版本治理收口：9 个子技能删除各自 version 字段（主 SKILL.md 为唯一真值源）+ 新增 version-field 门禁；Slop Test 56/30 口径在索引与 README 补说明 |
 | v2.9.0 | 2026-10-16 | 参考机制 2.0：参考维度追问 + 反参考 + 参考距离分级 + 反收敛样本池 + 饱和赛道黑名单 + 情绪板参数推导 |
 | v2.8.1 | 2026-10-16 | 现有风格重构流程（风格审计 + 设计稿确认门 + 风格固化 + 项目设计规范优先约束） |

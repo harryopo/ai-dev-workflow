@@ -695,6 +695,60 @@ def check_version_fields(root, f):
             f.ok("version-field", "README badge matches SKILL.md (%s)" % main_ver)
 
 
+def check_phase2_wiring(root, f):
+    """Phase 2 原创引擎的三处接线必须始终存在。
+
+    这三项是去同质化的核心机制，但它们散在三个子技能里（creative / review+critique /
+    research），没有任何脚本能保证它们不被后续重构悄悄删掉。删掉其中任何一处，
+    C 端场景就会静默退回"收敛机制"——产出照常交付，但同质化回来了，没人发现。
+
+    这里检查的是「机制存在」，不是「机制写得好」——质量由 evals 与 dogfood 保证。
+    """
+    required = [
+        ("subskills/creative/SKILL.md", "方向发散",
+         "C 端品牌场景必须在此发散多方向"),
+        ("subskills/design/SKILL.md", "selected-direction",
+         "design 必须沿用用户选定方向，不得自行改"),
+        ("subskills/review/SKILL.md", "二阶反射",
+         "review 必须做二阶反射检查"),
+        ("subskills/critique/SKILL.md", "二阶反射",
+         "critique 必须做二阶反射检查"),
+        ("subskills/research/SKILL.md", "random_draw.py",
+         "research 的随机兜底必须指向真实抽签脚本"),
+    ]
+    problems = []
+    for rel, needle, why in required:
+        p = root / rel
+        if not p.is_file():
+            problems.append("%s 不存在" % rel)
+            continue
+        if needle not in read(p):
+            problems.append("%s 缺少「%s」——%s" % (rel, needle, why))
+
+    # 抽签脚本本身必须存在，且真的用了外部随机源
+    draw = root / "scripts/random_draw.py"
+    if not draw.is_file():
+        problems.append("scripts/random_draw.py 不存在")
+    else:
+        src = read(draw)
+        # 必须是真正的熵源调用，而不只是文档里提到 os.urandom
+        if not re.search(r"os\.urandom\s*\(", src):
+            problems.append("random_draw.py 没有调用 os.urandom —— 随机必须是外部熵源，不是自造的")
+        # 非密码学随机不得用于抽签
+        if re.search(r"(?<!os\.)\brandom\.(choice|randint|randrange|shuffle)\b", src):
+            problems.append("random_draw.py 用了非密码学随机（random.choice 等）—— 抽签必须用 os.urandom")
+        # 留痕字段不能被删：脚本的产出就是"回传给用户的证据"
+        for field in ("selected", "entropy_hex", "timestamp_utc"):
+            if field not in src:
+                problems.append("random_draw.py 缺少留痕字段 %s —— 抽签结果必须有证据" % field)
+
+    if problems:
+        for p in problems:
+            f.fail("phase2-wiring", p)
+    else:
+        f.ok("phase2-wiring", "Phase 2 三项机制接线完整（发散 / 沿用方向 / 二阶反射 / 随机兜底）")
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -718,7 +772,7 @@ def main(argv=None):
                check_index_numbers, check_index_completeness, check_fences,
                check_frontmatter, check_round_consistency, check_policy_consistency,
                check_gate_inventory, check_layer_sum, check_tools,
-               check_version_fields):
+               check_version_fields, check_phase2_wiring):
         fn(root, f)
 
     if ns.json:

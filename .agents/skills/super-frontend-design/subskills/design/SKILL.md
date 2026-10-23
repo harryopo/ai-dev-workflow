@@ -1590,6 +1590,19 @@ WindowInsets.safeDrawing.asPaddingValues()
 - 选择风格（参考 Part 2 风格列表）
 - **禁忌检查**：确认设计方向没有触碰 Design Brief 中的任何设计禁忌
 
+#### 方向来源约束（C 端品牌场景）
+
+> C 端品牌场景（访客意图为 Persuade / Experience）在 creative 阶段已做过**方向发散**（`subskills/creative/SKILL.md` §0.5），用户在 2–3 个并置方向中选定了一个。design 必须**沿用该方向**，不得重新发散、不得绕过用户选择自行改方向。
+
+| 情形 | design 的动作 |
+|------|--------------|
+| `pass-data.yaml` 有 `selected-direction` | 读取该方向作为唯一依据；视觉论文必须与之一致。不一致 → 🔴 报错，退回 creative |
+| 有 `direction-candidates` 但无 `selected-direction` | ⛔ **停止**：用户还没选方向，退回 creative 完成选择，不得自行挑一个 |
+| 访客意图为 Operate / Read，或字段缺失 | 单方向流程：直接用视觉论文（无发散环节） |
+| 按现有风格重构流程 | 基准是统一设计稿，不适用本节 |
+
+**擅自换方向 = 严重违规**：绕过用户选定的方向去微调参数（换几个色值、改个圆角）不叫迭代，叫换了个方向但没告知用户。
+
 ### Step 1.5: Macrostructure选择
 
 > 加载 `references/macrostructures.md`，根据Design Brief中的场景关键词自动匹配Macrostructure。

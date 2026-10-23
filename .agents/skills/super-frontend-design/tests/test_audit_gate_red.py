@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Negative control for scripts/audit_integrity.py.
 
-Copies the skill to a scratch dir, injects one known defect at a time (15 cases:
-14 injected defects plus one bad-flag rejection), and requires the gate to fail
+Copies the skill to a scratch dir, injects one known defect at a time (18 cases:
+17 injected defects plus one bad-flag rejection), and requires the gate to fail
 with the expected check name. A gate that cannot go
 red is not measuring anything.
 """
@@ -95,9 +95,24 @@ CASES = [
     ("evals-version-lags-skill",
      lambda d: (d / "evals/evals.json").write_text(
          (d / "evals/evals.json").read_text(encoding="utf-8")
-         .replace('"version": "2.9.1"', '"version": "2.7.0"', 1),
+         .replace('"version": "2.10.0"', '"version": "2.7.0"', 1),
          encoding="utf-8"),
      "version-field"),
+    ("phase2-divergence-removed",
+     lambda d: (d / "subskills/creative/SKILL.md").write_text(
+         (d / "subskills/creative/SKILL.md").read_text(encoding="utf-8")
+         .replace("方向发散", "单方向"), encoding="utf-8"),
+     "phase2-wiring"),
+    ("phase2-second-order-removed",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("二阶反射", "一阶"), encoding="utf-8"),
+     "phase2-wiring"),
+    ("phase2-random-faked",
+     lambda d: (d / "scripts/random_draw.py").write_text(
+         (d / "scripts/random_draw.py").read_text(encoding="utf-8")
+         .replace("os.urandom(4)", "random.randrange(4)"), encoding="utf-8"),
+     "phase2-wiring"),
 ]
 
 

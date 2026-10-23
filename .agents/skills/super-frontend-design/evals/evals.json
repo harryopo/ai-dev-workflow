@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.9.1",
+  "version": "2.10.0",
   "evals": [
     {
       "id": "core-001",
@@ -181,6 +181,60 @@
       "expected_routing": "research（第 4 轮：情绪板 → 参数推导，强制）",
       "expected_output": ["色相策略（暖色相/类似色）", "字体气质与材质结论", "推导落进 DESIGN.md 对应 section"],
       "anti_pattern": ["不应只记录三个关键词而没有推导", "不应让情绪板停留在沟通话术"]
+    },
+    {
+      "id": "v210-001",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "帮我做个 AI 搜索产品的官网，风格你定，随便来",
+      "expected_routing": "research（访客意图=Persuade → 5 轮调研 + C 端方向发散）",
+      "expected_output": ["Design Brief（访客意图分类标为 Persuade/Experience）", "creative 阶段产出 2-3 个并置方向（命名运动+视觉论文+关键 Token 提案）", "AskUserQuestion 让用户选定方向，selected-direction 落进 pass-data.yaml"],
+      "anti_pattern": ["不应只产出 1 个方向（Persuade 场景必须发散）", "不应替用户默认选定方向", "不应两个方向差异维度 < 2 或主色 hex 相同"]
+    },
+    {
+      "id": "v210-002",
+      "category": "core",
+      "subcommand": "creative",
+      "prompt": "给我的品牌官网想几个视觉方向",
+      "expected_routing": "creative（§0.5 方向发散）",
+      "expected_output": ["2-3 个完整独立方向", "每个方向含命名运动 + 视觉论文 5 问 + 3-5 个关键 Token 具体值", "并置呈现 + 诚实取舍分析"],
+      "anti_pattern": ["不应把同一想法换词当多方向", "不应只写形容词不给具体 Token 值", "不应彩虹屁式取舍（每个方向都要写代价）"]
+    },
+    {
+      "id": "v210-003",
+      "category": "edge",
+      "subcommand": "review",
+      "prompt": "审查这个 AI 工具官网，我已经说了不要米色不要圆润卡片",
+      "expected_routing": "review（§0 检查表 #11 二阶反射检查）",
+      "expected_output": ["构造猜测句：给一个 AI 工具官网做设计，不要米色不要圆润卡片，会做成什么样", "判断该猜测句能否命中本次主题与配色", "命中则标红：回 creative §0.5 换方向重做"],
+      "anti_pattern": ["不应只做一阶检查（只看品类能否猜到）", "不应命中后只建议换配色（那是参数微调不是换方向）"]
+    },
+    {
+      "id": "v210-004",
+      "category": "edge",
+      "subcommand": "research",
+      "prompt": "配色你随便选一个吧",
+      "expected_routing": "research（结构化随机兜底）",
+      "expected_output": ["生成 2-3 个同等合理候选", "调用 scripts/random_draw.py 做外部随机抽签（os.urandom）", "回传候选清单与抽中项，标记 [默认假设·随机抽取]"],
+      "anti_pattern": ["不应默选最保守方案", "不应声称随机但没调用脚本", "不应静默替换抽签结果"]
+    },
+    {
+      "id": "v210-005",
+      "category": "boundary",
+      "subcommand": "design",
+      "prompt": "做个内部运营管理后台，带数据表格和审批流",
+      "expected_routing": "design（访客意图=Operate → 跳过方向发散，单方向流程）",
+      "expected_output": ["无 direction-candidates，直接用视觉论文", "design-context 生成设计稿"],
+      "anti_pattern": ["不应强制用户选方向（B 端发散是负担）"]
+    },
+    {
+      "id": "v210-006",
+      "category": "boundary",
+      "subcommand": "design",
+      "prompt": "按我选的那个方向开始做页面",
+      "expected_routing": "design（沿用 selected-direction）",
+      "expected_output": ["读取 pass-data.yaml 的 selected-direction 作为唯一依据", "视觉论文与该方向一致"],
+      "anti_pattern": ["不应重新发散", "不应绕过用户选定方向自行改方向"]
     }
   ]
 }
