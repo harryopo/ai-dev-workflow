@@ -1,5 +1,77 @@
 # super-frontend-design Release Notes
 
+## v2.13.0 (2026-10-23) — 状态契约：让"只能演示 happy path"变成可机检的失败
+
+### 为什么做这件事
+
+`references/admin-enterprise-patterns.md` §8 早就写了「空态 / 加载态 / 错误态」三态纪律，末尾还有一句"每个列表页交付前自查：首次进入、筛选无结果、加载中、接口失败、无权限——五个状态都有设计才允许交付"。
+
+但实测发现这套纪律有个致命问题：**它只是参考文件里的一张人工清单**。`review` 的 13 项检查表不引用它，`design` 的 Step 6 交付清单也不引用它，没有任何一道门禁会读它。
+
+为了确认这不是印象而是事实，我造了一个"典型 AI 生成的订单列表页"做探针，逐个跑现有全部门禁：
+
+- 第一版带 AI 默认 indigo 色 → slop_scan 抓到了，这是符合预期的
+- 改到完全合规（换 teal 主色、补 `:focus-visible`、加签名标记、加构图契约）→ **slop_scan / token_lint / signature_check / composition_check 四道门禁全部 PASS**
+- 而这个页面依然：**没有任何加载态、空态、错误态、无权限态**
+
+把接口关掉、数据库清空、网络断掉，用户看到的就是一块空白。**门禁全绿，交付物只能演示 happy path。**
+
+这不是 C 端专属问题——B 端最常见的交付事故正是这个。而且它和前两阶段修的是同一类病的第三个变种：v2.11.0 修"没有辨识度"，v2.12.0 修"层级失焦"，这一版修"半成品交付"。
+
+### 状态契约是什么
+
+页面存在异步数据或用户可触发操作时，用一个标记声明它覆盖哪些状态：
+
+```css
+/* states: loading,empty,error */
+```
+
+```html
+<!-- states: loading,empty,error -->
+```
+
+**派生表**由 research 第 3 轮的「交互复杂度」驱动——这是本次新增 `interaction-complexity` pass-data 字段的原因。此前那个问题（问题 8）的答案只进 Design Brief 的自由文本，下游没有任何字段能消费它：
+
+| `interaction-complexity` | 必须声明 |
+|---|---|
+| `static` | 无（**明确豁免**） |
+| `basic` | `error`、`success` |
+| `moderate` | `loading`、`empty`、`error` |
+| `complex` | `loading`、`empty`、`error`、`no-permission` |
+| `app` | `loading`、`empty`、`error`、`success`、`no-permission` |
+
+**`static` 豁免是设计的一部分，不是遗漏**。一条静态营销页没有 loading 态不是缺陷；要求它写 `/* states: */` 只会训练出"为了过门禁而堆标记"的反向作弊——那比没有门禁更糟，因为它让门禁从"防漏"退化成"看会不会抄"。
+
+### 新增第 9 道门禁 `scripts/state_check.py`
+
+判定规则：
+- **声明了但代码里没实现 → FAIL**（`state-declared-not-landed`）——这是门禁要抓的核心谎言
+- **零声明且零实现、复杂度非 static → FAIL**（`state-absent`）
+- **复杂度要求的状态声明里缺 → FAIL**（`state-required-missing`）
+- **实现了但没声明 → WARN**，不阻塞（可能是实现先于声明）
+- `--complexity` 取值越界 → exit 2，不静默按"无要求"处理
+
+**证据判定刻意宽松**（类名 / `data-state` / 文案三选一）。脚本只证明"这个状态在代码里出现过"，不判断状态设计得好不好——骨架屏对不对位、错误态有没有重试入口，那是 review #14 的人工职责。**脚本保证"做了"，review 保证"做对了"，两者不可互相替代。**
+
+### 顺手修掉 v2.12.0 遗留的一个真 bug
+
+探针过程中发现的：`composition_check.py` 的正则只认 `/* composition: */` CSS 块注释，但 `signature_check.py` 同时支持 HTML 注释。**同一套机制内部口径不一致**——而 Tailwind v4 项目、单文件 HTML 项目根本没有独立 CSS 文件，按 v2.12.0 文档"写 CSS 顶部"的要求，这类项目必然误判为 `composition-absent`。
+
+现在 `composition_check.py` 也支持 `<!-- composition: -->`，`composition-contract.md` §3.1 重写成"载体随项目形态"的三行表。契约测试 17 → 20 项，专门锁住 HTML 载体、双载体混用、HTML 载体缺要素仍要抓。
+
+### 门禁与防退化
+
+新增 `check_phase5_wiring` 审计项：校验 6 处接线存在、五档派生表齐全、三条失败规则未被掏空、static 豁免分支未被删。配 10 条 mutation。audit 检查项 49 → 50。
+
+**mutation 过程中抓到一条假绿灯**：最初审计用 `re.search("state-absent", src)` 裸子串匹配，把 `"rule": "state-absent"` 改成 `"rule": "state-absent-note"` 后仍能匹配——mutation 显示 exit=0 MISMATCH。已改为完整的 `"rule": "xxx"` 形式匹配。**教训和 v2.11.0 那次一样：规则存在性检查不能用裸子串，否则同名前缀的替换就能骗过它。**
+
+### 其余
+
+- 主 SKILL.md 铁律 11 → 12 条（新增「状态契约必须落地到代码」，含 static 豁免条款）；§7.2 pass-data 增 `interaction-complexity` + `states` 字段；§6 资源索引补新参考 / 新脚本 / 新测试
+- 门禁数 8 → 9（SKILL.md §3.6 / §6 / §8 + design §16 四处同步）
+- README：工作流图标注状态链路、design/review 子命令说明、项目结构补新脚本、版本历史补 v2.13.0
+- evals 38 → 44 条：v213-001（moderate 派生）/ 002（static 豁免）/ 003（complex 派生）/ 004（状态审查）/ 005（假声明）/ 006（app 全量五态）
+
 ## v2.12.0 (2026-10-23) — 构图契约：让"层级失焦"也变成可机检的失败
 
 ### 为什么做这件事

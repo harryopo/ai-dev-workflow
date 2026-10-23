@@ -174,6 +174,49 @@ CASES = [
                 (d / "scripts/composition_check.py").read_text(encoding="utf-8"),
                 count=1), encoding="utf-8"),
      "phase4-wiring"),
+    ("phase5-state-contract-removed",
+     lambda d: (d / "references/state-contract.md").unlink(),
+     "phase5-wiring"),
+    ("phase5-complexity-field-removed",
+     lambda d: (d / "subskills/research/SKILL.md").write_text(
+         (d / "subskills/research/SKILL.md").read_text(encoding="utf-8")
+         .replace("interaction-complexity", "interaction-level"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-state-landing-removed",
+     lambda d: (d / "subskills/design/SKILL.md").write_text(
+         (d / "subskills/design/SKILL.md").read_text(encoding="utf-8")
+         .replace("状态契约落地", "风格统一"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-state-review-removed",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("状态覆盖完整性", "整体观感"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-state-checker-gutted",
+     lambda d: (d / "scripts/state_check.py").write_text(
+         (d / "scripts/state_check.py").read_text(encoding="utf-8")
+         .replace("state-declared-not-landed", "state-note"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-required-rule-gutted",
+     lambda d: (d / "scripts/state_check.py").write_text(
+         (d / "scripts/state_check.py").read_text(encoding="utf-8")
+         .replace("state-required-missing", "state-note"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-static-exemption-removed",
+     lambda d: (d / "scripts/state_check.py").write_text(
+         (d / "scripts/state_check.py").read_text(encoding="utf-8")
+         .replace('complexity == "static"', "False"), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-state-absent-gutted",
+     lambda d: (d / "scripts/state_check.py").write_text(
+         (d / "scripts/state_check.py").read_text(encoding="utf-8")
+         .replace('"rule": "state-absent",', '"rule": "state-absent-note",'), encoding="utf-8"),
+     "phase5-wiring"),
+    ("phase5-complexity-tier-gutted",
+     lambda d: (d / "scripts/state_check.py").write_text(
+         (d / "scripts/state_check.py").read_text(encoding="utf-8")
+         .replace('"complex": {', '"complex-x": {'), encoding="utf-8"),
+     "phase5-wiring"),
 ]
 
 

@@ -1,3 +1,18 @@
+v2.13.0 (2026-10-23)
+- 状态契约落地（把"只能演示 happy path"变成可机检的失败）：
+  - 新增 references/state-contract.md：页面级状态六种（loading/empty/error/success/no-permission/offline）+ 交互复杂度五档派生表 + 落地证据判据表 + static 豁免
+  - research 第 3 轮问题 8 落成 pass-data `interaction-complexity` 字段（static/basic/moderate/complex/app 五档映射表）；Design Brief 交互需求段同步
+  - design Step 1.5 后新增 Step 1.7「状态契约落地」（不可跳过）：3 条硬约束 + 派生表 + 5 条落地自检；Step 6 交付清单增状态契约项
+  - review §0 检查表增 #14「状态覆盖完整性」并展开（脚本分工表 + 3 步判定 + 质量判据表）；评分 13 → 14 项；critique Assessment A + 命令行 + 报告模板同步
+  - 主 SKILL.md 铁律 11 → 12 条（新增状态契约落地铁律，含 static 豁免）；§7.2 pass-data 增 interaction-complexity + states 字段
+- 新增 scripts/state_check.py（第 9 道门禁）：声明与派生表一致性 + 每个声明的状态必须有实现证据；static 豁免；--complexity 取值越界 exit 2
+- 新增 tests/test_state_check.py（20 项契约测试）
+- 新增门禁 check_phase5_wiring：校验 6 处接线 + 五档派生表 + 三条失败规则（完整 "rule": "xxx" 形式）+ static 豁免分支；配 10 条 mutation；audit 检查项 49 → 50
+- **修复 v2.12.0 遗留的载体口径不一致**：composition_check.py 此前只认 CSS 块注释，Tailwind / 单文件 HTML 项目（无独立 CSS 文件）必然误判为 composition-absent。现已支持 HTML 注释载体，与 signature_check 对齐；composition-contract.md §3.1 重写为"载体随项目形态"表；composition_check 契约测试 17 → 20 项
+- 门禁数 8 → 9（SKILL.md §3.6 / §6 / §8 + design §16 四处表述同步）
+- evals 38 → 44 条（v213-001~006：moderate 派生 / static 豁免 / complex 派生 / 状态审查 / 假声明 / app 全量五态）
+- 版本号 2.12.0 → 2.13.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.12.0 (2026-10-23)
 - 构图契约落地（把视觉重心/节奏/密度纳入可追溯传递）：
   - 新增 references/composition-contract.md：构图六要素字段表（取值来源 + 为何不含 button）+ 视觉重心三级规则 + §3.2 落地判据表（标记 ≠ 声明就完事）

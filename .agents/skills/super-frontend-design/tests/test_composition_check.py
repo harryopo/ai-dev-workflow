@@ -94,6 +94,32 @@ NO_CONTRACT = """/* macrostructure: 05·Workbench · theme: Tally · genre: SaaS
 .work { display: grid; }
 """
 
+# Tailwind / 单文件 HTML 项目没有独立 CSS 文件，标记只能写在 HTML 注释里。
+# 只认 CSS 载体会让这类项目必然误判为「没有任何契约」。
+HTML_CARRIER = """<!-- macrostructure: 01·Bento Grid · theme: Tally -->
+<!-- composition: heading-anchor=各模块内 -->
+<!-- composition: body-columns=多栏不对称 -->
+<!-- composition: divider=负间距/留白 -->
+<!-- composition: imagery=混合 -->
+<!-- composition: entrance=stagger fade-up -->
+<!-- composition: focus-hierarchy=2 -->
+<div class="grid">...</div>
+"""
+
+# HTML 与 CSS 双载体混用也必须认（Vue SFC / 组件库场景常见）
+MIXED_CARRIER = """<template>
+<!-- composition: heading-anchor=各模块内 -->
+</template>
+<style>
+/* macrostructure: 01·Bento Grid · theme: Tally */
+/* composition: body-columns=多栏不对称 */
+/* composition: divider=负间距/留白 */
+/* composition: imagery=混合 */
+/* composition: entrance=stagger fade-up */
+/* composition: focus-hierarchy=2 */
+</style>
+"""
+
 
 def write(tmp, name, content):
     p = Path(tmp) / name
@@ -109,6 +135,8 @@ def main():
         badfocus = write(tmp, "badfocus.css", BAD_FOCUS)
         emptyval = write(tmp, "emptyval.css", EMPTY_VALUE)
         nocontract = write(tmp, "nocontract.css", NO_CONTRACT)
+        htmlcarrier = write(tmp, "carrier.html", HTML_CARRIER)
+        mixedcarrier = write(tmp, "mixed.html", MIXED_CARRIER)
 
         r = run([str(valid)])
         check("valid-contract-passes", r.returncode == 0,
@@ -143,6 +171,24 @@ def main():
               "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
         check("no-contract-reports-rule",
               "composition-absent" in r.stdout, r.stdout[-300:])
+
+        # HTML 注释载体：Tailwind / 单文件 HTML 项目没有 CSS 文件
+        r = run([str(htmlcarrier)])
+        check("html-carrier-passes", r.returncode == 0,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+
+        # HTML 注释里缺要素同样要抓——载体换了不是豁免
+        html_missing = write(tmp, "htmlmissing.html",
+                             HTML_CARRIER.replace(
+                                 "<!-- composition: focus-hierarchy=2 -->\n", ""))
+        r = run([str(html_missing)])
+        check("html-carrier-missing-field-fails", r.returncode == 1,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+
+        # 双载体混用
+        r = run([str(mixedcarrier)])
+        check("mixed-carrier-passes", r.returncode == 0,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
 
         r = run([str(valid), "--require-macrostructure", "Bento Grid"])
         check("matching-macrostructure-passes", r.returncode == 0,

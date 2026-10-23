@@ -1703,15 +1703,18 @@ composition:
 **落地 3 条硬约束**：
 
 1. **六项必须全写**——缺任一项视为未落地
-2. **必须写进代码**——CSS 顶部与 macrostructure stamp 同区，逐项一行：
-   ```css
-   /* composition: heading-anchor=各模块内 */
-   /* composition: body-columns=多栏不对称 */
-   /* composition: divider=负间距/留白 */
-   /* composition: imagery=混合（部分模块有图，部分无图） */
-   /* composition: entrance=stagger fade-up */
-   /* composition: focus-hierarchy=2 */
-   ```
+2. **必须写进代码**——与 macrostructure stamp 同文件同区，逐项一行。**载体随项目形态**：
+   - 有独立 CSS 文件的项目写在 **CSS 顶部**：
+     ```css
+     /* composition: heading-anchor=各模块内 */
+     /* composition: body-columns=多栏不对称 */
+     /* composition: divider=负间距/留白 */
+     /* composition: imagery=混合（部分模块有图，部分无图） */
+     /* composition: entrance=stagger fade-up */
+     /* composition: focus-hierarchy=2 */
+     ```
+   - **Tailwind / 单文件 HTML / 无独立 CSS 文件的项目写在 HTML 注释**（`<!-- composition: ... -->`）——门禁两种载体都认，写错位置不会误判，但别指望写在 CSS 里就能覆盖纯 HTML 项目
+   - Vue SFC 等双载体场景可混用，同一要素只声明一次（重复声明取首见）
 3. **声明必须与实现一致**——标记只是对账锚点，不是通行证。按 composition-contract §3.2 的落地判据逐项对照代码：声明"负间距/留白"就得真有负 margin 或大间距；声明 `单栏 65ch` 就得有量级约束；声明 `focus-hierarchy=1` 首屏就不得有两个同级焦点
 
 **视觉重心（focus-hierarchy）取值的唯一判断依据**：
@@ -1733,6 +1736,48 @@ composition:
 - [ ] 声明与代码实际行为逐项对得上吗？（对照 composition-contract §3.2 判据表）
 - [ ] 首屏同级焦点 ≤ 1 吗？
 - [ ] 视觉重心落点与 `heading-anchor` 声明一致吗？
+
+#### Step 1.7: 状态契约落地（v2.13.0，不可跳过）
+
+> **为什么有这一步**：`admin-enterprise-patterns.md` §8 早就写了空态 / 加载态 / 错误态三态纪律和"列表页五状态齐全才允许交付"的自查清单，但那只是参考文件里的一张人工清单——没有任何阶段引用它，也没有任何门禁读它。实测验证过：一个完全通过 slop_scan / token_lint / signature_check / composition_check 的页面，可以没有任何加载态、空态、错误态。**所有门禁全绿，交付物仍然是个只能演示 happy path 的壳。**
+
+**加载** `references/state-contract.md`。
+
+**输入**：`pass-data.yaml` 的 `interaction-complexity` 字段（research 第 3 轮问题 8 映射）。
+
+| 情形 | design 的动作 |
+|------|--------------|
+| `interaction-complexity` 存在 | 按派生表确定必须声明的状态集，落地实现并写入 `pass-data.yaml` 的 `states` 字段 |
+| 字段缺失但页面明显有异步数据 | 自行判定复杂度档位，标注 `[档位自判，research 未提供]` 并回报上游 |
+| `static` | **豁免**——静态营销页没有异步数据，不要求 `/* states: */` |
+
+**派生表**（复杂度 → 必须声明的状态）：
+
+| `interaction-complexity` | 必须声明 |
+|---|---|
+| `static` | 无（豁免） |
+| `basic` | `error`、`success` |
+| `moderate` | `loading`、`empty`、`error` |
+| `complex` | `loading`、`empty`、`error`、`no-permission` |
+| `app` | `loading`、`empty`、`error`、`success`、`no-permission` |
+
+**落地 3 条硬约束**：
+
+1. **声明必须与派生表一致**——`moderate` 只声明 `loading` 一个也算没落地
+2. **必须写进代码**——与 macrostructure stamp 同文件，载体同构图契约（CSS 顶部或 HTML 注释）：
+   ```css
+   /* states: loading,empty,error */
+   ```
+3. **声明的状态必须有实现证据**——标记不是通行证。`state_check.py` 会逐状态找证据（类名 / `data-state` / 文案），找不到就 FAIL。**不要为了过门禁堆标记**：写 `/* states: loading,empty,error */` 但代码里没有任何加载态实现，比不写更糟——它让门禁从"防漏"退化成"看会不会抄"。
+
+**落地自检（写完代码后逐条回答）**：
+
+- [ ] `interaction-complexity` 从哪来的？research 提供的还是自判的？
+- [ ] 派生表要求的状态都声明了吗？
+- [ ] 每个声明的状态在代码里都有实现证据吗？（骨架屏 / 空态文案 / 重试入口）
+- [ ] 骨架屏占位与真实内容对位吗？内容回来时布局跳不跳？
+- [ ] 错误态说清"发生了什么 + 能做什么"了吗？还是只有"出错了"三个字？
+- [ ] 筛选无结果和数据为空是同一个空态吗？（前者应提示"换个筛选条件"）
 
 ### Step 2: 生成设计系统
 
@@ -1841,6 +1886,7 @@ composition:
 - [ ] **视觉论文追溯**：代码中的主要决策能否追溯到视觉论文的 5 个方向？
 - [ ] **签名已落地**：`/* signature: */` 标记注释是否存在？落点是否在视觉焦点区？陌生人截屏能认出是哪个产品吗？（零落点 = 交付模板）
 - [ ] **构图契约已落地**：六项 `composition:` 标记是否齐全？声明与代码实际行为是否逐项对得上？首屏同级焦点 ≤ 1 吗？（选了什么结构 ≠ 做出了那个结构）
+- [ ] **状态契约已落地**：`/* states: */` 标记是否与 `interaction-complexity` 派生表一致？每个声明的状态在代码里都有实现证据吗？（把接口关掉、数据清空、网络断掉，页面还剩下什么？）
 - [ ] 无反模式（见 Part 9）？
 - [ ] 需求简报（Design Brief）已确认？
 - [ ] 全网搜索参考已解构优化（非直接照搬）？
@@ -1874,7 +1920,7 @@ composition:
 3. **五态纪律**：列表页的首次/空结果/加载/失败/无权限五个状态缺一不可（§8）
 4. **视觉收敛**：正文 14px 主导、中性色主导、动效只做 150-250ms 状态反馈；
    禁止把营销页的 Hero/渐变/大字搬进后台（§10 差异表）
-5. **门禁照常**：反 AI 味与 Token 纪律不因 B 端豁免，交付前八道门禁照跑
+5. **门禁照常**：反 AI 味与 Token 纪律不因 B 端豁免，交付前九道门禁照跑
 
 ### 与技术栈的衔接
 

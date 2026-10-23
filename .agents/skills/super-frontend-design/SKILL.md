@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.12.0
+version: 2.13.0
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面、按现有风格重构、统一风格。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -298,6 +298,7 @@ research（需求调研+参考搜索）→ design-context（设计上下文初�
 9. **"随便"不默选保守项**：用户说"随便/都行/你定"时，在同等合理的 2–3 个候选中做真正的外部抽签（`scripts/random_draw.py`），并回传抽签结果——见 research「结构化随机兜底」
 10. **签名必须落地到代码**：调研必须产出至少 1 条签名识别符，creative 必须把它绑定到选定方向，design 必须在代码中实现并加 `/* signature: */` 标记注释——零落点 = 交付模板，审查必挂——见 design「签名落地」
 11. **构图契约必须落地到代码**：选定 macrostructure 后，design 必须把构图六要素（标题锚点 / 正文列数 / 分隔手段 / 图片处理 / 入场形态 / 视觉重心）逐项写进代码（`/* composition: */` 标记），review 逐项对账——只写 Token 不写构图 = 层级失焦，审查必挂——见 design「构图契约落地」
+12. **状态契约必须落地到代码**：`interaction-complexity` 非 `static` 时，design 必须按派生表声明页面级状态（`/* states: */`）并实现——零状态 = 只能演示 happy path，把接口关掉就只剩空白，审查必挂；`static` 场景明确豁免，禁止要求静态页堆状态标记——见 design「状态契约落地」
 
 **调研输出**：Design Brief（需求简报）+ `output/design-system.md`（9-section 结构化设计系统文件）
 
@@ -315,7 +316,7 @@ research（现有风格审计：扫描现有代码 + 门禁测量 → 风格画�
     → ⛔ 用户确认设计稿（硬门：确认前禁止改实现代码）
       → design（按稿重构）
         → review/critique（照常）
-          → 八道门禁（照常）
+          → 九道门禁（照常）
             → 询问是否固化风格（保存 DESIGN.md/PRODUCT.md 到项目根）
 ```
 
@@ -479,6 +480,7 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/gsap-animation-guide.md | GSAP 动效最佳实践 | design / animate 子命令 |
 | references/anti-ai-slop.md | 14 条精确反 AI 味规则 | design / review 子命令 |
 | references/composition-contract.md | 构图契约六要素 + 视觉重心三级规则（v2.12.0） | design / review 子命令 |
+| references/state-contract.md | 状态契约：页面级状态六种 + 交互复杂度派生表 + 落地证据判据（v2.13.0） | design / review 子命令 |
 | references/saturated-lanes.md | 饱和风格赛道清单（防"参考驱动像"的第二层同质化） | review / critique 子命令 |
 | references/typography.md | Typography 硬规则（字体/字重/行高禁令） | review 子命令 §2.16 |
 | references/premium-design-rules.md | 16 条数值化高级感规范 | design 子命令 |
@@ -515,7 +517,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | scripts/random_draw.py | 结构化随机抽签：os.urandom 等概率抽取 + 留痕输出（候选/选中/熵源/时间戳）；候选不足 2 个时 exit 2 | research（用户说"随便"时） |
 | scripts/signature_check.py | 签名落地检查：统计 `/* signature: */` 落点数量与可见性；零落点/全在页脚/首页无签名判失败 | design 交付前 + review #12 |
 | scripts/composition_check.py | 构图契约检查：校验 `/* composition: */` 六要素齐全、focus-hierarchy 取值合法、与 macrostructure 戳记一致 | design 交付前 + review #13 |
-| rules/gates.json | 八道门禁清单（脚本路径、触发时机、是否可选），audit_integrity 用它反查文档一致性 | 交付前自检 |
+| scripts/state_check.py | 状态契约检查：校验 `/* states: */` 声明与 interaction-complexity 派生表一致、每个声明的状态在代码里有实现证据；static 场景豁免 | design 交付前 + review #14 |
+| rules/gates.json | 九道门禁清单（脚本路径、触发时机、是否可选），audit_integrity 用它反查文档一致性 | 交付前自检 |
 | rules/stylelint.config.json | 结构层的 CSS 规则表（颜色/字体必须走 var()，属性名/函数/单位真校验） | structure_lint |
 | rules/html-validate.config.json | 结构层的标记规则表（recommended + WCAG 项，关掉排版风格类规则） | structure_lint |
 | templates/sfd-tools/package.json | 结构层依赖清单（6 个包，全 MIT）：复制到仓库根 `.sfd-tools` 后 `npm install --ignore-scripts` | 换机器时装结构层 |
@@ -534,7 +537,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | tests/test_audit_gate_red.py | 往副本注入 17 类缺陷 + 1 项参数拼写拒跑（共 18 项），证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
 | tests/test_random_draw.py | random_draw 契约测试：等概率性、去重、单候选必拒、留痕字段完整 | 交付前自检 |
 | tests/test_signature_check.py | signature_check 契约测试：零落点必失败、页脚落点必失败、首页无签名必失败、嵌套注释不误计 | 交付前自检 |
-| tests/test_composition_check.py | composition_check 契约测试（17 项）：缺要素必失败、无 macrostructure 戳记必失败、focus 取值越界必失败 | 交付前自检 |
+| tests/test_composition_check.py | composition_check 契约测试（20 项）：缺要素必失败、无 macrostructure 戳记必失败、focus 取值越界必失败、HTML/Tailwind 载体必认 | 交付前自检 |
+| tests/test_state_check.py | state_check 契约测试（20 项）：假声明必失败、static 豁免必通过、复杂度越界必拒跑、派生规则必生效 | 交付前自检 |
 
 **预设主题列表：**
 
@@ -600,6 +604,8 @@ direction-candidates:            # 仅 C 端品牌场景（visitor-intent = Pers
     key-tokens: {{--token: value}, ...}
     trade-off: {换来什么 / 牺牲什么}
 selected-direction: {A | B | C}  # 用户选定；缺此项时 design 必须停止并退回 creative
+interaction-complexity: {static | basic | moderate | complex | app}
+                          # v2.13.0：research 第 3 轮问题 8 的映射值——状态契约的派生依据
 signature:                    # v2.11.0：签名识别符（反模板的唯一肯定式检查）
   identifier: {签名识别符一句话}
   expression: {落地方式}
@@ -612,6 +618,7 @@ composition:                  # v2.12.0：构图契约六要素（Step 1.6，必
   imagery: {图片处理}
   entrance: {入场动效形态}
   focus-hierarchy: {1 | 2 | 3}
+states: {loading, empty, error, ...}   # v2.13.0：状态契约声明（Step 1.7，必须与 interaction-complexity 派生表一致且代码里有实现证据）
 visual-thesis:
   color-direction: {配色方向}
   typography-direction: {排版方向}
@@ -678,7 +685,7 @@ output/
 - ✅ **每个阶段结束自动触发 review 审查**：调用 subskills/review/SKILL.md（基于 impeccable），形成质量闭环
 - ✅ **遵循各子命令的完整工作流**：不要省略步骤，每个步骤都有其目的
 - ✅ **输出可运行的代码**：design 子命令输出的代码必须可直接运行
-- ✅ **交付前跑八道门禁**（清单见 `rules/gates.json`，改哪条都要同步这里）：改过本 Skill 的任何文件 → `python ${SKILL_DIR}/scripts/audit_integrity.py`；产出了 UI 代码 → `slop_scan.py <产物路径>`（静态反 AI 味）、`signature_check.py <产物目录>`（签名落地：落点数量与可见性，零落点必失败）、`token_lint.py <产物>`（Token 与 DESIGN.md 对账）、`render_probe.py <产物.html>`（对比度/横向滚动/焦点/alt，Playwright 离线）、`node ${SKILL_DIR}/scripts/structure_lint.mjs <产物>`（stylelint + html-validate 真解析，需项目本地 `.sfd-tools`：`cp -r ${SKILL_DIR}/templates/sfd-tools <仓库根>/.sfd-tools && cd <仓库根>/.sfd-tools && npm install --ignore-scripts`；没装时退出码 2 并说明，不许当成通过），`render_probe.py --apca` 还会用 colorjs.io 量 APCA 感知对比度（Lc 阈值只认 `rules/policy.json`），有参考图时再跑 `visual_diff.py check <产物.html> --reference 参考图.png`。任一退出码非 0 视为未完成，不得声称已修好；退出码 2 表示根本没扫到东西或参数拼错，同样不算通过。改过门禁脚本本身还要跑 `tests/` 下的契约测试与 `test_audit_gate_red.py`
+- ✅ **交付前跑九道门禁**（清单见 `rules/gates.json`，改哪条都要同步这里）：改过本 Skill 的任何文件 → `python ${SKILL_DIR}/scripts/audit_integrity.py`；产出了 UI 代码 → `slop_scan.py <产物路径>`（静态反 AI 味）、`signature_check.py <产物目录>`（签名落地：落点数量与可见性，零落点必失败）、`composition_check.py <产物目录>`（构图契约：六要素齐全 + 与 macrostructure 戳记一致，CSS/HTML 双载体）、`state_check.py <产物目录> --complexity <档位>`（状态契约：声明与 interaction-complexity 派生表一致 + 每个声明的状态有实现证据，static 豁免）、`token_lint.py <产物>`（Token 与 DESIGN.md 对账）、`render_probe.py <产物.html>`（对比度/横向滚动/焦点/alt，Playwright 离线）、`node ${SKILL_DIR}/scripts/structure_lint.mjs <产物>`（stylelint + html-validate 真解析，需项目本地 `.sfd-tools`：`cp -r ${SKILL_DIR}/templates/sfd-tools <仓库根>/.sfd-tools && cd <仓库根>/.sfd-tools && npm install --ignore-scripts`；没装时退出码 2 并说明，不许当成通过），`render_probe.py --apca` 还会用 colorjs.io 量 APCA 感知对比度（Lc 阈值只认 `rules/policy.json`），有参考图时再跑 `visual_diff.py check <产物.html> --reference 参考图.png`。任一退出码非 0 视为未完成，不得声称已修好；退出码 2 表示根本没扫到东西或参数拼错，同样不算通过。改过门禁脚本本身还要跑 `tests/` 下的契约测试与 `test_audit_gate_red.py`
 - ✅ **语义化 Token**：所有颜色、间距、字体使用语义化命名，并用 `token_lint.py` 证明没有未定义引用与死 Token
 - ✅ **全网搜索结果必须经过解构优化**：不可直接照搬搜索结果，必须经过解构→分析→融合→优化四步流程
 - ✅ **跨领域借鉴**：设计思考不局限于 UI 领域，主动从建筑、时尚、工业设计等领域获取灵感

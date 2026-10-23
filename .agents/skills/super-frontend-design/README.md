@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.12.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.13.0-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -40,8 +40,8 @@ research（15维度调研）
   → design-context（设计上下文初始化）
     → creative（灵感探索 · C端品牌场景在此发散 2-3 个方向 · 每方向绑定签名识别符）
       → theme（确定主题/配色 · 推导签名专属 Token）
-        → design（设计实现 · 沿用用户选定方向 · 签名落地到代码 · 构图契约落地到代码）
-          → review/critique（质量审查 · 含签名可识别性 + 构图契约一致性检查）
+        → design（设计实现 · 沿用用户选定方向 · 签名落地到代码 · 构图契约落地到代码 · 状态契约落地到代码）
+          → review/critique（质量审查 · 含签名可识别性 + 构图契约一致性 + 状态覆盖完整性）
 ```
 
 > **C 端品牌场景（Persuade / Experience）多一道方向发散**：creative 阶段产出 2–3 个完整独立方向（命名运动 + 视觉论文 + 关键 Token 提案 + 签名识别符），并置呈现带取舍分析，由用户选定其一；design 沿用该方向。B 端（Operate）与内容站（Read）跳过此步。详见 `subskills/creative/SKILL.md` §0.5。
@@ -57,9 +57,9 @@ research（15维度调研）
 | `research` | 需求调研、设计参考、找参考 | 15维度调研 + 全网搜索 + 签名线索挖掘 |
 | `design-context` | 设计上下文、初始化项目 | PRODUCT.md + DESIGN.md 生成 |
 | `creative` | 生成艺术、p5.js、粒子系统 | 算法艺术 + 视觉探索 + C端方向发散 |
-| `design` | 设计页面、UI、重构前端 | 完整设计实现（含桌面端）+ 签名/构图契约落地 |
+| `design` | 设计页面、UI、重构前端 | 完整设计实现（含桌面端）+ 签名/构图契约/状态契约落地 |
 | `theme` | 配色、字体、主题 | 10预设主题 + 自定义 + Token 输出 |
-| `review` | 审查UI、设计评分 | 19维度检查 + 56条 Slop Test（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对）+ 签名可识别性检查 + 构图契约一致性检查 |
+| `review` | 审查UI、设计评分 | 19维度检查 + 56条 Slop Test（其中可静态判定的部分由 `slop_scan.py` 执行，判定表见 `rules/slop-table.json`，其余人工核对）+ 签名可识别性检查 + 构图契约一致性检查 + 状态覆盖完整性检查 |
 | `critique` | 深度审查、双代理审查 | Assessment A+B + 26条 Craft Floor |
 | `refine` | polish、bolder、quieter | 命令式优化接口 |
 | `animate` | 动效、GSAP、桌面动效 | 动效设计 + 跨平台动效方案 |
@@ -186,7 +186,7 @@ super-frontend-design/
 │   ├── refine/SKILL.md             # 命令式优化
 │   └── animate/SKILL.md            # 动效设计（含桌面动效）
 ├── scripts/
-│   ├── audit_integrity.py          # 结构自检门禁（49 项）
+│   ├── audit_integrity.py          # 结构自检门禁（50 项）
 │   ├── slop_scan.py                # 静态反 AI 味门禁（30 条）
 │   ├── token_lint.py               # Token 门禁
 │   ├── structure_lint.mjs          # CSS/HTML 结构门禁
@@ -195,6 +195,7 @@ super-frontend-design/
 │   ├── random_draw.py              # 结构化随机抽签（os.urandom 等概率）
 │   ├── signature_check.py          # 签名落地门禁（落点数量与可见性）
 │   ├── composition_check.py        # 构图契约门禁（六要素齐全 + 视觉重心合法）
+│   ├── state_check.py              # 状态契约门禁（派生表一致 + 实现证据）
 │   └── apca_contrast.mjs           # APCA Lc 计算器
 ├── templates/
 │   └── prompt-templates/
@@ -215,6 +216,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.13.0 | 2026-10-23 | 状态契约（把"只能演示 happy path"变成可机检的失败）：research 交互复杂度 → `interaction-complexity` 派生表 → design Step 1.7 落地 `/* states: */` + 实现证据 → review #14；新增 `references/state-contract.md` + `scripts/state_check.py` 门禁 + `check_phase5_wiring` 审计项；另修 v2.12.0 遗留的载体口径不一致（composition_check 现已支持 HTML 注释载体，Tailwind 项目不再必然误判） |
 | v2.12.0 | 2026-10-23 | 构图契约机制（把视觉重心/节奏/密度纳入可追溯传递）：macrostructures 六要素 → pass-data `composition` → design Step 1.6 落地 `/* composition: */` 标记 → review #13 逐项对账；新增 `references/composition-contract.md` + `scripts/composition_check.py` 门禁 + `check_phase4_wiring` 审计项 |
 | v2.11.0 | 2026-10-23 | 签名机制（反模板的唯一肯定式检查）：research 挖掘签名线索 → creative 绑定到每个方向 → theme 推导签名专属 Token → design 落地到代码（`/* signature: */` 标记）→ review #12 验收签名可识别性；新增 `scripts/signature_check.py` 门禁 + `check_phase3_wiring` 审计项 |
 | v2.10.0 | 2026-10-23 | 参考机制 2.0 Phase 2 原创引擎接线：C 端品牌场景方向发散（creative §0.5）+ 二阶反射检查（review §0 #11 / critique）+ 结构化随机兜底（research + random_draw.py） |
@@ -263,3 +265,5 @@ python -m pytest evals/ -v
 ## License
 
 MIT
+
+> **全流程多一道状态契约机制**：research 第 3 轮问「交互复杂度」→ 落成 `interaction-complexity` 字段 → design 按派生表声明页面级状态（`/* states: */`）并在代码里实现 → review #14 验收。这解决的是「只能演示 happy path」——实测验证过：一个完全通过 slop_scan / token_lint / signature_check / composition_check 的页面，可以没有任何加载态、空态、错误态，把接口关掉就只剩一块空白。`static` 场景明确豁免：静态营销页没有异步数据，要求它写状态标记只会训练出堆标记的反向作弊。详见 `subskills/design/SKILL.md`「状态契约落地」。

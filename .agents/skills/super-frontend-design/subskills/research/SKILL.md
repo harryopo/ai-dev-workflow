@@ -489,6 +489,14 @@ multiSelect: false
 
 ## 交互需求
 - 交互类型：{展示/表单/实时/拖拽/完整应用}
+- **交互复杂度**（v2.13.0，`interaction-complexity`）：{static/basic/moderate/complex/app}——由问题 8 的回答映射，**这是下游状态契约的派生依据**，必须原样落值不得改写
+  | 问题 8 的回答 | `interaction-complexity` |
+  |---|---|
+  | 纯静态展示 | `static` |
+  | 基础交互 | `basic` |
+  | 中等交互 | `moderate` |
+  | 复杂交互 | `complex` |
+  | 完整应用 | `app` |
 - 动效需求：{无动效/微交互/中等动效/丰富动效/粒子效果}
 - 动效强度：{快/标准/慢/弹性质感}
 - 交互节奏：{快速高效/流畅自然/沉浸体验/活力动感}

@@ -887,6 +887,78 @@ def check_phase4_wiring(root, f):
         f.ok("phase4-wiring", "Phase 4 构图契约接线完整（定义 / 落地 / 审查）")
 
 
+def check_phase5_wiring(root, f):
+    """Phase 5 状态契约的接线必须始终存在。
+
+    状态契约修的是一类具体事故：页面只会显示 happy path。把接口关掉、
+    数据清空、网络断掉，用户看到的是一块空白——而 slop_scan / token_lint /
+    signature_check / composition_check 四道门禁对这种情况全部无感（实测验证）。
+
+    接线点：research 落 interaction-complexity → design Step 1.7 落地
+    /* states: */ → state_check 校验声明与实现 → review #14 人工核质量。
+    任何一次重构都可能只改其中一处，这里做存在性校验。
+    """
+    required = [
+        ("references/state-contract.md", "状态契约",
+         "状态契约参考文件必须存在"),
+        ("subskills/research/SKILL.md", "interaction-complexity",
+         "research 必须把交互复杂度落成结构化字段"),
+        ("subskills/design/SKILL.md", "状态契约落地",
+         "design 必须强制落实页面级状态"),
+        ("subskills/design/SKILL.md", "static",
+         "design 必须写明 static 豁免——过度严格会训练出堆标记"),
+        ("subskills/review/SKILL.md", "状态覆盖完整性",
+         "review 必须做状态覆盖完整性检查"),
+        ("subskills/critique/SKILL.md", "状态覆盖完整性",
+         "critique 必须做状态覆盖完整性检查"),
+    ]
+    problems = []
+    for rel, needle, why in required:
+        p = root / rel
+        if not p.is_file():
+            problems.append("%s 不存在" % rel)
+            continue
+        if needle not in read(p):
+            problems.append("%s 缺少「%s」——%s" % (rel, needle, why))
+
+    # 状态检查脚本必须存在，且真的在做三件事
+    sc = root / "scripts/state_check.py"
+    if not sc.is_file():
+        problems.append("scripts/state_check.py 不存在")
+    else:
+        src = read(sc)
+        # 派生表五个档位必须齐全
+        for level in ("static", "basic", "moderate", "complex", "app"):
+            if not re.search(r'"%s"' % level, src):
+                problems.append("state_check.py 缺少复杂度档位 %s —— 派生表不全" % level)
+        # 三条失败规则必须在
+        # 三条失败规则必须在。用完整 `"rule": "xxx",` 形式而非裸子串——
+        # 否则把 state-absent 改成 state-absent-note 也能匹配，mutation 就是假的。
+        for rule in ("state-declared-not-landed", "state-absent",
+                     "state-required-missing"):
+            if not re.search(r'"rule":\s*"%s"' % re.escape(rule), src):
+                problems.append("state_check.py 没有 %s 失败规则 —— 状态契约不得降级" % rule)
+        # 静态豁免必须存在
+        if not re.search(r'complexity == "static"', src):
+            problems.append("state_check.py 没有 static 豁免分支 —— "
+                            "强制静态页写状态声明会训练出堆标记")
+
+    # 契约文件必须认领六个状态
+    scd = root / "references/state-contract.md"
+    if scd.is_file():
+        src_sc = read(scd)
+        for state in ("loading", "empty", "error", "success",
+                      "no-permission", "offline"):
+            if state not in src_sc:
+                problems.append("state-contract.md 缺少状态 %s" % state)
+
+    if problems:
+        for p in problems:
+            f.fail("phase5-wiring", p)
+    else:
+        f.ok("phase5-wiring", "Phase 5 状态契约接线完整（定义 / 落地 / 审查）")
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -911,7 +983,7 @@ def main(argv=None):
                check_frontmatter, check_round_consistency, check_policy_consistency,
                check_gate_inventory, check_layer_sum, check_tools,
                check_version_fields, check_phase2_wiring, check_phase3_wiring,
-               check_phase4_wiring):
+               check_phase4_wiring, check_phase5_wiring):
         fn(root, f)
 
     if ns.json:

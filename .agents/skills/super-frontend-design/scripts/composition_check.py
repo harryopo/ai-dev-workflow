@@ -40,13 +40,23 @@ for _s in (sys.stdout, sys.stderr):
 CONTRACT_FIELDS = ("heading-anchor", "body-columns", "divider",
                    "imagery", "entrance", "focus-hierarchy")
 
+# 载体必须匹配项目形态：Tailwind / 单文件 HTML 项目没有独立 CSS 文件，
+# 标记只能写在 HTML 注释里。只认 CSS 块注释会让这类项目必然误判为
+# 「没有任何契约」——与 signature_check 的双载体口径保持一致。
 COMPOSITION_MARKER = re.compile(
     r"/\*\s*composition:\s*(?P<key>[a-z\-]+)\s*=\s*(?P<value>.*?)\s*\*/", re.I)
+COMPOSITION_MARKER_HTML = re.compile(
+    r"<!--\s*composition:\s*(?P<key>[a-z\-]+)\s*=\s*(?P<value>.*?)\s*-->", re.I)
 MACROSTRUCTURE_STAMP = re.compile(
     r"/\*\s*macrostructure:\s*(?P<value>.*?)\*/", re.I | re.S)
+MACROSTRUCTURE_STAMP_HTML = re.compile(
+    r"<!--\s*macrostructure:\s*(?P<value>.*?)\s*-->", re.I | re.S)
 # stamp 形如 `01·Bento Grid · theme: Tally · genre: SaaS`——结构名自身含 `·`，
 # 所以按 "key: value" 形态切分，遇到第一个带冒号的段即停。
 STAMP_PART = re.compile(r"^[a-zA-Z][a-zA-Z0-9_\-]*\s*:")
+
+CARRIER_CSS = "css"
+CARRIER_HTML = "html"
 
 
 def stamp_structure_name(raw):
@@ -96,17 +106,33 @@ def read_text(path):
 
 
 def scan_file(path):
-    """Return (fields dict, has_stamp bool, stamp_value str|None)."""
+    """Return (fields dict, has_stamp bool, stamp_value str|None, carrier str|None).
+
+    carrier 记录契约写在哪类载体上——CSS 块注释、HTML 注释，或两者混用。
+    只用于 JSON 输出的可诊断性，不影响判定。
+    """
     src = read_text(path)
     fields = {}
+    carriers = set()
     for m in COMPOSITION_MARKER.finditer(src):
         key = m.group("key").lower()
         fields.setdefault(key, m.group("value").strip())
-    stamp = MACROSTRUCTURE_STAMP.search(src)
+        carriers.add(CARRIER_CSS)
+    for m in COMPOSITION_MARKER_HTML.finditer(src):
+        key = m.group("key").lower()
+        fields.setdefault(key, m.group("value").strip())
+        carriers.add(CARRIER_HTML)
+
+    stamp = MACROSTRUCTURE_STAMP.search(src) or MACROSTRUCTURE_STAMP_HTML.search(src)
     stamp_value = None
     if stamp:
         stamp_value = stamp_structure_name(stamp.group("value"))
-    return fields, bool(stamp), stamp_value
+        if stamp.re is MACROSTRUCTURE_STAMP_HTML:
+            carriers.add(CARRIER_HTML)
+        else:
+            carriers.add(CARRIER_CSS)
+    carrier = "+".join(sorted(carriers)) if carriers else None
+    return fields, bool(stamp), stamp_value, carrier
 
 
 def main(argv=None):
@@ -132,10 +158,11 @@ def main(argv=None):
     hard, warn = [], []
     total_fields = set()
     stamped_files = 0
+    carriers_seen = set()
 
     for f in files:
         try:
-            fields, has_stamp, stamp_value = scan_file(f)
+            fields, has_stamp, stamp_value, carrier = scan_file(f)
         except OSError as exc:
             sys.stderr.write("ERROR  读不了 %s: %s\n" % (f, exc))
             return 2
@@ -143,6 +170,8 @@ def main(argv=None):
         if not fields:
             continue
         total_fields |= set(fields)
+        if carrier:
+            carriers_seen.add(carrier)
         if has_stamp:
             stamped_files += 1
         else:
@@ -219,7 +248,8 @@ def main(argv=None):
             "rule": "composition-absent",
             "file": files[0].name,
             "line": 0,
-            "message": "未发现任何 /* composition: */ 契约标记——"
+            "message": "未发现任何构图契约标记（CSS 块注释 /* composition: */ "
+                       "或 HTML 注释 <!-- composition: -->）——"
                        "构图契约是必填项，不是不填也不犯错的加分项",
             "measured": 0,
             "threshold": len(CONTRACT_FIELDS),
@@ -227,7 +257,9 @@ def main(argv=None):
 
     if ns.json:
         print(json.dumps({"scanned": len(files), "stamped_files": stamped_files,
-                          "fields": sorted(total_fields), "hard": hard, "warn": warn},
+                          "fields": sorted(total_fields),
+                          "carriers": sorted(carriers_seen),
+                          "hard": hard, "warn": warn},
                          ensure_ascii=False, indent=2))
     else:
         for x in hard:

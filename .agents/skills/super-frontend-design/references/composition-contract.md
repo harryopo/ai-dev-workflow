@@ -57,7 +57,13 @@
 
 ### 3.1 标记位置
 
-- **必须写在 CSS 顶部**，与既有 stamp 同区：
+**载体随项目形态，不强制 CSS**——Tailwind v4、单文件 HTML、无独立 CSS 文件的项目里样式不在 `.css` 里，要求"写 CSS 顶部"等于要求这些项目必然违规。门禁 `composition_check.py` 两种载体都认：
+
+| 项目形态 | 载体 | 写法 |
+|---------|------|------|
+| 有独立 CSS 文件 | CSS 顶部，与 stamp 同区 | `/* composition: xxx=... */` |
+| Tailwind / 单文件 HTML | HTML 注释 | `<!-- composition: xxx=... -->` |
+| Vue SFC 等双载体 | 可混用 | 同一要素只声明一次（重复取首见） |
 
 ```css
 /* macrostructure: 01·Bento Grid · theme: Tally · genre: SaaS */
@@ -68,6 +74,20 @@
 /* composition: entrance=stagger fade-up */
 /* composition: focus-hierarchy=2 */
 ```
+
+HTML 载体的等价写法：
+
+```html
+<!-- macrostructure: 01·Bento Grid · theme: Tally -->
+<!-- composition: heading-anchor=各模块内 -->
+<!-- composition: body-columns=多栏不对称 -->
+<!-- composition: divider=负间距/留白 -->
+<!-- composition: imagery=混合 -->
+<!-- composition: entrance=stagger fade-up -->
+<!-- composition: focus-hierarchy=2 -->
+```
+
+> 与签名机制（v2.11.0）的载体口径保持一致：`signature_check.py` 同样同时支持 `/* */` 与 `<!-- -->`。
 
 ### 3.2 标记 ≠ 声明就完事
 

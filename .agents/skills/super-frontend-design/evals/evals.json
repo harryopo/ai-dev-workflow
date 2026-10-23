@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.12.0",
+  "version": "2.13.0",
   "evals": [
     {
       "id": "core-001",
@@ -604,6 +604,103 @@
       "anti_pattern": [
         "不应静默接受 4",
         "不应自行猜测用户意图改成 3"
+      ]
+    },
+    {
+      "id": "v213-001",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "这是个订单管理后台，有搜索、筛选、批量操作，帮我做列表页",
+      "expected_routing": "design（状态契约落地 Step 1.7）",
+      "expected_output": [
+        "interaction-complexity=moderate",
+        "派生 loading/empty/error 三个状态",
+        "写 /* states: loading,empty,error */ 标记",
+        "代码里每个状态都有实现证据"
+      ],
+      "anti_pattern": [
+        "不应只做有数据的列表页",
+        "不应把状态标记写进代码但没有任何实现",
+        "不应默认给 static 场景要求状态"
+      ]
+    },
+    {
+      "id": "v213-002",
+      "category": "edge",
+      "subcommand": "design",
+      "prompt": "这是个产品介绍落地页，纯展示，帮我设计",
+      "expected_routing": "design（static 豁免）",
+      "expected_output": [
+        "判定 interaction-complexity=static",
+        "豁免状态声明，不写 /* states: */"
+      ],
+      "anti_pattern": [
+        "不应要求静态页写 loading/empty/error",
+        "不应为了凑契约给静态页堆状态标记"
+      ]
+    },
+    {
+      "id": "v213-003",
+      "category": "edge",
+      "subcommand": "design",
+      "prompt": "帮我做个仪表盘，有实时数据推送和拖拽排序",
+      "expected_routing": "design（状态契约派生 complex 档）",
+      "expected_output": [
+        "interaction-complexity=complex",
+        "派生 loading/empty/error/no-permission",
+        "实时数据断连要有处理"
+      ],
+      "anti_pattern": [
+        "不应按 moderate 只做三态",
+        "不应忽略实时数据断连场景"
+      ]
+    },
+    {
+      "id": "v213-004",
+      "category": "core",
+      "subcommand": "review",
+      "prompt": "帮我看看这个后台页面做得怎么样",
+      "expected_routing": "review（状态覆盖完整性 #14）",
+      "expected_output": [
+        "读 interaction-complexity 得派生表",
+        "跑 state_check.py 确认零 FAIL",
+        "人工核骨架屏对位/错误态重试/空态动作"
+      ],
+      "anti_pattern": [
+        "不应只看门禁脚本 PASS 就过",
+        "不应把声明了当成做了"
+      ]
+    },
+    {
+      "id": "v213-005",
+      "category": "edge",
+      "subcommand": "review",
+      "prompt": "这个页面的状态标记我写了三个，但代码里只有一个 loading 有实现，这样行不行",
+      "expected_routing": "review（#14 + state_check）",
+      "expected_output": [
+        "判定 state-declared-not-landed 不通过",
+        "指出 empty/error 缺实现",
+        "要求回到 design Step 1.7"
+      ],
+      "anti_pattern": [
+        "不应判定为通过",
+        "不应建议删掉没实现的声明来让门禁变绿"
+      ]
+    },
+    {
+      "id": "v213-006",
+      "category": "edge",
+      "subcommand": "design",
+      "prompt": "帮我做个单页应用，有路由和 API 对接",
+      "expected_routing": "design（状态契约派生 app 档）",
+      "expected_output": [
+        "interaction-complexity=app",
+        "派生全量五态",
+        "success 与 error 成对出现"
+      ],
+      "anti_pattern": [
+        "不应漏掉 no-permission",
+        "不应只提示失败而成功静默"
       ]
     }
   ]
