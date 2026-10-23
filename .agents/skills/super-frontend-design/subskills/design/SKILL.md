@@ -1675,6 +1675,65 @@ WindowInsets.safeDrawing.asPaddingValues()
 3. 记录选定的Macrostructure编号+名称
 4. 确保设计符合选定Macrostructure的"结构骨架"要求
 
+#### Step 1.6: 构图契约落地（v2.12.0，不可跳过）
+
+> **为什么有这一步**：选了 macrostructure 不等于做出了那个结构。macrostructures.md 里每个结构都定义了标题位置 / 正文布局 / 分隔方式 / 图片处理 / 入场六要素，但这些要素此前**没有任何一处被强制落地**——选完就丢，全凭自觉。结果是"结构名对了、结构没做"，产出仍是默认的"标题居中 + 三列卡片 + 淡灰分隔"。
+
+**加载** `references/composition-contract.md`。
+
+**输入**：`pass-data.yaml` 的 `macrostructure` 字段（Step 1.5 选定）。
+
+| 情形 | design 的动作 |
+|------|--------------|
+| 有 `macrostructure` | **必须落地六要素**，按下方规范逐项实现并写入 `pass-data.yaml` 的 `composition` 字段 |
+| 无 `macrostructure` | ⛔ **停止**：Step 1.5 未执行，回到 Step 1.5 选定结构 |
+
+**六要素契约字段**：
+
+```
+composition:
+  heading-anchor: {标题锚点}
+  body-columns: {正文列数/分布}
+  divider: {分隔手段}
+  imagery: {图片处理}
+  entrance: {入场动效形态}
+  focus-hierarchy: {1 | 2 | 3}
+```
+
+**落地 3 条硬约束**：
+
+1. **六项必须全写**——缺任一项视为未落地
+2. **必须写进代码**——CSS 顶部与 macrostructure stamp 同区，逐项一行：
+   ```css
+   /* composition: heading-anchor=各模块内 */
+   /* composition: body-columns=多栏不对称 */
+   /* composition: divider=负间距/留白 */
+   /* composition: imagery=混合（部分模块有图，部分无图） */
+   /* composition: entrance=stagger fade-up */
+   /* composition: focus-hierarchy=2 */
+   ```
+3. **声明必须与实现一致**——标记只是对账锚点，不是通行证。按 composition-contract §3.2 的落地判据逐项对照代码：声明"负间距/留白"就得真有负 margin 或大间距；声明 `单栏 65ch` 就得有量级约束；声明 `focus-hierarchy=1` 首屏就不得有两个同级焦点
+
+**视觉重心（focus-hierarchy）取值的唯一判断依据**：
+
+| 层级 | 含义 | 适用倾向 |
+|-----|------|---------|
+| `1` | 首屏唯一焦点 | Marquee Hero / Stat-Led / Photographic / Manifesto / Type Specimen |
+| `2` | 主焦点 + 次焦点区 | Bento Grid / Workbench / Split Studio / Feature Stack / Narrative Workflow |
+| `3` | 三级焦点 | Catalogue / Ecosystem Index / Portfolio Grid / Component Playground |
+
+- **层级由 macrostructure 决定，不由内容决定**——选 Stat-Led 就必须让巨型数字成为唯一焦点
+- **同屏同级焦点 ≤ 1**——首屏不允许两个同等视觉权重的元素
+- **B 端例外**：Operate 场景默认 `3`（后台要信息密度，均衡是优点），但仍需声明
+
+**落地自检（写完代码后逐条回答）**：
+
+- [ ] 六项都写了吗？值都取自选定 macrostructure 的六要素吗？
+- [ ] 六行标记注释写进 CSS 了吗？
+- [ ] 声明与代码实际行为逐项对得上吗？（对照 composition-contract §3.2 判据表）
+- [ ] 首屏同级焦点 ≤ 1 吗？
+- [ ] 视觉重心落点与 `heading-anchor` 声明一致吗？
+
 ### Step 2: 生成设计系统
 
 - 使用 `--design-system <product-type>` 生成推荐
@@ -1781,6 +1840,7 @@ WindowInsets.safeDrawing.asPaddingValues()
 - [ ] **非对称检查**：布局是否至少有一个非对称元素？不能全是居中对齐/等宽卡片
 - [ ] **视觉论文追溯**：代码中的主要决策能否追溯到视觉论文的 5 个方向？
 - [ ] **签名已落地**：`/* signature: */` 标记注释是否存在？落点是否在视觉焦点区？陌生人截屏能认出是哪个产品吗？（零落点 = 交付模板）
+- [ ] **构图契约已落地**：六项 `composition:` 标记是否齐全？声明与代码实际行为是否逐项对得上？首屏同级焦点 ≤ 1 吗？（选了什么结构 ≠ 做出了那个结构）
 - [ ] 无反模式（见 Part 9）？
 - [ ] 需求简报（Design Brief）已确认？
 - [ ] 全网搜索参考已解构优化（非直接照搬）？
@@ -1814,7 +1874,7 @@ WindowInsets.safeDrawing.asPaddingValues()
 3. **五态纪律**：列表页的首次/空结果/加载/失败/无权限五个状态缺一不可（§8）
 4. **视觉收敛**：正文 14px 主导、中性色主导、动效只做 150-250ms 状态反馈；
    禁止把营销页的 Hero/渐变/大字搬进后台（§10 差异表）
-5. **门禁照常**：反 AI 味与 Token 纪律不因 B 端豁免，交付前七道门禁照跑
+5. **门禁照常**：反 AI 味与 Token 纪律不因 B 端豁免，交付前八道门禁照跑
 
 ### 与技术栈的衔接
 

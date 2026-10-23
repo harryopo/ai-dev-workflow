@@ -139,6 +139,41 @@ CASES = [
          (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
          .replace("灵魂验证问题", "标准出处"), encoding="utf-8"),
      "phase3-wiring"),
+    ("phase4-composition-contract-removed",
+     lambda d: (d / "references/composition-contract.md").unlink(),
+     "phase4-wiring"),
+    ("phase4-composition-landing-removed",
+     lambda d: (d / "subskills/design/SKILL.md").write_text(
+         (d / "subskills/design/SKILL.md").read_text(encoding="utf-8")
+         .replace("构图契约落地", "风格统一"), encoding="utf-8"),
+     "phase4-wiring"),
+    ("phase4-focus-hierarchy-removed",
+     lambda d: (d / "subskills/design/SKILL.md").write_text(
+         (d / "subskills/design/SKILL.md").read_text(encoding="utf-8")
+         .replace("focus-hierarchy", "visual-level"), encoding="utf-8"),
+     "phase4-wiring"),
+    ("phase4-composition-review-removed",
+     lambda d: (d / "subskills/review/SKILL.md").write_text(
+         (d / "subskills/review/SKILL.md").read_text(encoding="utf-8")
+         .replace("构图契约一致性", "整体观感"), encoding="utf-8"),
+     "phase4-wiring"),
+    ("phase4-composition-checker-gutted",
+     lambda d: (d / "scripts/composition_check.py").write_text(
+         (d / "scripts/composition_check.py").read_text(encoding="utf-8")
+         .replace("composition-fields-missing", "composition-note"), encoding="utf-8"),
+     "phase4-wiring"),
+    ("phase4-composition-stamp-rule-gutted",
+     lambda d: (d / "scripts/composition_check.py").write_text(
+         (d / "scripts/composition_check.py").read_text(encoding="utf-8")
+         .replace("composition-without-stamp", "composition-stamp-note"), encoding="utf-8"),
+     "phase4-wiring"),
+    ("phase4-composition-absent-downgraded-to-warn",
+     lambda d: (d / "scripts/composition_check.py").write_text(
+         re.sub(r"if not total_fields:\s*\n(\s*)hard\.append",
+                r"if not total_fields:\n\1warn.append",
+                (d / "scripts/composition_check.py").read_text(encoding="utf-8"),
+                count=1), encoding="utf-8"),
+     "phase4-wiring"),
 ]
 
 

@@ -1,3 +1,16 @@
+v2.12.0 (2026-10-23)
+- 构图契约落地（把视觉重心/节奏/密度纳入可追溯传递）：
+  - 新增 references/composition-contract.md：构图六要素字段表（取值来源 + 为何不含 button）+ 视觉重心三级规则 + §3.2 落地判据表（标记 ≠ 声明就完事）
+  - design Step 1.5 后新增 Step 1.6「构图契约落地」：3 条硬约束（六项全写 / 写进代码 /* composition: */ / 声明与实现一致）+ focus-hierarchy 三级判定表 + 同屏同级焦点 ≤ 1 + B 端默认 3 + 5 条落地自检
+  - review §0 检查表增 #13「构图契约一致性」并展开（取声明 → 逐项对账 → 查焦点）；设计灵魂评分 12 → 13 项；critique Assessment A 增条目 + 报告模板增行
+  - 主 SKILL.md 铁律 10 → 11 条（新增构图契约落地铁律）；§7.2 pass-data 增 macrostructure + composition 字段
+- 新增 scripts/composition_check.py（第 8 道门禁）：校验 /* composition: */ 六要素齐全 / focus-hierarchy 取值合法 / 与 /* macrostructure: */ 戳记一致
+- 新增 tests/test_composition_check.py（17 项契约测试）
+- 新增门禁 check_phase4_wiring：校验 5 处接线 + 六要素字段齐全 + 缺要素/无戳记失败规则存在；配 6 条 mutation case；audit 检查项 48 → 49
+- 门禁数 7 → 8（SKILL.md §3.6 / §6 / §8 + design §16 四处表述同步）
+- evals 32 → 38 条（v212-001~006：构图落地 / 构图审查 / B端重心三级 / macrostructure 戳记 / 缺要素 / focus 取值越界）
+- 版本号 2.11.0 → 2.12.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.11.0 (2026-10-23)
 - 签名机制落地（反模板的唯一肯定式检查，全流程五处接线）：
   - research 第 4 轮新增问题 12.5「签名线索」+ 强制推导表（线索类型 → 签名识别符形态 → 落点）；新增铁律 5「不允许零签名进入后续阶段」；Design Brief 增 signature-clues / signature-candidates 字段；快捷模式豁免表声明签名线索始终必问

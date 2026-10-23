@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.11.0",
+  "version": "2.12.0",
   "evals": [
     {
       "id": "core-001",
@@ -8,8 +8,16 @@
       "subcommand": "creative",
       "prompt": "帮我生成一个有机湍流风格的flow field生成艺术",
       "expected_routing": "creative",
-      "expected_output": ["哲学宣言.md", "交互式HTML文件", "p5.js种子随机", "参数控件"],
-      "anti_pattern": ["不应从零创建HTML", "不应使用系统字体"]
+      "expected_output": [
+        "哲学宣言.md",
+        "交互式HTML文件",
+        "p5.js种子随机",
+        "参数控件"
+      ],
+      "anti_pattern": [
+        "不应从零创建HTML",
+        "不应使用系统字体"
+      ]
     },
     {
       "id": "core-002",
@@ -17,8 +25,16 @@
       "subcommand": "design",
       "prompt": "设计一个SaaS产品的Dashboard页面",
       "expected_routing": "design",
-      "expected_output": ["视觉方向选择", "Design Token系统", "可运行代码", "响应式布局"],
-      "anti_pattern": ["不应使用通用SaaS卡片网格", "不应使用原始hex值"]
+      "expected_output": [
+        "视觉方向选择",
+        "Design Token系统",
+        "可运行代码",
+        "响应式布局"
+      ],
+      "anti_pattern": [
+        "不应使用通用SaaS卡片网格",
+        "不应使用原始hex值"
+      ]
     },
     {
       "id": "boundary-001",
@@ -26,8 +42,12 @@
       "subcommand": "creative",
       "prompt": "做一个海报，但要有交互性",
       "expected_routing": "creative（需确认模式）",
-      "expected_output": ["询问用户选择生成艺术模式还是视觉设计模式"],
-      "anti_pattern": ["不应自动选择模式而不询问"]
+      "expected_output": [
+        "询问用户选择生成艺术模式还是视觉设计模式"
+      ],
+      "anti_pattern": [
+        "不应自动选择模式而不询问"
+      ]
     },
     {
       "id": "boundary-002",
@@ -35,8 +55,13 @@
       "subcommand": "design",
       "prompt": "设计一个landing page，但要暗色模式",
       "expected_routing": "design + theme",
-      "expected_output": ["暗色模式Design Token", "暗色对比度验证"],
-      "anti_pattern": ["暗色模式不应只是颜色反转"]
+      "expected_output": [
+        "暗色模式Design Token",
+        "暗色对比度验证"
+      ],
+      "anti_pattern": [
+        "暗色模式不应只是颜色反转"
+      ]
     },
     {
       "id": "edge-001",
@@ -44,8 +69,14 @@
       "subcommand": "review",
       "prompt": "审查这个完全没有样式的纯HTML页面",
       "expected_routing": "review",
-      "expected_output": ["多维度审查报告", "低分评分", "改进建议列表"],
-      "anti_pattern": ["不应给出高分"]
+      "expected_output": [
+        "多维度审查报告",
+        "低分评分",
+        "改进建议列表"
+      ],
+      "anti_pattern": [
+        "不应给出高分"
+      ]
     },
     {
       "id": "edge-002",
@@ -53,8 +84,14 @@
       "subcommand": "theme",
       "prompt": "给我一个赛博朋克风格的主题，但要用在医疗App上",
       "expected_routing": "theme",
-      "expected_output": ["自定义主题生成", "提示风格与行业不匹配的风险", "提供替代建议"],
-      "anti_pattern": ["不应盲目生成不考虑适用性"]
+      "expected_output": [
+        "自定义主题生成",
+        "提示风格与行业不匹配的风险",
+        "提供替代建议"
+      ],
+      "anti_pattern": [
+        "不应盲目生成不考虑适用性"
+      ]
     },
     {
       "id": "creative-001",
@@ -62,8 +99,15 @@
       "subcommand": "creative",
       "prompt": "用代码画一个受日本枯山水启发的生成艺术",
       "expected_routing": "creative",
-      "expected_output": ["枯山水哲学宣言", "p5.js沙纹算法", "种子随机", "极简参数"],
-      "anti_pattern": ["不应照搬flow field示例"]
+      "expected_output": [
+        "枯山水哲学宣言",
+        "p5.js沙纹算法",
+        "种子随机",
+        "极简参数"
+      ],
+      "anti_pattern": [
+        "不应照搬flow field示例"
+      ]
     },
     {
       "id": "creative-002",
@@ -71,8 +115,16 @@
       "subcommand": "creative",
       "prompt": "做一张关于量子计算的博物馆级海报",
       "expected_routing": "creative（视觉设计模式）",
-      "expected_output": ["量子哲学宣言", "PDF/PNG输出", "90%视觉10%文字", "博物馆品质"],
-      "anti_pattern": ["不应卡通化", "不应文字过多"]
+      "expected_output": [
+        "量子哲学宣言",
+        "PDF/PNG输出",
+        "90%视觉10%文字",
+        "博物馆品质"
+      ],
+      "anti_pattern": [
+        "不应卡通化",
+        "不应文字过多"
+      ]
     },
     {
       "id": "design-001",
@@ -80,8 +132,16 @@
       "subcommand": "design",
       "prompt": "用shadcn/ui构建一个设置页面，包含表单验证",
       "expected_routing": "design",
-      "expected_output": ["shadcn/ui组件", "FieldGroup模式", "表单验证", "语义Token"],
-      "anti_pattern": ["不应使用space-y-*布局", "不应使用原始Input而非InputGroup"]
+      "expected_output": [
+        "shadcn/ui组件",
+        "FieldGroup模式",
+        "表单验证",
+        "语义Token"
+      ],
+      "anti_pattern": [
+        "不应使用space-y-*布局",
+        "不应使用原始Input而非InputGroup"
+      ]
     },
     {
       "id": "design-002",
@@ -89,8 +149,15 @@
       "subcommand": "design",
       "prompt": "做一个全流程：从灵感探索到最终审查，主题是AI搜索产品",
       "expected_routing": "research → design-context → creative → theme → design → review",
-      "expected_output": ["六阶段顺序执行（先 research 调研产出 Design Brief）", "Design Token贯穿", "审查报告"],
-      "anti_pattern": ["不应跳过任何阶段", "不应各阶段风格不一致"]
+      "expected_output": [
+        "六阶段顺序执行（先 research 调研产出 Design Brief）",
+        "Design Token贯穿",
+        "审查报告"
+      ],
+      "anti_pattern": [
+        "不应跳过任何阶段",
+        "不应各阶段风格不一致"
+      ]
     },
     {
       "id": "v28-001",
@@ -98,8 +165,15 @@
       "subcommand": "design",
       "prompt": "帮我做一个内部运营管理后台，带数据表格和审批流",
       "expected_routing": "research → design-context → design（加载 Part 17 与 references/admin-enterprise-patterns.md）",
-      "expected_output": ["B端布局模板起步", "表格/筛选/批量操作模式", "企业级组件库选型"],
-      "anti_pattern": ["不应直接输出通用SaaS模板", "不应跳过admin-enterprise模式库"]
+      "expected_output": [
+        "B端布局模板起步",
+        "表格/筛选/批量操作模式",
+        "企业级组件库选型"
+      ],
+      "anti_pattern": [
+        "不应直接输出通用SaaS模板",
+        "不应跳过admin-enterprise模式库"
+      ]
     },
     {
       "id": "v28-002",
@@ -107,8 +181,15 @@
       "subcommand": "design-context",
       "prompt": "用 TDesign 的风格初始化这个项目的设计上下文",
       "expected_routing": "design-context（引用 design-systems/tdesign.md 预设作为种子）",
-      "expected_output": ["9-section DESIGN.md", "--td-* 变量映射", "提示预设需经调研校准"],
-      "anti_pattern": ["不应跳过调研直接复制预设", "不应把预设基线色当成最终品牌色"]
+      "expected_output": [
+        "9-section DESIGN.md",
+        "--td-* 变量映射",
+        "提示预设需经调研校准"
+      ],
+      "anti_pattern": [
+        "不应跳过调研直接复制预设",
+        "不应把预设基线色当成最终品牌色"
+      ]
     },
     {
       "id": "v28-003",
@@ -116,8 +197,14 @@
       "subcommand": "design",
       "prompt": "优化一下这个后台页面的排版层级",
       "expected_routing": "research（重新调研）→ design-context → design，不是 review",
-      "expected_output": ["重新调研字号与交互节奏", "按 admin-enterprise 模式重排层级"],
-      "anti_pattern": ["不应路由到review只给评分", "不应跳过调研直接改样式"]
+      "expected_output": [
+        "重新调研字号与交互节奏",
+        "按 admin-enterprise 模式重排层级"
+      ],
+      "anti_pattern": [
+        "不应路由到review只给评分",
+        "不应跳过调研直接改样式"
+      ]
     },
     {
       "id": "v28-004",
@@ -125,8 +212,18 @@
       "subcommand": "research",
       "prompt": "这个项目是我开发到一半的产品，按现有风格把前端重构一下",
       "expected_routing": "research（现有风格审计）→ design-context（统一设计稿）→ 用户确认 → design（按稿重构）",
-      "expected_output": ["风格画像", "不一致点清单（附文件:行号）", "统一方案 AskUserQuestion 确认", "设计稿确认后才动代码"],
-      "anti_pattern": ["不应跳过审计直接开工", "不应问从零新风格的问卷（想参考哪家产品/什么风格）", "不应路由到review", "不应未经设计稿确认就改代码"]
+      "expected_output": [
+        "风格画像",
+        "不一致点清单（附文件:行号）",
+        "统一方案 AskUserQuestion 确认",
+        "设计稿确认后才动代码"
+      ],
+      "anti_pattern": [
+        "不应跳过审计直接开工",
+        "不应问从零新风格的问卷（想参考哪家产品/什么风格）",
+        "不应路由到review",
+        "不应未经设计稿确认就改代码"
+      ]
     },
     {
       "id": "v28-005",
@@ -134,8 +231,14 @@
       "subcommand": "design-context",
       "prompt": "统一下这个项目的风格，但不要换风格",
       "expected_routing": "现有风格重构流程（§3.6）：research 审计 → design-context 设计稿 → ⛔用户确认",
-      "expected_output": ["门禁测量作为审计证据", "品牌人格从证据推导并确认"],
-      "anti_pattern": ["不应重新做 15 维度新风格调研", "不应跳过设计稿确认门"]
+      "expected_output": [
+        "门禁测量作为审计证据",
+        "品牌人格从证据推导并确认"
+      ],
+      "anti_pattern": [
+        "不应重新做 15 维度新风格调研",
+        "不应跳过设计稿确认门"
+      ]
     },
     {
       "id": "v28-006",
@@ -143,8 +246,14 @@
       "subcommand": "design",
       "prompt": "项目根有 DESIGN.md，给我加一个设置页面",
       "expected_routing": "design（先读 DESIGN.md，以其为风格基准）",
-      "expected_output": ["遵循既有 Token 系统", "新增页面与既有风格一致"],
-      "anti_pattern": ["不应重新发起新风格调研", "不应偏离 DESIGN.md 规范而不确认"]
+      "expected_output": [
+        "遵循既有 Token 系统",
+        "新增页面与既有风格一致"
+      ],
+      "anti_pattern": [
+        "不应重新发起新风格调研",
+        "不应偏离 DESIGN.md 规范而不确认"
+      ]
     },
     {
       "id": "v29-001",
@@ -152,8 +261,16 @@
       "subcommand": "research",
       "prompt": "帮我做一个产品官网，参考 Stripe 的感觉",
       "expected_routing": "research（第 1 轮：先问参考维度 → 参考对象；C 端场景按距离分级）",
-      "expected_output": ["参考维度追问（交互/布局/色彩/感觉）", "参考距离=原理解构：Stripe 仅作原理输入，不给具体色值", "反参考询问"],
-      "anti_pattern": ["不应把 Stripe 的紫蓝渐变直接提取进 Token", "不应问完参考就直接设计", "不应跳过参考维度分层"]
+      "expected_output": [
+        "参考维度追问（交互/布局/色彩/感觉）",
+        "参考距离=原理解构：Stripe 仅作原理输入，不给具体色值",
+        "反参考询问"
+      ],
+      "anti_pattern": [
+        "不应把 Stripe 的紫蓝渐变直接提取进 Token",
+        "不应问完参考就直接设计",
+        "不应跳过参考维度分层"
+      ]
     },
     {
       "id": "v29-002",
@@ -161,8 +278,15 @@
       "subcommand": "research",
       "prompt": "我不想让网站看起来像那些 AI 生成的 SaaS 产品，帮我做个落地页",
       "expected_routing": "research（反参考记录 + 饱和赛道回避）",
-      "expected_output": ["反参考写入 Design Brief", "注入 DESIGN.md Anti-references section", "review 检查反参考遵守与饱和赛道"],
-      "anti_pattern": ["不应只当作一句普通需求忽略", "不应产出紫蓝渐变 SaaS 风（饱和赛道 #2）"]
+      "expected_output": [
+        "反参考写入 Design Brief",
+        "注入 DESIGN.md Anti-references section",
+        "review 检查反参考遵守与饱和赛道"
+      ],
+      "anti_pattern": [
+        "不应只当作一句普通需求忽略",
+        "不应产出紫蓝渐变 SaaS 风（饱和赛道 #2）"
+      ]
     },
     {
       "id": "v29-003",
@@ -170,8 +294,14 @@
       "subcommand": "research",
       "prompt": "参考 Linear 的布局做一个内部管理工具",
       "expected_routing": "research（Operate 场景：参考距离=结构借鉴、Token 原创）",
-      "expected_output": ["借鉴 Linear 的信息组织与布局骨架", "色彩/字体从品牌人格推导而非复制 Linear 的暗色系"],
-      "anti_pattern": ["不应继承 Linear 的暗色配色与紫色 accent", "不应跳过参考距离判定"]
+      "expected_output": [
+        "借鉴 Linear 的信息组织与布局骨架",
+        "色彩/字体从品牌人格推导而非复制 Linear 的暗色系"
+      ],
+      "anti_pattern": [
+        "不应继承 Linear 的暗色配色与紫色 accent",
+        "不应跳过参考距离判定"
+      ]
     },
     {
       "id": "v29-004",
@@ -179,8 +309,15 @@
       "subcommand": "research",
       "prompt": "情绪板：温暖、手工、安静",
       "expected_routing": "research（第 4 轮：情绪板 → 参数推导，强制）",
-      "expected_output": ["色相策略（暖色相/类似色）", "字体气质与材质结论", "推导落进 DESIGN.md 对应 section"],
-      "anti_pattern": ["不应只记录三个关键词而没有推导", "不应让情绪板停留在沟通话术"]
+      "expected_output": [
+        "色相策略（暖色相/类似色）",
+        "字体气质与材质结论",
+        "推导落进 DESIGN.md 对应 section"
+      ],
+      "anti_pattern": [
+        "不应只记录三个关键词而没有推导",
+        "不应让情绪板停留在沟通话术"
+      ]
     },
     {
       "id": "v210-001",
@@ -188,8 +325,16 @@
       "subcommand": "research",
       "prompt": "帮我做个 AI 搜索产品的官网，风格你定，随便来",
       "expected_routing": "research（访客意图=Persuade → 5 轮调研 + C 端方向发散）",
-      "expected_output": ["Design Brief（访客意图分类标为 Persuade/Experience）", "creative 阶段产出 2-3 个并置方向（命名运动+视觉论文+关键 Token 提案）", "AskUserQuestion 让用户选定方向，selected-direction 落进 pass-data.yaml"],
-      "anti_pattern": ["不应只产出 1 个方向（Persuade 场景必须发散）", "不应替用户默认选定方向", "不应两个方向差异维度 < 2 或主色 hex 相同"]
+      "expected_output": [
+        "Design Brief（访客意图分类标为 Persuade/Experience）",
+        "creative 阶段产出 2-3 个并置方向（命名运动+视觉论文+关键 Token 提案）",
+        "AskUserQuestion 让用户选定方向，selected-direction 落进 pass-data.yaml"
+      ],
+      "anti_pattern": [
+        "不应只产出 1 个方向（Persuade 场景必须发散）",
+        "不应替用户默认选定方向",
+        "不应两个方向差异维度 < 2 或主色 hex 相同"
+      ]
     },
     {
       "id": "v210-002",
@@ -197,8 +342,16 @@
       "subcommand": "creative",
       "prompt": "给我的品牌官网想几个视觉方向",
       "expected_routing": "creative（§0.5 方向发散）",
-      "expected_output": ["2-3 个完整独立方向", "每个方向含命名运动 + 视觉论文 5 问 + 3-5 个关键 Token 具体值", "并置呈现 + 诚实取舍分析"],
-      "anti_pattern": ["不应把同一想法换词当多方向", "不应只写形容词不给具体 Token 值", "不应彩虹屁式取舍（每个方向都要写代价）"]
+      "expected_output": [
+        "2-3 个完整独立方向",
+        "每个方向含命名运动 + 视觉论文 5 问 + 3-5 个关键 Token 具体值",
+        "并置呈现 + 诚实取舍分析"
+      ],
+      "anti_pattern": [
+        "不应把同一想法换词当多方向",
+        "不应只写形容词不给具体 Token 值",
+        "不应彩虹屁式取舍（每个方向都要写代价）"
+      ]
     },
     {
       "id": "v210-003",
@@ -206,8 +359,15 @@
       "subcommand": "review",
       "prompt": "审查这个 AI 工具官网，我已经说了不要米色不要圆润卡片",
       "expected_routing": "review（§0 检查表 #11 二阶反射检查）",
-      "expected_output": ["构造猜测句：给一个 AI 工具官网做设计，不要米色不要圆润卡片，会做成什么样", "判断该猜测句能否命中本次主题与配色", "命中则标红：回 creative §0.5 换方向重做"],
-      "anti_pattern": ["不应只做一阶检查（只看品类能否猜到）", "不应命中后只建议换配色（那是参数微调不是换方向）"]
+      "expected_output": [
+        "构造猜测句：给一个 AI 工具官网做设计，不要米色不要圆润卡片，会做成什么样",
+        "判断该猜测句能否命中本次主题与配色",
+        "命中则标红：回 creative §0.5 换方向重做"
+      ],
+      "anti_pattern": [
+        "不应只做一阶检查（只看品类能否猜到）",
+        "不应命中后只建议换配色（那是参数微调不是换方向）"
+      ]
     },
     {
       "id": "v210-004",
@@ -215,8 +375,16 @@
       "subcommand": "research",
       "prompt": "配色你随便选一个吧",
       "expected_routing": "research（结构化随机兜底）",
-      "expected_output": ["生成 2-3 个同等合理候选", "调用 scripts/random_draw.py 做外部随机抽签（os.urandom）", "回传候选清单与抽中项，标记 [默认假设·随机抽取]"],
-      "anti_pattern": ["不应默选最保守方案", "不应声称随机但没调用脚本", "不应静默替换抽签结果"]
+      "expected_output": [
+        "生成 2-3 个同等合理候选",
+        "调用 scripts/random_draw.py 做外部随机抽签（os.urandom）",
+        "回传候选清单与抽中项，标记 [默认假设·随机抽取]"
+      ],
+      "anti_pattern": [
+        "不应默选最保守方案",
+        "不应声称随机但没调用脚本",
+        "不应静默替换抽签结果"
+      ]
     },
     {
       "id": "v210-005",
@@ -224,8 +392,13 @@
       "subcommand": "design",
       "prompt": "做个内部运营管理后台，带数据表格和审批流",
       "expected_routing": "design（访客意图=Operate → 跳过方向发散，单方向流程）",
-      "expected_output": ["无 direction-candidates，直接用视觉论文", "design-context 生成设计稿"],
-      "anti_pattern": ["不应强制用户选方向（B 端发散是负担）"]
+      "expected_output": [
+        "无 direction-candidates，直接用视觉论文",
+        "design-context 生成设计稿"
+      ],
+      "anti_pattern": [
+        "不应强制用户选方向（B 端发散是负担）"
+      ]
     },
     {
       "id": "v210-006",
@@ -233,8 +406,14 @@
       "subcommand": "design",
       "prompt": "按我选的那个方向开始做页面",
       "expected_routing": "design（沿用 selected-direction）",
-      "expected_output": ["读取 pass-data.yaml 的 selected-direction 作为唯一依据", "视觉论文与该方向一致"],
-      "anti_pattern": ["不应重新发散", "不应绕过用户选定方向自行改方向"]
+      "expected_output": [
+        "读取 pass-data.yaml 的 selected-direction 作为唯一依据",
+        "视觉论文与该方向一致"
+      ],
+      "anti_pattern": [
+        "不应重新发散",
+        "不应绕过用户选定方向自行改方向"
+      ]
     },
     {
       "id": "v211-001",
@@ -242,8 +421,15 @@
       "subcommand": "research",
       "prompt": "帮我设计一个数据中台的产品官网",
       "expected_routing": "research（调研含签名线索挖掘）",
-      "expected_output": ["第 4 轮询问签名线索（问题 12.5）", "产出 signature-candidates 至少 1 条", "Design Brief 含签名识别符候选"],
-      "anti_pattern": ["不应跳过签名线索问题", "不应产出零条签名候选"]
+      "expected_output": [
+        "第 4 轮询问签名线索（问题 12.5）",
+        "产出 signature-candidates 至少 1 条",
+        "Design Brief 含签名识别符候选"
+      ],
+      "anti_pattern": [
+        "不应跳过签名线索问题",
+        "不应产出零条签名候选"
+      ]
     },
     {
       "id": "v211-002",
@@ -251,8 +437,16 @@
       "subcommand": "design",
       "prompt": "按调研结果把这个页面做出来",
       "expected_routing": "design（签名落地到代码）",
-      "expected_output": ["读取 pass-data.yaml 的 signature 字段", "在 anchor 指定位置实现 expression 描述的签名", "落点处有 /* signature: */ 标记注释"],
-      "anti_pattern": ["不应只在文档里写签名而代码里没有", "不应零落点", "不应把签名藏在页脚"]
+      "expected_output": [
+        "读取 pass-data.yaml 的 signature 字段",
+        "在 anchor 指定位置实现 expression 描述的签名",
+        "落点处有 /* signature: */ 标记注释"
+      ],
+      "anti_pattern": [
+        "不应只在文档里写签名而代码里没有",
+        "不应零落点",
+        "不应把签名藏在页脚"
+      ]
     },
     {
       "id": "v211-003",
@@ -260,8 +454,15 @@
       "subcommand": "review",
       "prompt": "审查一下这个页面的设计质量",
       "expected_routing": "review（含 #12 签名可识别性检查）",
-      "expected_output": ["执行签名可识别性检查", "统计 /* signature: */ 落点数量与位置", "给出灵魂验证问题的回答"],
-      "anti_pattern": ["不应跳过 #12（唯一肯定式检查）", "不应把零落点判为通过"]
+      "expected_output": [
+        "执行签名可识别性检查",
+        "统计 /* signature: */ 落点数量与位置",
+        "给出灵魂验证问题的回答"
+      ],
+      "anti_pattern": [
+        "不应跳过 #12（唯一肯定式检查）",
+        "不应把零落点判为通过"
+      ]
     },
     {
       "id": "v211-004",
@@ -269,8 +470,15 @@
       "subcommand": "research",
       "prompt": "我们这个产品也没什么特别的，就是个普通的工具",
       "expected_routing": "research（用户答不出签名线索 → AI 反推候选）",
-      "expected_output": ["从品牌人格×情绪板×设计类型反推至少 1 条候选", "候选标注 [待用户确认]", "回显候选请求确认"],
-      "anti_pattern": ["不应因为用户说没特色就产出零签名", "不应静默采用 AI 反推的候选"]
+      "expected_output": [
+        "从品牌人格×情绪板×设计类型反推至少 1 条候选",
+        "候选标注 [待用户确认]",
+        "回显候选请求确认"
+      ],
+      "anti_pattern": [
+        "不应因为用户说没特色就产出零签名",
+        "不应静默采用 AI 反推的候选"
+      ]
     },
     {
       "id": "v211-005",
@@ -278,8 +486,15 @@
       "subcommand": "design",
       "prompt": "改造一下现有后台的风格，统一一下",
       "expected_routing": "design（现有风格重构通道 → 签名从现有代码推导）",
-      "expected_output": ["签名线索从现有代码与 DESIGN.md 推导", "落点选在现有视觉焦点区", "不新增与现有风格冲突的签名形态"],
-      "anti_pattern": ["不应为重构引入全新风格语言", "不应在重构通道强制走 C 端方向发散"]
+      "expected_output": [
+        "签名线索从现有代码与 DESIGN.md 推导",
+        "落点选在现有视觉焦点区",
+        "不新增与现有风格冲突的签名形态"
+      ],
+      "anti_pattern": [
+        "不应为重构引入全新风格语言",
+        "不应在重构通道强制走 C 端方向发散"
+      ]
     },
     {
       "id": "v211-006",
@@ -287,8 +502,109 @@
       "subcommand": "review",
       "prompt": "这个页面的签名我放在页脚了，这样行不行",
       "expected_routing": "review（签名落点可见性判定）",
-      "expected_output": ["判定为低关注区落点", "🔴 严重：看不见的签名等于没有签名", "建议移至视觉焦点区"],
-      "anti_pattern": ["不应判为通过", "不应建议加装饰性元素绕过问题"]
+      "expected_output": [
+        "判定为低关注区落点",
+        "🔴 严重：看不见的签名等于没有签名",
+        "建议移至视觉焦点区"
+      ],
+      "anti_pattern": [
+        "不应判为通过",
+        "不应建议加装饰性元素绕过问题"
+      ]
+    },
+    {
+      "id": "v212-001",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "按这个结构做首页：模块标题在卡片内，正文双栏，模块之间靠留白分隔，部分模块有配图，滚动淡入，首屏只有一个主按钮",
+      "expected_routing": "design（构图契约落地 Step 1.6）",
+      "expected_output": [
+        "CSS 顶部写出 /* composition: */ 六要素标记",
+        "focus-hierarchy=1",
+        "六项全部声明，不允许只写三项"
+      ],
+      "anti_pattern": [
+        "不应只填 Token 不写构图标记",
+        "不应把 focus-hierarchy 写成 2 或 3（用户要求单焦点）"
+      ]
+    },
+    {
+      "id": "v212-002",
+      "category": "core",
+      "subcommand": "review",
+      "prompt": "帮我看看这个页面做得对不对",
+      "expected_routing": "review（构图契约一致性 #13）",
+      "expected_output": [
+        "读取 /* composition: */ 声明",
+        "逐项对账六要素",
+        "声明与实现不符时判定不通过"
+      ],
+      "anti_pattern": [
+        "不应只看 Token 一致性",
+        "不应加标记糊弄过去"
+      ]
+    },
+    {
+      "id": "v212-003",
+      "category": "edge",
+      "subcommand": "design",
+      "prompt": "这是管理后台，页面里有很多图表、表格、筛选器，还要放实时告警，主次怎么排",
+      "expected_routing": "design（视觉重心层级判定）",
+      "expected_output": [
+        "B 端 Operate 默认 focus-hierarchy=3",
+        "同屏同级焦点不超过 1",
+        "告警区不能与主操作同级抢焦点"
+      ],
+      "anti_pattern": [
+        "不应默认按 C 端设 1",
+        "不应把告警做成与主按钮同级的强调"
+      ]
+    },
+    {
+      "id": "v212-004",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "结构定下来了，接下来写代码",
+      "expected_routing": "design（构图契约落地 + macrostructure 戳记）",
+      "expected_output": [
+        "写出 /* macrostructure: 编号·名称 */ 戳记",
+        "六要素标记与实现一致"
+      ],
+      "anti_pattern": [
+        "不应漏写 macrostructure 戳记",
+        "不应声明与实现不一致"
+      ]
+    },
+    {
+      "id": "v212-005",
+      "category": "edge",
+      "subcommand": "review",
+      "prompt": "页面里我只写了三个 composition 标记，剩下三个不重要吧",
+      "expected_routing": "review（构图契约一致性 #13 + composition_check）",
+      "expected_output": [
+        "判定六要素缺失不通过",
+        "指出缺哪几项",
+        "要求回到 design Step 1.6 补齐"
+      ],
+      "anti_pattern": [
+        "不应判定为通过",
+        "不应替 design 补写声明"
+      ]
+    },
+    {
+      "id": "v212-006",
+      "category": "edge",
+      "subcommand": "review",
+      "prompt": "我的 focus-hierarchy 写的 4，超出范围了",
+      "expected_routing": "review（构图契约一致性）",
+      "expected_output": [
+        "判定取值非法",
+        "只接受 1/2/3"
+      ],
+      "anti_pattern": [
+        "不应静默接受 4",
+        "不应自行猜测用户意图改成 3"
+      ]
     }
   ]
 }

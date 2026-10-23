@@ -817,6 +817,76 @@ def check_phase3_wiring(root, f):
         f.ok("phase3-wiring", "Phase 3 签名机制接线完整（挖掘 / 绑定 / Token / 落地 / 审查）")
 
 
+def check_phase4_wiring(root, f):
+    """Phase 4 构图契约的接线必须始终存在。
+
+    macrostructures.md 定义了 21 种页面形状，每个都有标题位置 / 正文布局 / 分隔
+    方式 / 图片处理 / 入场六要素。但在 v2.12.0 之前，这些要素**从未被强制落地**
+    ——选完 macrostructure 就丢，全凭模型自觉。结果是"结构名对了、结构没做"，
+    产出仍是默认的"标题居中 + 三列卡片 + 淡灰分隔"。
+
+    接线点散在 design / review / critique 三处，任何一次重构都可能只改其中一处。
+    这里做机器层面的存在性校验。检查的是「机制存在」，不是「机制写得好」——
+    质量由 evals 与 dogfood 保证。
+    """
+    required = [
+        ("references/composition-contract.md", "构图契约",
+         "构图契约参考文件必须存在"),
+        ("subskills/design/SKILL.md", "构图契约落地",
+         "design 必须强制落实构图六要素"),
+        ("subskills/design/SKILL.md", "focus-hierarchy",
+         "design 必须声明视觉重心层级"),
+        ("subskills/review/SKILL.md", "构图契约一致性",
+         "review 必须做构图契约一致性检查"),
+        ("subskills/critique/SKILL.md", "构图契约一致性",
+         "critique 必须做构图契约一致性检查"),
+    ]
+    problems = []
+    for rel, needle, why in required:
+        p = root / rel
+        if not p.is_file():
+            problems.append("%s 不存在" % rel)
+            continue
+        if needle not in read(p):
+            problems.append("%s 缺少「%s」——%s" % (rel, needle, why))
+
+    # 构图检查脚本必须存在，且真的在找六要素
+    comp = root / "scripts/composition_check.py"
+    if not comp.is_file():
+        problems.append("scripts/composition_check.py 不存在")
+    else:
+        src = read(comp)
+        for field in ("heading-anchor", "body-columns", "divider",
+                      "imagery", "entrance", "focus-hierarchy"):
+            if field not in src:
+                problems.append("composition_check.py 缺少契约要素 %s —— 六要素缺一不可" % field)
+        # 零要素必须判失败，不能判通过
+        if not re.search(r"composition-fields-missing", src):
+            problems.append("composition_check.py 没有缺要素失败规则 —— 声明不全不得判通过")
+        # 无 stamp 的契约必须判失败（契约与结构名对不上等于没有契约）
+        if not re.search(r"composition-without-stamp", src):
+            problems.append("composition_check.py 没有无 stamp 失败规则 —— 契约与结构脱节不得判通过")
+        # 零契约必须判失败（不得降级为 WARN，否则 Step 1.6 整段可被跳过）
+        if not re.search(r'if not total_fields:\s*\n\s*hard\.append', src):
+            problems.append("composition_check.py 的零契约判定不是 hard —— "
+                            "构图契约降级为告警等于让 Step 1.6 可跳过")
+
+    # macrostructures.md 定义的六要素必须在契约文件里被认领
+    ms = root / "references/macrostructures.md"
+    cc = root / "references/composition-contract.md"
+    if ms.is_file() and cc.is_file():
+        src_cc = read(cc)
+        for field in ("heading-anchor", "body-columns", "divider", "imagery", "entrance"):
+            if field not in src_cc:
+                problems.append("composition-contract.md 缺少契约字段 %s" % field)
+
+    if problems:
+        for p in problems:
+            f.fail("phase4-wiring", p)
+    else:
+        f.ok("phase4-wiring", "Phase 4 构图契约接线完整（定义 / 落地 / 审查）")
+
+
 def main(argv=None):
     known = ("--skill-dir", "--json")
     for arg in argv or sys.argv[1:]:
@@ -840,7 +910,8 @@ def main(argv=None):
                check_index_numbers, check_index_completeness, check_fences,
                check_frontmatter, check_round_consistency, check_policy_consistency,
                check_gate_inventory, check_layer_sum, check_tools,
-               check_version_fields, check_phase2_wiring, check_phase3_wiring):
+               check_version_fields, check_phase2_wiring, check_phase3_wiring,
+               check_phase4_wiring):
         fn(root, f)
 
     if ns.json:

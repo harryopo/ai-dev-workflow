@@ -1,5 +1,53 @@
 # super-frontend-design Release Notes
 
+## v2.12.0 (2026-10-23) — 构图契约：让"层级失焦"也变成可机检的失败
+
+### 为什么做这件事
+
+上一版解决了"有没有做对什么"（签名），但没解决"做出来像不像样"。实测发现三个事实：
+
+1. `rules/slop-table.json` 的 **30 条判定规则里，0 条涉及 macrostructure**——构图层完全在反 AI 味体系之外。
+2. `references/macrostructures.md` 定义了 21 种结构（含"正文列数""分隔手段""入场形态"等），但**下游没有任何阶段消费**——选完结构就丢了。
+3. "视觉重心"（首屏几个焦点、谁最突出）在全仓只出现 2 次，且都在 review 里作为纯人工项。
+
+结果就是一类典型失败：**Token 全对、颜色全对、间距全对，但页面没有主次**。首屏同时放三个同等强调的按钮，三栏正文等宽，三处标题样式完全一致——所有 Token 门禁都过，所有 slop 规则都过，交付物仍然"一眼看完"。
+
+构图契约补的就是这层：**把构图级决策（标题锚点 / 正文列数 / 分隔手段 / 图片处理 / 入场形态 / 视觉重心）也纳入 pass-data 传递，让 design 阶段有可追溯的依据而不只是"照 Token 填"**。
+
+### 落点
+
+**① `references/composition-contract.md`（新）**
+六要素字段表写清每项的取值来源与边界（为什么不含 button——button 已被 theme Token 约束，不需要重复占位）；视觉重心三级规则（1 = 首屏唯一焦点 / 2 = 主+次 / 3 = 三级），B 端 Operate 默认 3。核心设计原则写在 §3.2 落地判据表里：**脚本保证"声明了"，review 保证"做对了"，两者不可互相替代。**
+
+**② design Step 1.6「构图契约落地」（不可跳过）**
+3 条硬约束：**六项必须全写**（缺一即失败）、**必须写进代码**（CSS 顶部六行 `/* composition: xxx=... */`）、**声明必须与实现一致**。视觉重心给了三级判定表，并明确「层级由 macrostructure 决定，不由内容决定」「同屏同级焦点 ≤ 1」。
+
+**③ review #13「构图契约一致性」**
+三步：取声明 → 逐项对账（6 字段判据表）→ 查焦点。**不通过时回 design Step 1.6 重做，而不是加个标记糊弄过去。**
+
+### 新增第 8 道门禁 `scripts/composition_check.py`
+
+判定规则：
+- **缺任一要素 → FAIL**（`composition-fields-missing`）
+- **有契约无 macrostructure 戳记 → FAIL**（`composition-without-stamp`）——防止随便挑个结构
+- **focus-hierarchy 取值非 1/2/3 → FAIL**（`composition-focus-invalid`）
+- **要素取值为空 → FAIL**（`composition-field-empty`）
+- `--require-macrostructure` 可核对指定结构
+- 完全没有契约 → WARN（不阻塞，但会提示）
+
+**macrostructure 戳记解析的坑**：戳记形如 `01·Bento Grid · theme: Tally · genre: SaaS`，结构名本身含 `·`，正则非贪婪匹配到第一个 `·` 就停会只取到 `"01"`。最终改为捕获到 `*/`，再按 "key: value" 形态切分（遇第一个带冒号的段即停），正确取出 `01·Bento Grid`。
+
+### 门禁与防退化
+
+新增 `check_phase4_wiring` 审计项：校验 5 处接线存在、六要素字段齐全、缺要素与无戳记两条失败规则未被掏空。配 6 条 mutation case 证明能变红（契约文件被删 / 落地被删 / focus 层级被删 / 审查被删 / 脚本被掏空 / 戳记规则被掏空）。audit 检查项 48 → 49。
+
+### 其余
+
+- 主 SKILL.md 铁律 10 → 11 条（新增「构图契约必须落地到代码」）；§7.2 pass-data 增 `macrostructure` + `composition` 字段；§6 资源索引补新参考 / 新脚本 / 新测试
+- 门禁数 7 → 8（SKILL.md §3.6 / §6 / §8 + design §16 四处同步）
+- README：工作流图标注构图链路、design/review 子命令说明、项目结构补新脚本、版本历史补 v2.12.0
+- evals 32 → 38 条：v212-001（构图落地）/ 002（构图审查）/ 003（B 端重心三级）/ 004（macrostructure 戳记）/ 005（缺要素）/ 006（focus 取值越界）
+
 ## v2.11.0 (2026-10-23) — 签名机制：把"20% 独特选择"从文档变成代码
 
 ### 为什么做这件事
