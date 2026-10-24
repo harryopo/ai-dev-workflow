@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.13.0",
+  "version": "2.14.1",
   "evals": [
     {
       "id": "core-001",
@@ -702,6 +702,33 @@
         "不应漏掉 no-permission",
         "不应只提示失败而成功静默"
       ]
+    },
+    {
+      "id": "v214-001",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "帮我找个高级感的官网参考，看看现在最好的落地页都长什么样",
+      "expected_routing": "research（灵感站地图：references/inspiration-sources.md 选站+检索式）",
+      "expected_output": ["按需选站（整页气质→Awwwards/Godly；流程→Page Flows）", "解构笔记（链接+一句原理层结论）", "候选方向过饱和赛道检查"],
+      "anti_pattern": ["不应泛搜 dribbble 了事", "不应照搬参考外观（C 端距离分级）", "不应存图克隆页"]
+    },
+    {
+      "id": "v214-002",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "做一个 React 的数据分析后台，图表很多",
+      "expected_routing": "design（组件库决策树：B 端 React 数据密集）",
+      "expected_output": ["企业四库或 shadcn+Tremor 选型说明", "一个基础件库原则", "图表色走 Token 而非裸 hex"],
+      "anti_pattern": ["不应在 B 端用 Aceternity 类 C 端视觉库", "不应叠两个基础件库", "不应让库默认样式豁免门禁"]
+    },
+    {
+      "id": "v214-003",
+      "category": "core",
+      "subcommand": "refine",
+      "prompt": "这个页面能用但太平了，polish 一下",
+      "expected_routing": "refine /polish（按 craft-polish.md §5 终检）",
+      "expected_output": ["色彩压注策略判定（说不出=没压注）", "display 字体与字重对比检查", "间距节奏与大小对比检查"],
+      "anti_pattern": ["不应只调对比度和间距数值", "不应把米色+灰+一点蓝当合格", "不应堆阴影凑层次"]
     }
   ]
 }

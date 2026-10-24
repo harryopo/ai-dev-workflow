@@ -1,5 +1,83 @@
 # super-frontend-design Release Notes
 
+## v2.14.1 (2026-10-24) — dogfood 回流收口：声明必填语义 + 裁判盲区 + 清理
+
+### state_check：声明必填（方案 A，用户拍板）
+
+- **洞（v2.14.0 集成 dogfood 反向探针发现）**：剥掉契约标记后签名/构图门禁立红，但 state_check 在不带 `--complexity` 的独立调用下"实现了但零声明"只 warn 放行——与 state-absent 自己的"必填项"文案矛盾。管线内因必传 `--complexity` 不触发，属误用路径的语义松弛。
+- **修法**：新增规则 `state-declared-absent`——`declared` 为空且 `landed` 非空且非 static → hard 失败。理由：实现先于声明不是豁免——声明是可审计载体，没有它，复杂度派生与 review #14 的对账链就断了。static 豁免语义不变（静态页有状态字样文案也不强制）。
+- **测试**：test_state_check 26 → 27（"实现了但没声明"从"不阻塞"改为必拦截；新增 static+landed 豁免变体）。dogfood 反向探针复跑：FAIL ✓。
+
+### audit_integrity：裁判盲区（"谁审裁判"收官轮）
+
+- **洞**：四个检查（check_counts / check_subskill_claims / check_denominators / check_cross_claims）在数据集文件缺失时**静默跳过**——删掉 `references/slop-test.md` 之类真值文件，对应对账无声消失，audit 仍报绿。audit 的存在意义就是当跳闸，它的数据源被拔了却不响。
+- **修法**：统一判 `dataset-missing` 硬失败；mutation 套件 +1（`dataset-file-deleted`：删 slop-test.md 必须被抓）。
+- 顺带：random_draw 清两个死导入（secrets/time）；SKILL.md 里 audit_gate_red 用例数声称从过时的"17+1"改为指向文件（数字口径纪律——写死数字会在下次扩容时静默失效）。
+
+### 验证
+
+audit 50 项 PASS（含新增 dataset-missing 分支）；8 套契约测试全绿；mutation 红队扩充后全部检出；安装副本零差异。
+
+## v2.14.0 (2026-10-24) — 灵感与素材层：让输出"精美"的三件套
+
+### 为什么做这件事
+
+用户问"这个 skill 如何才能设计得非常精美好看？能否接入组件库/UI 库/优质设计稿网站"。诚实拆解后确认三个真实缺口：① research 只有 3-4 个泛搜式，缺一份按需选站的灵感站地图；② 组件目录有广度缺"场景→库决策树"与 top 库的落地接入步骤；③ 最关键的"最后一公里工艺"（色彩敢不敢压注、字体有没有性格、节奏敢不敢变化）没有成体系的手册——AI 输出"不丑但不惊艳"的根因是不敢做决定，不是组件少。
+
+### A. 灵感站地图（references/inspiration-sources.md）
+
+- 整页灵感九站（Awwwards / Godly / Land-book / Lapa.ninja / SaaS Landing Page / Httpster / Minimal Gallery / One Page Love / SiteInspire）+ 交互实录三站（Mobbin / Page Flows / Refero），每站配定位、入口检索式、解构要点
+- 纪律：全部挂 v2.9.0 参考距离分级——C 端只解构"它为什么好看"（原理层），B 端/Read 解构"它怎么组织"（结构层）；回程先过 saturated-lanes 饱和赛道检查
+- Dribbble/Behance 概念稿**降权**：视觉≠可实现且是 AI 味收敛重灾区；research「全网搜索设计参考」首选入口改为本地图
+
+### B. 组件目录扩容（references/component-block-catalog.md）
+
+- 索引补八个高频库：HeroUI / daisyUI / Tremor / Preline / Flowbite / Motion Primitives / ReactBits / Launch UI
+- 新增「场景→组件库决策树」：C 端 React / C 端纯 HTML / B 端 React / B 端 Vue / 轻量原型 / 设计工具级六分支；红线：一个项目一个基础件库、库默认样式不豁免门禁、B/C 端不串库
+- 新增「Top 库接入速查」：shadcn / HeroUI / daisyUI / Tremor 的 install 命令与 Token 映射要点（Tremor 图表色传 `var(--chart-*)` 不传裸 hex）
+
+### C. 工艺手册（references/craft-polish.md）
+
+- **色彩压注三策略**（借 impeccable）：Committed 单色压注 / Drenched 整页浸润 / Restrained 克制留白——挂品牌人格，选完写进 DESIGN.md 决策记录；"米色+灰+一点蓝"= 没做决定
+- **display 字体打法**：canvas-fonts 实战配对表（Bricolage Grotesque 当代编辑感 / Big Shoulders 数据冲击 / Gloock·Young Serif 杂志衬线 / Instrument Serif Italic 意大利体点缀 / Tektur·Silkscreen 工业像素信号 / Poiret One 几何极细）+ 三则打法（字重对比 committed、尺寸比 ≥2 把 1.5 当下限、性格字体只给 display）
+- **间距节奏反均匀**：组内紧组间松、section 阶梯间距、负空间胆量、密度对比做视觉事件
+- **动效打磨**：强 ease-out、stagger 同方向 40-80ms、时长三档、入场一次到位、动效与签名绑定
+- **「一眼惊艳」终检**：refine /polish 的逐项清单（锚点 ≤2 / 压注说得出 / 间距非均匀 / 大小对比狠 / 移除阴影层次仍立）
+- 定位声明：本手册管**门禁量不到的胆量与品味**，不新增机检；静态可判定项已在门禁里
+
+### 接线与验证
+
+research 搜索区、design Part 2 + Step 6 清单、refine /polish 三处挂接；SKILL.md §6 索引补两行（索引行不写计数——audit 对账纪律）。evals 44 → 47（v214-001/002/003）。验证见下方基线。
+
+## v2.13.1 (2026-10-24) — 契约门禁自欺洞收口（state_check 自证 / signature_check # 歧义 / 注释示例当真）
+
+### 为什么做这件事
+
+按交接文档 §11.3 的指引（"audit 绿 ≠ 机制对——历史上两次真 bug 都是 audit 绿了但机制有洞"）对三个契约门禁做对抗性审查，找到两个同类新变种，均先探针实证再修。
+
+### state_check：声明给自己作证
+
+- **洞**：`no-permission` 的证据模式是裸子串 `no-permission`，而声明标记 `/* states: no-permission */`（或 HTML 载体）本身就含这个词——声明即证据，**零实现也 PASS**（探针实证：声明 no-permission、页面只有"账户偏好设置"文案，`RESULT: PASS, declared=1 landed=1`）。这恰是门禁文档里写明要抓的谎言（"declared-but-not-landed is the lie the gate exists to catch"），其余五个状态的证据模式都需要 `is-xxx`/`data-state=`/中文文案等形态、裸词不命中，唯独 no-permission 裸串自匹配；测试夹具的 declared-not-landed 用例恰好没含它，全绿掩盖了洞。
+- **修法**：新增 `strip_markers()`——证据搜索前把两种载体的声明标记整体抹掉（声明不是证据，对全部状态一次性关死自证通道，而非只给 no-permission 打补丁）；`state-landed-not-declared` 的证据搜索同步换用剥离后文本。
+- **测试**：+4 项（20 → 24）：声明+零实现必失败并报 `state-declared-not-landed`、`landed=0` 口径、实现里真 `data-state="no-permission"` 不受剥离影响照常通过。
+- **已知边界（维持现状，刻意宽松是有意设计）**：非 states 标记的普通注释/文案里出现"无权限"等词仍算证据（文档明示 evidence matched loosely）；修探针时自己也踩了一次——注释里写"声明了 no-permission"差点又污染探针。
+
+### signature_check：`#` 备选与 CSS id 选择器同形
+
+- **洞**：行式标记 `SIGNATURE_LINE` 未锚定且含 `#` 备选，CSS 规则行 `#signature:hover { … }` 会被计为签名落点——统计被无关代码污染。先试"锚定行首"不够（规则行本来就在行首），根治是**删除 `#` 备选**：扫描范围（html/css/scss/js/ts/vue/svelte/astro…）没有任何一种文件类型用 `#` 作行注释，它是纯歧义源；`<!--` 备选同时删除（rest 已剥离 HTML 注释，该分支是死代码，该形态由 HTML_COMMENT_MARKER 在 original 上处理）。
+- **测试**：+3 项（17 → 20）：`#signature:hover` 不计为落点且报 `signature-landing-missing`、行首 `// signature:` 仍合法计数。
+
+### composition_check / state_check：HTML 注释里的示例被当成真契约
+
+- **洞**：两个脚本的 CSS 形式标记都在整个文件文本上搜——嵌在 HTML 注释里的用法示例会被当成真标记。探针实证：一段"六要素 + stamp 俱全"的示例注释让零契约页面拿到 `fields=6`；一段"三态声明 + 三态证据"的示例注释拿到 `declared=3 landed=1`——示例凑齐即可零实现过闸。signature_check 从第一版就有示例纪律（`strip_html_comments` + SELF_REFERENCING 测试），这两个后来者没跟上。
+- **修法**：CSS 形式标记与 CSS 形式 stamp 改在剥离 HTML 注释后的文本上搜；HTML 形式标记自带 `<!--` 前缀定界、不受影响仍在原文上认。state_check 的证据搜索同步剥 HTML 注释——注释内容不随页面渲染，不是实现证据。
+- **测试**：test_composition_check +2（20 → 22，完整示例块必须判 composition-absent）；test_state_check +2（24 → 26，示例声明与示例证据全忽略、判 state-absent）。
+- **已知边界（维持现状）**：嵌在 CSS/JS 块注释内部的示例（`/* 示例：/* states: x */ */`，注释不嵌套所以内层正则仍命中）不在此修——三个脚本一致的既有边界，出现频率远低于 HTML 注释示例。
+
+### 验证
+
+audit_integrity 50 项 PASS；test_state_check 26 / test_signature_check 20 / test_composition_check 22 全绿；mutation 红队 39 条全部检出；三个干净探针（no-permission 零实现 / 完整示例构图 / 完整示例状态）全部 exit=1。
+
 ## v2.13.0 (2026-10-23) — 状态契约：让"只能演示 happy path"变成可机检的失败
 
 ### 为什么做这件事

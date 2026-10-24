@@ -1,3 +1,25 @@
+v2.14.1 (2026-10-24)
+- dogfood 回流收口（三项）：
+  - state_check 声明必填语义收紧（用户拍板方案 A）：此前"实现了但零声明"在不带 --complexity 的独立调用下只 warn 放行，与 state-absent"必填项"文案矛盾（集成 dogfood 反向探针实证）；新增规则 state-declared-absent——有实现证据而无任何声明判 hard 失败（实现先于声明不豁免：没有声明，复杂度派生与 review #14 的对账就断了），static 豁免不变；--complexity 帮助文本同步。test_state_check 26 → 27（原"不阻塞"用例改为拦截 + static 有状态字样仍豁免）
+  - audit 裁判盲区修复（对抗性审查收官："谁审裁判"）：check_counts / check_subskill_claims / check_denominators / check_cross_claims 四处在数据集文件缺失时静默跳过——删掉 slop-test.md 等真值文件可无声杀死对账；现统一判 dataset-missing 硬失败；mutation 套件 +1 用例（删 slop-test.md 必被抓）
+  - random_draw 清死导入（secrets/time 未使用）；SKILL.md 里 audit_gate_red 的用例数声称从停在旧版的"17+1"改为指向文件（数字口径纪律）
+- 版本号 2.14.0 → 2.14.1（三处同步）
+
+v2.14.0 (2026-10-24)
+- 灵感与素材层（让输出"精美"的三件套）：
+  - 新增 references/inspiration-sources.md：灵感站地图（整页灵感 Awwwards/Godly/Land-book/Lapa/SaaS Landing Page/Httpster/Minimal Gallery/One Page Love/SiteInspire + 交互实录 Mobbin/Page Flows/Refero），每站配定位/入口检索式/解构要点；Dribbble/Behance 概念稿降权；全部挂参考距离分级（C 端原理层 / B 端结构层）+ 回程饱和赛道检查
+  - component-block-catalog.md 扩容：全局索引补 HeroUI/daisyUI/Tremor/Preline/Flowbite/Motion Primitives/ReactBits/Launch UI；新增「场景→组件库决策树」（含一个基础件库原则与 B/C 端用库红线）+「Top 库接入速查」（shadcn/HeroUI/daisyUI/Tremor 的 install 与 Token 映射要点）
+  - 新增 references/craft-polish.md 工艺手册：色彩压注三策略（Committed/Drenched/Restrained，禁安全平均）+ display 字体打法（canvas-fonts 实战配对表：Bricolage Grotesque/Big Shoulders/Gloock/Instrument Serif Italic 等）+ 间距节奏反均匀 + 动效打磨清单 + 「一眼惊艳」终检（refine /polish 依据）
+- 接线：research「全网搜索设计参考」首选入口改为灵感站地图；design Part 2 引用工艺层 + Step 6 交付清单加工艺层检查项；refine /polish 挂 §5 终检；SKILL.md §6 索引补两新文件（索引行不写计数，audit 对账纪律）
+- evals 44 → 47（v214-001 灵感站路由 / v214-002 组件库选型 / v214-003 工艺打磨）
+- 版本号 2.13.1 → 2.14.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
+v2.13.1 (2026-10-24)
+- state_check 修"声明给自己作证"洞：no-permission 的证据模式是裸子串，`/* states: no-permission */` 声明本身即命中——零实现也 PASS（探针实证）。修法：证据搜索前剥离两种载体的声明标记（strip_markers），对全部状态一次关死自证通道；test_state_check 20 → 24 项（声明非证据必失败 / 真证据 data-state 不受剥离影响）
+- signature_check 行式标记只认行首 `//` 并删除 `#`/`<!--` 备选：`#` 与 CSS id 选择器（`#signature:hover`）同形且扫描范围无一种文件类型用 `#` 作行注释，纯歧义源（锚定行首也救不了规则行本身在行首的情况）；test_signature_check 17 → 20 项（id 选择器不计为落点 / 行首 // 仍合法）
+- composition_check / state_check 修"示例当真"洞：CSS 形式标记此前在整个文件上搜，嵌在 HTML 注释里的用法示例（六要素+stamp 俱全 / 三态声明+证据齐全）会被当成真契约——零契约/零实现页面过闸（探针实证 fields=6、declared=3 landed=1）。修法：CSS 形式标记与 CSS 形式 stamp 改在剥离 HTML 注释后的文本上搜（HTML 形式自带定界仍在原文上认，与 signature_check 的示例纪律对齐）；state_check 证据搜索同步剥 HTML 注释（注释内容不随页面渲染，不是实现证据）。test_composition_check 20 → 22、test_state_check 24 → 26
+- 版本号 2.13.0 → 2.13.1（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.13.0 (2026-10-23)
 - 状态契约落地（把"只能演示 happy path"变成可机检的失败）：
   - 新增 references/state-contract.md：页面级状态六种（loading/empty/error/success/no-permission/offline）+ 交互复杂度五档派生表 + 落地证据判据表 + static 豁免

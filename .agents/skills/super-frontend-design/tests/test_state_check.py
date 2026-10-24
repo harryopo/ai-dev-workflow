@@ -91,6 +91,27 @@ UNKNOWN_STATE = """<!-- states: loading,whatever -->
 <div class="is-loading">加载中</div>
 """
 
+# 声明不能给自己作证：no-permission 的证据模式是裸子串，
+# 声明标记本身曾命中它——零实现也 PASS（2026-10-24 探针实证后收口）
+SELF_CERTIFYING = """<!-- states: no-permission -->
+<h1>设置</h1>
+<p>账户偏好设置。</p>
+"""
+
+# 真证据：写在实现里的 data-state（不在声明标记里），必须照常通过
+PERM_LANDED = """<!-- states: no-permission -->
+<div data-state="no-permission" hidden>没有权限查看此分区</div>
+"""
+
+# 注释里的示例声明与示例证据都不算——修复前 declared=3 landed=1 全靠注释撑着，
+# 示例三态证据凑齐即可零实现过闸（2026-10-24 探针实证后收口）
+EXAMPLE_ALL = """<!-- 示例：/* states: loading, empty, error */ -->
+<!-- <div class="is-loading">示例加载中</div> -->
+<!-- <div class="empty-state">示例空态</div> -->
+<!-- <div class="is-error">示例错误</div> -->
+<h1>设置</h1>
+"""
+
 
 def main():
     with tempfile.TemporaryDirectory() as tmp:
@@ -133,12 +154,17 @@ def main():
         check("static-page-exempt", r.returncode == 0,
               "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
 
-        # 实现了但没声明：不阻塞
+        # 实现了但没声明：v2.14.1 起拦截——声明是可审计载体，实现先于声明不豁免
         r = run([str(undeclared)])
-        check("landed-not-declared-does-not-block", r.returncode == 0,
+        check("landed-not-declared-blocks", r.returncode == 1,
               "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
-        check("landed-not-declared-warns",
-              "state-landed-not-declared" in r.stdout, r.stdout[-300:])
+        check("landed-not-declared-reports-rule",
+              "state-declared-absent" in r.stdout, r.stdout[-300:])
+
+        # static 场景豁免仍成立：静态页有状态字样的文案也不强制声明
+        r = run([str(undeclared), "--complexity", "static"])
+        check("static-exempt-even-when-landed", r.returncode == 0,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
 
         # CSS 载体
         r = run([str(csscarrier)])
@@ -165,6 +191,30 @@ def main():
         # 未知状态名：提示但不阻塞
         r = run([str(unknown)])
         check("unknown-state-warns", "state-unknown" in r.stdout, r.stdout[-300:])
+
+        # 声明不是证据：no-permission 声明 + 零实现必须失败
+        selfcert = write(tmp, "selfcert.html", SELF_CERTIFYING)
+        r = run([str(selfcert)])
+        check("declaration-is-not-own-evidence", r.returncode == 1,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+        check("self-certify-reports-rule",
+              "state-declared-not-landed" in r.stdout, r.stdout[-300:])
+        check("self-certify-counts-zero-landed",
+              "landed=0" in r.stdout, r.stdout[-300:])
+
+        # 真证据（实现里的 data-state）不受标记剥离影响
+        permland = write(tmp, "permland.html", PERM_LANDED)
+        r = run([str(permland)])
+        check("no-permission-landed-passes", r.returncode == 0,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+
+        # 注释里的示例声明与示例证据都不算数
+        exall = write(tmp, "exall.html", EXAMPLE_ALL)
+        r = run([str(exall)])
+        check("example-declaration-and-evidence-ignored", r.returncode == 1,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+        check("example-reports-absent",
+              "state-absent" in r.stdout, r.stdout[-300:])
 
         # JSON 输出可解析
         r = run([str(ok), "--json"])

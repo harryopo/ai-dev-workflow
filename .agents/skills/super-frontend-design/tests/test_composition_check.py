@@ -120,6 +120,20 @@ MIXED_CARRIER = """<template>
 </style>
 """
 
+# HTML 注释里的完整示例（六要素 + stamp 俱全）不是契约——
+# 修复前这样一段示例就能让零契约页面过闸（2026-10-24 探针实证 fields=6）
+EXAMPLE_ONLY = """<h1>工单列表</h1>
+<!-- 用法示例：
+     /* composition: heading-anchor = h1 */
+     /* composition: body-columns = 2 */
+     /* composition: divider = hairline */
+     /* composition: imagery = none */
+     /* composition: entrance = fade-up */
+     /* composition: focus-hierarchy = 1 */
+     /* macrostructure: 05·Workbench */ -->
+<p>正文内容。</p>
+"""
+
 
 def write(tmp, name, content):
     p = Path(tmp) / name
@@ -189,6 +203,14 @@ def main():
         r = run([str(mixedcarrier)])
         check("mixed-carrier-passes", r.returncode == 0,
               "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+
+        # HTML 注释里的示例不是契约：六要素+stamp 俱全的示例块必须仍判 absent
+        example = write(tmp, "example.html", EXAMPLE_ONLY)
+        r = run([str(example)])
+        check("example-in-comment-not-contract", r.returncode == 1,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+        check("example-reports-absent",
+              "composition-absent" in r.stdout, r.stdout[-300:])
 
         r = run([str(valid), "--require-macrostructure", "Bento Grid"])
         check("matching-macrostructure-passes", r.returncode == 0,

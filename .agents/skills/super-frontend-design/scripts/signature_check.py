@@ -38,7 +38,11 @@ for _s in (sys.stdout, sys.stderr):
         _s.reconfigure(encoding="utf-8")
 
 SIGNATURE_MARKER = re.compile(r"/\*\s*signature:\s*(?P<body>[^*]*?)\*/", re.I)
-SIGNATURE_LINE = re.compile(r"(?i)(//|#|<!--)\s*signature:\s*(?P<body>.*?)(?:-->)?\s*$")
+# 行式标记只认行首 //：# 与 CSS id 选择器（#signature:hover）同形，
+# 而扫描范围里的文件类型没有任何一种用 # 作行注释——它是纯歧义源；
+# <!-- 形式由 HTML_COMMENT_MARKER 在 original 上处理，rest 里不存在
+SIGNATURE_LINE = re.compile(
+    r"(?i)^[ \t]*//[ \t]*signature:\s*(?P<body>.*?)[ \t]*$")
 
 # 低关注度容器：签名落在这些容器的内部 = 没人看得见
 LOW_VISIBILITY_TAGS = ("footer", "copyright", "legal", "disclaimer",

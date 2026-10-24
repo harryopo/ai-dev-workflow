@@ -165,6 +165,11 @@ def check_counts(root, f):
     for rel, (pattern, label) in COUNT_RULES.items():
         path = root / rel
         if not path.exists():
+            # 数据集文件缺失曾是静默跳过——删掉文件就能无声杀死对账（裁判盲区，
+            # 2026-10-24 对抗性审查收口）。缺失本身就是最高优先级的失败。
+            f.fail("dataset-missing",
+                   "canonical dataset %s is gone — deleting it used to silence "
+                   "this audit silently" % rel)
             continue
         body = strip_code_fences(read(path))
         actual = len(re.findall(pattern, body))
@@ -184,6 +189,9 @@ def check_subskill_claims(root, f):
     for rel, claim_rx, item_rx, label in SUBSKILL_CLAIMS:
         path = root / rel
         if not path.exists():
+            f.fail("dataset-missing",
+                   "canonical doc %s is gone — deleting it used to silence "
+                   "this audit silently" % rel)
             continue
         body = strip_code_fences(read(path))
         claims = {int(n) for n in re.findall(claim_rx, body)}
@@ -252,6 +260,9 @@ def check_cross_claims(root, f):
     """
     slop = root / "references" / "slop-test.md"
     if not slop.exists():
+        f.fail("dataset-missing",
+               "references/slop-test.md is gone — every 'N条Slop Test' quote in "
+               "the skill would go unaudited")
         return
     actual = len(re.findall(r"(?m)^### V\d+\.", strip_code_fences(read(slop))))
     stale = []
@@ -297,6 +308,9 @@ def check_denominators(root, f):
     for rel, (pattern, label) in COUNT_RULES.items():
         path = root / rel
         if not path.exists():
+            f.fail("dataset-missing",
+                   "canonical dataset %s is gone — deleting it used to silence "
+                   "this audit silently" % rel)
             continue
         actual = len(re.findall(pattern, strip_code_fences(read(path))))
         # the 0-100 score scale is a legitimate second denominator; values above

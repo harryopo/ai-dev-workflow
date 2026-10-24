@@ -1,6 +1,6 @@
 ---
 name: super-frontend-design
-version: 2.13.0
+version: 2.14.1
 description: 前端设计全流程工作台。调研驱动设计：15 维度深度调研（设计类型×企业参考×视觉风格×设计调性×暗色模式×技术栈×响应式×交互复杂度×品牌人格×情绪板×设计禁忌×竞品拆解×动效方向×交互节奏×字体偏好）→ 智能场景推荐 → 设计上下文 → 生成艺术 → 主题系统 → UI实现 → 双代理审查。调研是核心，无调研不设计。适用于：从零设计全新项目、中途重构已有界面、优化升级、美化升级、批量组件设计等所有前端设计场景。集成 hallmark 双代理审查、Craft Floor 26 条规则、命令式优化接口。触发词：设计、UI、UX、前端、落地页、海报、艺术、品牌、主题、dashboard、生成艺术、p5.js、配色、字体、审查UI、深度审查、设计上下文、polish、bolder、quieter、distill、harden、animate、重构、改造、升级、优化界面、美化页面、按现有风格重构、统一风格。
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, AskUserQuestion, Task, Agent
 ---
@@ -476,7 +476,9 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/custom-theme.md | 自定义主题生成流程 | theme 子命令 |
 | references/corporate-design-systems.md | 60+ 品牌 DESIGN.md 参考 | research / design 子命令 |
 | references/mcp-integration.md | 推荐 MCP Server 配置指南 | 可选增强配置 |
-| references/component-block-catalog.md | Cult UI / Magic UI 组件库 | design 子命令 |
+| references/component-block-catalog.md | 组件库目录（含场景→库决策树与 Top 库接入速查） | design 子命令 |
+| references/inspiration-sources.md | 灵感站地图（整页灵感/交互实录站点，检索式与解构要点） | research 子命令 |
+| references/craft-polish.md | 工艺手册（色彩压注三策略 / display 字体打法 / 间距节奏 / 动效打磨 / 一眼惊艳终检） | design / refine 子命令 |
 | references/gsap-animation-guide.md | GSAP 动效最佳实践 | design / animate 子命令 |
 | references/anti-ai-slop.md | 14 条精确反 AI 味规则 | design / review 子命令 |
 | references/composition-contract.md | 构图契约六要素 + 视觉重心三级规则 | design / review 子命令 |
@@ -534,11 +536,11 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | tests/test_visual_diff.py | visual_diff 契约测试（13 项）：白屏兜底、尺寸不符未比对面积、UTF-8 输出 | 交付前自检 |
 | tests/test_render_probe.py | render_probe 契约测试（10 项）：真浏览器量对比度/横向滚动/alt + APCA 参考值锚定；无 Playwright 时退出 2，不许"没量到"当成通过 | 交付前自检 |
 | tests/test_structure_lint.py | structure_lint 契约测试（9 项）：var() 不误判、硬编码色必抓、配错规则名/指错 --tools 都 exit 2 | 交付前自检 |
-| tests/test_audit_gate_red.py | 往副本注入 17 类缺陷 + 1 项参数拼写拒跑（共 18 项），证明结构门禁会红、参数拼错会拒跑 | 交付前自检 |
+| tests/test_audit_gate_red.py | 往副本注入各类缺陷（计数漂移/措辞漂移/门禁清单/数据集文件删除等）+ 参数拼写拒跑，证明审计会红、拼错会拒跑；用例清单以该文件为准 | 交付前自检 |
 | tests/test_random_draw.py | random_draw 契约测试：等概率性、去重、单候选必拒、留痕字段完整 | 交付前自检 |
 | tests/test_signature_check.py | signature_check 契约测试：零落点必失败、页脚落点必失败、首页无签名必失败、嵌套注释不误计 | 交付前自检 |
-| tests/test_composition_check.py | composition_check 契约测试（20 项）：缺要素必失败、无 macrostructure 戳记必失败、focus 取值越界必失败、HTML/Tailwind 载体必认 | 交付前自检 |
-| tests/test_state_check.py | state_check 契约测试（20 项）：假声明必失败、static 豁免必通过、复杂度越界必拒跑、派生规则必生效 | 交付前自检 |
+| tests/test_composition_check.py | composition_check 契约测试（22 项）：缺要素必失败、无 macrostructure 戳记必失败、focus 取值越界必失败、HTML/Tailwind 载体必认、注释示例不是契约 | 交付前自检 |
+| tests/test_state_check.py | state_check 契约测试（27 项）：假声明必失败、声明不能给自己作证、有实现零声明必拦截、注释示例不算数、static 豁免必通过、复杂度越界必拒跑、派生规则必生效 | 交付前自检 |
 
 **预设主题列表：**
 

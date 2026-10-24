@@ -105,6 +105,17 @@ def read_text(path):
     return path.read_bytes().decode("utf-8", errors="replace")
 
 
+def strip_html_comments(src):
+    """Blank out HTML comment bodies before searching the CSS-form marker.
+
+    signature_check 的既有纪律：嵌在 HTML 注释里的 /* ... */ 是示例不是落点。
+    此前 CSS 形式标记在整个文件上搜——一段用法示例（六要素 + stamp 齐全）就能
+    让没有任何真契约的页面过闸（2026-10-24 探针实证 fields=6）。
+    HTML 形式标记自带 <!-- 前缀定界，仍在原文上搜。
+    """
+    return re.sub(r"<!--.*?-->", " ", src, flags=re.S)
+
+
 def scan_file(path):
     """Return (fields dict, has_stamp bool, stamp_value str|None, carrier str|None).
 
@@ -112,9 +123,10 @@ def scan_file(path):
     只用于 JSON 输出的可诊断性，不影响判定。
     """
     src = read_text(path)
+    no_comments = strip_html_comments(src)
     fields = {}
     carriers = set()
-    for m in COMPOSITION_MARKER.finditer(src):
+    for m in COMPOSITION_MARKER.finditer(no_comments):
         key = m.group("key").lower()
         fields.setdefault(key, m.group("value").strip())
         carriers.add(CARRIER_CSS)
@@ -123,7 +135,8 @@ def scan_file(path):
         fields.setdefault(key, m.group("value").strip())
         carriers.add(CARRIER_HTML)
 
-    stamp = MACROSTRUCTURE_STAMP.search(src) or MACROSTRUCTURE_STAMP_HTML.search(src)
+    stamp = (MACROSTRUCTURE_STAMP.search(no_comments)
+             or MACROSTRUCTURE_STAMP_HTML.search(src))
     stamp_value = None
     if stamp:
         stamp_value = stamp_structure_name(stamp.group("value"))

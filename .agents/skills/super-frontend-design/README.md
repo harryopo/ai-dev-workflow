@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.13.0-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.14.1-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -216,6 +216,9 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.14.1 | 2026-10-24 | dogfood 回流收口：state_check 声明必填语义收紧（有实现零声明也拦截，新规则 state-declared-absent）；audit 裁判盲区修复（数据集文件缺失曾静默跳过对账，现判 dataset-missing 硬失败）+ random_draw 清死导入 + mutation 用例扩充 |
+| v2.14.0 | 2026-10-24 | 灵感与素材层：灵感站地图（references/inspiration-sources.md，整页灵感/交互实录站点+检索式+解构纪律）；组件目录扩容（HeroUI/daisyUI/Tremor/Preline/Flowbite/Motion Primitives/ReactBits/Launch UI + 场景→库决策树 + Top 库接入速查）；工艺手册（references/craft-polish.md，色彩压注三策略/display 字体打法配 canvas-fonts/间距节奏/动效打磨/一眼惊艳终检）；evals 44 → 47 |
+| v2.13.1 | 2026-10-24 | 契约门禁自欺洞收口：state_check 证据搜索前剥离声明标记（no-permission 声明曾给自己作证，零实现也 PASS）；signature_check 行式标记只认行首 //（`#` 与 CSS id 选择器同形，删除歧义源）。test_state_check 20→24、test_signature_check 17→20 |
 | v2.13.0 | 2026-10-23 | 状态契约（把"只能演示 happy path"变成可机检的失败）：research 交互复杂度 → `interaction-complexity` 派生表 → design Step 1.7 落地 `/* states: */` + 实现证据 → review #14；新增 `references/state-contract.md` + `scripts/state_check.py` 门禁 + `check_phase5_wiring` 审计项；另修 v2.12.0 遗留的载体口径不一致（composition_check 现已支持 HTML 注释载体，Tailwind 项目不再必然误判） |
 | v2.12.0 | 2026-10-23 | 构图契约机制（把视觉重心/节奏/密度纳入可追溯传递）：macrostructures 六要素 → pass-data `composition` → design Step 1.6 落地 `/* composition: */` 标记 → review #13 逐项对账；新增 `references/composition-contract.md` + `scripts/composition_check.py` 门禁 + `check_phase4_wiring` 审计项 |
 | v2.11.0 | 2026-10-23 | 签名机制（反模板的唯一肯定式检查）：research 挖掘签名线索 → creative 绑定到每个方向 → theme 推导签名专属 Token → design 落地到代码（`/* signature: */` 标记）→ review #12 验收签名可识别性；新增 `scripts/signature_check.py` 门禁 + `check_phase3_wiring` 审计项 |

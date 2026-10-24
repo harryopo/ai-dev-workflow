@@ -45,6 +45,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, AskUserQuestion
 
 上线前的最终质量检查，确保界面达到生产级标准。
 
+> 打磨清单依据 `references/craft-polish.md` §5「一眼惊艳终检」逐项过；色彩压注/display 字体/间距节奏的具体手法见该手册 §1-§4。
+
 ### 3.2 执行步骤
 
 1. **视觉层次检查**

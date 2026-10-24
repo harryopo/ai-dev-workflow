@@ -315,6 +315,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 
 ## Part 2: 风格与设计系统
 
+> 工艺层（色彩压注三策略 / display 字体打法 / 间距节奏）见 `references/craft-polish.md`——Step 5 代码生成前过一遍其 §1-§4，压注策略与 display 字体选型写进 DESIGN.md 对应 section 供 review 核对。
+
 ### 风格选择规则
 
 风格选择优先级表（按产品类型匹配）：
@@ -1892,6 +1894,7 @@ composition:
 - [ ] 全网搜索参考已解构优化（非直接照搬）？
 - [ ] Design Token 系统已应用？
 - [ ] 跨领域借鉴已考虑？
+- [ ] **工艺层已过**：色彩压注策略已选并写进 DESIGN.md？display 字体非 Inter 系？间距节奏非均匀？（`references/craft-polish.md` §1-§4）
 - [ ] **（现有风格重构流程）已询问用户是否固化风格**：是否将本次统一后的设计规范写入项目根（DESIGN.md / PRODUCT.md），供后续设计沿用？
 
 ---

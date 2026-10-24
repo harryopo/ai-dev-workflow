@@ -82,6 +82,17 @@ SELF_REFERENCING = """<!doctype html>
 </body></html>
 """
 
+# 行式标记未锚定行首时，CSS id 选择器 #signature:hover 的中段曾被计为落点
+CSS_ID_SELECTOR = """#signature:hover {
+  outline: 2px solid var(--color-primary);
+}
+"""
+
+# 锚定后行首 // 注释仍是合法载体
+JS_LINE_SIGNATURE = """// signature: 术语等宽独立成版式单元
+export const term = "hotspot";
+"""
+
 
 def write(tmp, name, content):
     p = Path(tmp) / name
@@ -165,6 +176,20 @@ def main():
         r = run([str(dir_b)])
         check("dir-scan-passes-with-entry", r.returncode == 0,
               "exit=%s out=%s" % (r.returncode, r.stdout[-400:]))
+
+        # CSS id 选择器不是签名落点（行式标记锚定行首）
+        cssid = write(tmp, "idonly.css", CSS_ID_SELECTOR)
+        r = run([str(cssid)])
+        check("css-id-selector-not-counted", r.returncode == 1,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
+        check("css-id-selector-reports-missing",
+              "signature-landing-missing" in r.stdout, r.stdout[-300:])
+
+        # 行首 // 注释仍是合法行式载体
+        jsline = write(tmp, "term.js", JS_LINE_SIGNATURE)
+        r = run([str(jsline)])
+        check("js-line-marker-still-counts", r.returncode == 0,
+              "exit=%s out=%s" % (r.returncode, r.stdout[-300:]))
 
     print("-" * 60)
     print("checks=%d failures=%d" % (checks, len(failures)))

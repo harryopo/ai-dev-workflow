@@ -44,6 +44,9 @@ CASES = [
          (d / "references/slop-test.md").read_text(encoding="utf-8")
          .replace("/56", "/57"), encoding="utf-8"),
      "stale-total"),
+    ("dataset-file-deleted",
+     lambda d: (d / "references/slop-test.md").unlink(),
+     "dataset-missing"),
     ("bogus-flag-must-not-scan-quietly",
      None,
      "unknown flag"),

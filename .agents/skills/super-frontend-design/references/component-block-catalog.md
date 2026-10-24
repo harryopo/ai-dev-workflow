@@ -154,6 +154,52 @@
 | Ant Design | 企业级组件库（React；Vue 走社区版） | https://ant.design |
 | Element Plus | 企业级组件库（Vue 3） | https://element-plus.org |
 | Arco Design | 企业级组件库（React/Vue3） | https://arco.design |
+| HeroUI | React/Aria 无障碍组件（原 NextUI，可主题定制） | https://www.heroui.com |
+| daisyUI | Tailwind 插件式纯 CSS 组件（无 JS，轻量原型首选） | https://daisyui.com |
+| Tremor | React 仪表盘/图表组件（B 端数据页） | https://www.tremor.so |
+| Preline | Tailwind HTML 组件库（含头/营销段/JS 交互） | https://preline.co |
+| Flowbite | Tailwind 组件库（HTML/React/Vue 多端） | https://flowbite.com |
+| Motion Primitives | 动效原语库（文字/滚动/悬停高级动效） | https://motion-primitives.com |
+| ReactBits | 动效组件库（背景/文字/交互动画） | https://reactbits.dev |
+| Launch UI | shadcn 生态落地页组件（C 端营销段） | https://launchuicomponents.com |
 
 > 企业级组件库的 Token 定制入口、与语义 Token 层的映射方式见 design 子技能 Part 7
 > 「国内企业级组件库」小节；B 端模式参考 `references/admin-enterprise-patterns.md`。
+
+---
+
+## 场景 → 组件库决策树
+
+> 选库先定场景，别按"哪个最有名"选。库只是素材层——**风格由 Design Token 与三层契约决定，库不背锅也不邀功**。
+
+```
+要做什么？
+├─ C 端品牌官网 / 落地页（React 栈）
+│    → 基础件 shadcn/ui + 视觉块 Aceternity / 21st.dev / Launch UI
+│      + 动效 Motion Primitives / ReactBits（配 GSAP 编排，见 animate）
+├─ C 端但纯 HTML/无框架
+│    → Preline 或 Flowbite 的模板段 + 手写关键块（参考 §20 高级 CSS 组件）
+├─ B 端后台 / 数据密集（React）
+│    → 企业四库选一（TDesign/Ant/Element Plus/Arco，见 design Part 7）
+│      或 shadcn/ui + Tremor（图表/仪表盘）
+├─ B 端后台（Vue 3）
+│    → Element Plus / TDesign(Vue)；动效补 Inspira UI
+├─ 轻量原型 / 个人工具 / 快速出活
+│    → daisyUI（纯 CSS 无 JS 负担，Tailwind 原生主题切换）
+└─ 设计工具级复杂交互（Inspector/画布类）
+     → Radix / Base UI 无样式原语 + 自研（参考 professional-software.md）
+```
+
+**选库红线**：
+- 一个项目**一个基础件库**（shadcn 或企业库二选一），视觉/动效库可叠加但组件入口必须统一
+- 库的默认样式不豁免门禁——自定义样式的颜色/字号照走 Token（structure_lint 的 strict-value 不认"这是库的类"）
+- B 端用 C 端视觉库（Aceternity 类）= 方向错误；C 端堆企业库 = 通用后台脸
+
+## Top 库接入速查（install + Token 映射）
+
+| 库 | 安装 | Token 对接要点 |
+|----|------|---------------|
+| **shadcn/ui** | `npx shadcn@latest init` 后逐组件 add | 主题走 CSS 变量（OKLCH），`--primary` 等语义位与本项目语义层对齐；详见 design Part 8 专章 |
+| **HeroUI** | `npm i @heroui/react` + provider 包裹 | 主题定制在 tailwind.config 的 `heroui` 键（colors 对象）——把品牌色映射进去，别双轨覆盖 |
+| **daisyUI** | `npm i -D daisyui` + tailwind 插件注册 | 主题用 `daisyui.themes` 定义 data-theme；语义色走其 primary/secondary 命名，与 `:root` 语义层做一层映射 |
+| **Tremor** | `npx @tremor/cli` 或按组件复制 | 颜色 prop 接收 Token 数组——传 `var(--chart-1)` 系列而非裸 hex；与 chart-types.md 的选型配合 |

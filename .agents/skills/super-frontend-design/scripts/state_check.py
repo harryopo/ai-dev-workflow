@@ -102,7 +102,7 @@ def read_text(path):
 def parse_states(src):
     """Return (declared set, carriers set). Handles both CSS and HTML carriers."""
     declared, carriers = set(), set()
-    for m in STATES_MARKER_CSS.finditer(src):
+    for m in STATES_MARKER_CSS.finditer(strip_html_comments(src)):
         body = m.group("body")
         carriers.add("css")
         for tok in re.split(r"[,，、\s]+", body):
@@ -117,6 +117,30 @@ def parse_states(src):
             if tok:
                 declared.add(tok)
     return declared, carriers
+
+
+def strip_markers(src):
+    """Blank out declarations AND HTML comment bodies before the evidence search.
+
+    两层剥离，各堵一条自证通道（2026-10-24 探针实证）：
+    1. 声明标记——no-permission 的证据模式是裸子串，`/* states: no-permission */`
+       声明本身就能命中它，零实现也 PASS；
+    2. HTML 注释——注释里的示例代码（<!-- <div class="is-loading">…</div> -->）
+       不随页面渲染，不是实现证据；示例声明同理不该算声明。
+    声明解析与证据搜索都跑在剥离后的文本上。
+    """
+    src = STATES_MARKER_CSS.sub(" ", src)
+    src = STATES_MARKER_HTML.sub(" ", src)
+    return re.sub(r"<!--.*?-->", " ", src, flags=re.S)
+
+
+def strip_html_comments(src):
+    """Blank out HTML comment bodies before parsing the CSS-form declaration.
+
+    嵌在 HTML 注释里的 /* states: … */ 是用法示例不是声明（与 signature_check
+    的示例纪律对齐）；HTML 形式声明自带 <!-- 前缀定界，仍在原文上解析。
+    """
+    return re.sub(r"<!--.*?-->", " ", src, flags=re.S)
 
 
 def state_evidence(src, state):
@@ -147,7 +171,7 @@ def main(argv=None):
     ap.add_argument("--strict", action="store_true", help="警告也判失败")
     ap.add_argument("--complexity", default=None,
                     help="research 得出的交互复杂度：static/basic/moderate/complex/app；"
-                         "缺省时只检查声明与实现一致，不启用派生规则")
+                         "缺省时声明仍是必填——有实现证据而无任何声明同样判失败")
     ns = ap.parse_args(argv)
 
     try:
@@ -176,8 +200,9 @@ def main(argv=None):
 
         declared, carriers = parse_states(src)
         carriers_seen |= carriers
+        evidence_src = strip_markers(src)
 
-        # 本文件声明的状态，必须在本文件里有证据
+        # 本文件声明的状态，必须在本文件里有证据（声明标记本身不算证据）
         for state in sorted(declared):
             declared_anywhere.add(state)
             if state not in STATE_EVIDENCE:
@@ -190,7 +215,7 @@ def main(argv=None):
                     "measured": 1,
                 })
                 continue
-            if not state_evidence(src, state):
+            if not state_evidence(evidence_src, state):
                 hard.append({
                     "rule": "state-declared-not-landed",
                     "file": f.name,
@@ -203,11 +228,11 @@ def main(argv=None):
             else:
                 landed_anywhere.add(state)
 
-        # 代码里有证据但没声明：不阻塞（可能是实现先于声明）
+        # 代码里有证据但没声明：逐文件提示（全局层面由下方 declared-absent 兜底拦截）
         for state, patterns in STATE_EVIDENCE.items():
             if state in declared:
                 continue
-            if any(re.search(p, src, re.I) for p in patterns):
+            if any(re.search(p, evidence_src, re.I) for p in patterns):
                 landed_anywhere.add(state)
                 warn.append({
                     "rule": "state-landed-not-declared",
@@ -217,9 +242,8 @@ def main(argv=None):
                     "measured": 1,
                 })
 
-    if not declared_anywhere and not landed_anywhere:
-        # 声明与实现都没有——这才是"没考虑过状态"
-        # 静态页豁免：没有异步数据的页面不要求状态声明
+    if not declared_anywhere:
+        # 声明缺失分两档（v2.14.1 收紧：声明是可审计载体，实现先于声明不能豁免声明）
         if complexity == "static":
             warn.append({
                 "rule": "state-absent-exempt",
@@ -228,7 +252,19 @@ def main(argv=None):
                 "message": "interaction-complexity=static，静态页豁免状态声明",
                 "measured": 0,
             })
+        elif landed_anywhere:
+            hard.append({
+                "rule": "state-declared-absent",
+                "file": files[0].name,
+                "line": 0,
+                "message": "代码里有状态实现（%s）但没有任何契约声明——"
+                           "实现先于声明不是豁免：没有声明，复杂度派生与 review "
+                           "#14 的对账就断了" % "/".join(sorted(landed_anywhere)),
+                "measured": len(landed_anywhere),
+                "threshold": 1,
+            })
         else:
+            # 声明与实现都没有——这才是"没考虑过状态"
             hard.append({
                 "rule": "state-absent",
                 "file": files[0].name,
