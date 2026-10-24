@@ -707,7 +707,7 @@ Token 命名遵循以下层级结构：
 
 1. **读取视觉论文**：从 `pass-data.yaml` 读取 creative 子技能产出的 `visual-thesis`（含 5 个方向）
 2. **（C 端品牌场景）读取选定方向**：若 `pass-data.yaml` 有 `selected-direction`，该方向的 `key-tokens` 是用户**明确选定**的锚点——Token 推导必须与其一致；视觉论文与选定方向冲突时，以选定方向为准并标注偏差（冲突说明设计方向漂了，需回报上游）
-3. **（v2.11.0）读取签名**：若 `pass-data.yaml` 有 `signature` 字段，其 `expression` 描述了签名需要的视觉资源，据此推导签名专属 Token（见下方第 5 条）
+3. **读取签名**：若 `pass-data.yaml` 有 `signature` 字段，其 `expression` 描述了签名需要的视觉资源，据此推导签名专属 Token（见下方第 5 条）
 3. **Token 推导**：
    - 配色方向 → 主色/辅助色/强调色/中性色
    - 排版方向 → 标题字体/正文字体/字号阶乘
@@ -715,7 +715,7 @@ Token 命名遵循以下层级结构：
    - 材质方向 → 圆角/阴影/边框/透明度
    - 动效方向 → 过渡时长/缓动函数类型
 4. **每个 Token 必须标注推导来源**：如 `--color-primary: #XXXXXX（来自视觉论文·配色方向·冷峻蓝）`；C 端场景的选定方向 Token 标注为 `--color-primary: #XXXXXX（来自选定方向 A·关键 Token）`
-5. **（v2.11.0）签名专属 Token**：若 `pass-data.yaml` 有 `signature` 字段，签名的落地方式可能需要**专用 Token**（如"术语用等宽字体独立成版式单元"→ 需要 `--font-mono` + `--tracking-term`；"指标用条带承载"→ 需要 `--metric-strip-height`）。这类 Token 标注为 `--font-mono: "Xxx"（来自签名·术语版式化）`
+5. **签名专属 Token**：若 `pass-data.yaml` 有 `signature` 字段，签名的落地方式可能需要**专用 Token**（如"术语用等宽字体独立成版式单元"→ 需要 `--font-mono` + `--tracking-term`；"指标用条带承载"→ 需要 `--metric-strip-height`）。这类 Token 标注为 `--font-mono: "Xxx"（来自签名·术语版式化）`
    - **规则**：签名专属 Token 是**增量**，不得覆盖视觉论文推导出的主 Token；签名专属 Token 至少 1 个，命名为语义化且带签名语义（如 `--signature-*`）
 
 #### 步骤 2（可选）：向用户展示主题参考

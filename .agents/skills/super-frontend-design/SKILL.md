@@ -479,8 +479,8 @@ animate        → Read ${SKILL_DIR}/subskills/animate/SKILL.md
 | references/component-block-catalog.md | Cult UI / Magic UI 组件库 | design 子命令 |
 | references/gsap-animation-guide.md | GSAP 动效最佳实践 | design / animate 子命令 |
 | references/anti-ai-slop.md | 14 条精确反 AI 味规则 | design / review 子命令 |
-| references/composition-contract.md | 构图契约六要素 + 视觉重心三级规则（v2.12.0） | design / review 子命令 |
-| references/state-contract.md | 状态契约：页面级状态六种 + 交互复杂度派生表 + 落地证据判据（v2.13.0） | design / review 子命令 |
+| references/composition-contract.md | 构图契约六要素 + 视觉重心三级规则 | design / review 子命令 |
+| references/state-contract.md | 状态契约：页面级状态六种 + 交互复杂度派生表 + 落地证据判据 | design / review 子命令 |
 | references/saturated-lanes.md | 饱和风格赛道清单（防"参考驱动像"的第二层同质化） | review / critique 子命令 |
 | references/typography.md | Typography 硬规则（字体/字重/行高禁令） | review 子命令 §2.16 |
 | references/premium-design-rules.md | 16 条数值化高级感规范 | design 子命令 |
@@ -605,20 +605,20 @@ direction-candidates:            # 仅 C 端品牌场景（visitor-intent = Pers
     trade-off: {换来什么 / 牺牲什么}
 selected-direction: {A | B | C}  # 用户选定；缺此项时 design 必须停止并退回 creative
 interaction-complexity: {static | basic | moderate | complex | app}
-                          # v2.13.0：research 第 3 轮问题 8 的映射值——状态契约的派生依据
-signature:                    # v2.11.0：签名识别符（反模板的唯一肯定式检查）
+                          # research 第 3 轮问题 8 的映射值——状态契约的派生依据
+signature:                    # 签名识别符（反模板的唯一肯定式检查）
   identifier: {签名识别符一句话}
   expression: {落地方式}
   anchor: {落在哪个组件或位置}
-macrostructure: {编号·名称}    # v2.12.0：选定的页面结构（Step 1.5）
-composition:                  # v2.12.0：构图契约六要素（Step 1.6，必须逐项落地到代码）
+macrostructure: {编号·名称}    # 选定的页面结构（Step 1.5）
+composition:                  # 构图契约六要素（Step 1.6，必须逐项落地到代码）
   heading-anchor: {标题锚点}
   body-columns: {正文列数/分布}
   divider: {分隔手段}
   imagery: {图片处理}
   entrance: {入场动效形态}
   focus-hierarchy: {1 | 2 | 3}
-states: {loading, empty, error, ...}   # v2.13.0：状态契约声明（Step 1.7，必须与 interaction-complexity 派生表一致且代码里有实现证据）
+states: {loading, empty, error, ...}   # 状态契约声明（Step 1.7，必须与 interaction-complexity 派生表一致且代码里有实现证据）
 visual-thesis:
   color-direction: {配色方向}
   typography-direction: {排版方向}
