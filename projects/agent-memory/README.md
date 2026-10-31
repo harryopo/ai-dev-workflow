@@ -9,10 +9,10 @@
 - **目标**：把 super-memory 验证过的记忆能力，转化为后续 agent 开发可直接拿来用的记忆模块参考资产（框架/算法/注意事项）
 - **需求与约束**：单人 agent；Markdown 唯一权威，core 只做带保证的读写器；纯标准库起步；与 super-memory 仅格式契约耦合
 - **关键决策**：2026-10-24 方向确认（记忆基础设施获批）· 2026-10-24 主次拍板（参考资产主线/跨宿主 MCP 次线先留）· 2026-10-24 红线（赛题特化不倒灌主线）
-- **状态**：已完成 M0+ 文档四件与 M1 core 六模块（自测 6/6，真实环境寻址冒烟过） · 进行中 M1 收尾提交 · 阻塞 无
-- **下一步动作**：① 用户审阅 core 六模块接口（docstring 即接口）② M2 注意事项手册（pitfalls ≥12 条）③ M3 算法文档六篇
+- **状态**：已完成 M0+ 文档四件、M1 core 六模块（自测 6/6 PASS，真实环境寻址冒烟通过，提交 aac85fe） · 进行中 无——项目已暂停（用户转回 super-memory 主线） · 阻塞 无
+- **下一步动作**：恢复开发时：① git checkout agent-memory ② 读 ROADMAP.md 状态板 ③ M2 注意事项手册（pitfalls ≥12 条，素材=super-memory 会话教训）④ M3 算法文档六篇
 - **相关文件**：core/（六模块）· run_all_tests.py · 方案书.md · ROADMAP.md · docs/research/README.md
-- **关键上下文**：工作分支 agent-memory（勿在 master 开发）；Mimosa 门禁连带拦截时→暂存请用户终端直提；今天是 2026-10-31
+- **关键上下文**：暂停原因：用户决定主攻 super-memory skill 主线，agent-memory 作为参考资产冻结在 M1 完成态；工作分支 agent-memory（勿在 master 开发）；Mimosa 门禁连带拦截时→暂存请用户终端直提；暂停于 2026-10-31；恢复时先重读本 §0
 
 ## 这是什么项目（30 秒版）
 
