@@ -1,18 +1,18 @@
 # agent-memory
 
 > **接手必读**：本文件是项目入口。任何 AI（或人）打开本目录，从这里开始。
-> 最后更新：2026-10-24 · 分支：`agent-memory`（工作区仓库 `D:\ai\claude code\skill开发`）
+> 最后更新：2026-10-31 · 分支：`agent-memory`（工作区仓库 `D:\ai\claude code\skill开发`）
 
-## §0 当前快照
 
-- **目标**：把 super-memory（已发布的记忆管理 skill，[github.com/harryopo/super-memory](https://github.com/harryopo/super-memory)）三轮 dogfood 验证过的记忆能力，转化为**后续开发 agent 时可直接拿来用的记忆模块参考资产**——框架、算法、注意事项手册、（远期）论文与竞赛作品。
-- **状态**：M0 已完成（方案书 v2 + 调研索引 + 三期路线图）。**M1（core/ 六模块）未开始**——这是下一个动手项。
-- **下一步动作**：① 读 `方案书.md`（项目宪法）→ ② 读 `ROADMAP.md` 找到当前期 → ③ M1 详细设计 → 批准后动工。
-- **相关文件**：`方案书.md` · `ROADMAP.md` · `docs/research/README.md`（调研索引）· 上游 skill：`../super-memory/`
-- **关键上下文**：
-  - 工作分支是 `agent-memory`，**不要在 master 上开发本项目**（master 走 super-memory 线）
-  - 工作区有 Mimosa 门禁：commit 可能被 `deep-research-ultra/` 存量高危连带拦截——被拦就把变更暂存好，请用户终端直提（已验证的正解）
-  - super-memory 是活项目（已发布、用户在用）：格式/schema 变更需两线同步
+## ★0. 当前快照（接手者第一眼；每次追加先刷新本节，再追加编年节）
+
+- **目标**：把 super-memory 验证过的记忆能力，转化为后续 agent 开发可直接拿来用的记忆模块参考资产（框架/算法/注意事项）
+- **需求与约束**：单人 agent；Markdown 唯一权威，core 只做带保证的读写器；纯标准库起步；与 super-memory 仅格式契约耦合
+- **关键决策**：2026-10-24 方向确认（记忆基础设施获批）· 2026-10-24 主次拍板（参考资产主线/跨宿主 MCP 次线先留）· 2026-10-24 红线（赛题特化不倒灌主线）
+- **状态**：已完成 M0+ 文档四件与 M1 core 六模块（自测 6/6，真实环境寻址冒烟过） · 进行中 M1 收尾提交 · 阻塞 无
+- **下一步动作**：① 用户审阅 core 六模块接口（docstring 即接口）② M2 注意事项手册（pitfalls ≥12 条）③ M3 算法文档六篇
+- **相关文件**：core/（六模块）· run_all_tests.py · 方案书.md · ROADMAP.md · docs/research/README.md
+- **关键上下文**：工作分支 agent-memory（勿在 master 开发）；Mimosa 门禁连带拦截时→暂存请用户终端直提；今天是 2026-10-31
 
 ## 这是什么项目（30 秒版）
 
