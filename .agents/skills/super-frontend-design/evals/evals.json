@@ -1,6 +1,6 @@
 {
   "skill": "super-frontend-design",
-  "version": "2.14.1",
+  "version": "2.15.0",
   "evals": [
     {
       "id": "core-001",
@@ -729,6 +729,42 @@
       "expected_routing": "refine /polish（按 craft-polish.md §5 终检）",
       "expected_output": ["色彩压注策略判定（说不出=没压注）", "display 字体与字重对比检查", "间距节奏与大小对比检查"],
       "anti_pattern": ["不应只调对比度和间距数值", "不应把米色+灰+一点蓝当合格", "不应堆阴影凑层次"]
+    },
+    {
+      "id": "v215-001",
+      "category": "core",
+      "subcommand": "research",
+      "prompt": "我想自己找些组件参考，做完发给你",
+      "expected_routing": "research（用户浏览目录：references/inspiration-sources.md §4 按场景给筛选菜单）",
+      "expected_output": ["按场景挑 2-4 个站（21st.dev/uiverse/shadcnblocks 等）", "回流映射说明（URL/截图/组件名各怎么接）", "提醒距离分级与饱和赛道"],
+      "anti_pattern": ["不应全表砸脸", "不应只给清单不给回流方式", "不应跳过回流的距离分级检查"]
+    },
+    {
+      "id": "v215-002",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "给我们公司做一个 B2B 产品的官网首页，要能让企业客户信任我们",
+      "expected_routing": "design（引用 references/enterprise-landing-anatomy.md 十段结构）",
+      "expected_output": ["信任桥在 hero 下方", "社会证明至少两型且案例含量化指标", "企业信任条（合规徽标+安全页）", "双 CTA 主次分明"],
+      "anti_pattern": ["不应只有泛泛好评没有量化案例", "不应漏掉安全合规条", "不应堆假 logo"]
+    },
+    {
+      "id": "v215-003",
+      "category": "core",
+      "subcommand": "design",
+      "prompt": "落地页 hero 想放一个产品演示视频当背景",
+      "expected_routing": "design（引用 references/media-craft.md §1 背景视频）",
+      "expected_output": ["10-30s 循环+静音+playsinline", "poster 兜底", "CSS overlay 层保文字对比度", "移动端/reduced-motion 降级"],
+      "anti_pattern": ["不应无 poster 直上视频", "不应把文字对比度烤进视频", "不应给大体积视频无预算"]
+    },
+    {
+      "id": "v215-004",
+      "category": "boundary",
+      "subcommand": "design",
+      "prompt": "页面需要配几张产品场景图，帮我搞定",
+      "expected_routing": "design（media-craft §4 AI 配图通道或用户浏览目录素材站）",
+      "expected_output": ["ARK_API_KEY 可用时给 seedream 提示词模板并落盘", "不可用时走用户浏览目录素材站或无图设计", "生成图纳入对比度与风格一致性检查"],
+      "anti_pattern": ["不应用占位 CDN 顶替", "不应让 AI 配图豁免风格一致性检查"]
     }
   ]
 }

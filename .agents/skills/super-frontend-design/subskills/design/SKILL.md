@@ -316,6 +316,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch
 ## Part 2: 风格与设计系统
 
 > 工艺层（色彩压注三策略 / display 字体打法 / 间距节奏）见 `references/craft-polish.md`——Step 5 代码生成前过一遍其 §1-§4，压注策略与 display 字体选型写进 DESIGN.md 对应 section 供 review 核对。
+> 媒体层（背景视频 / 图片处理库 / AI 配图通道 / 图标体系 / 性能纪律）见 `references/media-craft.md`——页面含媒体元素时按其手法实施，imagery 契约的落地证据从该手册取。
 
 ### 风格选择规则
 

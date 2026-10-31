@@ -2,7 +2,7 @@
 
 > 前端设计全流程工作台 — 调研驱动设计，覆盖网页、移动端、桌面端全场景。
 
-[![Version](https://img.shields.io/badge/version-2.14.1-blue)](#)
+[![Version](https://img.shields.io/badge/version-2.15.0-blue)](#)
 [![License](https://img.shields.io/badge/license-MIT-green)](#)
 
 ---
@@ -216,6 +216,7 @@ super-frontend-design/
 
 | 版本 | 日期 | 变更 |
 |------|------|------|
+| v2.15.0 | 2026-10-31 | 参考生态与媒体层：灵感站双层化（agent 检索层+用户浏览目录 11 类+回流映射+动态搜索优先）；组件库 +8（Base UI/Radix/Headless UI/Park UI/Origin UI/shadcnblocks/Mantine/Untitled UI）+ 三路线选型说明；企业级宣传落地页解剖（十段结构/社会证明七型/企业特化）；媒体嵌入手法（背景视频/图片处理库/性能纪律/seedream AI 配图通道/图标体系）；MCP 通道总表升级（验证状态列+旁路工具）；evals 47 → 51 |
 | v2.14.1 | 2026-10-24 | dogfood 回流收口：state_check 声明必填语义收紧（有实现零声明也拦截，新规则 state-declared-absent）；audit 裁判盲区修复（数据集文件缺失曾静默跳过对账，现判 dataset-missing 硬失败）+ random_draw 清死导入 + mutation 用例扩充 |
 | v2.14.0 | 2026-10-24 | 灵感与素材层：灵感站地图（references/inspiration-sources.md，整页灵感/交互实录站点+检索式+解构纪律）；组件目录扩容（HeroUI/daisyUI/Tremor/Preline/Flowbite/Motion Primitives/ReactBits/Launch UI + 场景→库决策树 + Top 库接入速查）；工艺手册（references/craft-polish.md，色彩压注三策略/display 字体打法配 canvas-fonts/间距节奏/动效打磨/一眼惊艳终检）；evals 44 → 47 |
 | v2.13.1 | 2026-10-24 | 契约门禁自欺洞收口：state_check 证据搜索前剥离声明标记（no-permission 声明曾给自己作证，零实现也 PASS）；signature_check 行式标记只认行首 //（`#` 与 CSS id 选择器同形，删除歧义源）。test_state_check 20→24、test_signature_check 17→20 |

@@ -162,6 +162,14 @@
 | Motion Primitives | 动效原语库（文字/滚动/悬停高级动效） | https://motion-primitives.com |
 | ReactBits | 动效组件库（背景/文字/交互动画） | https://reactbits.dev |
 | Launch UI | shadcn 生态落地页组件（C 端营销段） | https://launchuicomponents.com |
+| Base UI | headless 原语新贵（Radix/MUI 血脉，shadcn 已支持切换） | https://base-ui.com |
+| Radix UI | headless 原语事实标准（shadcn 底层） | https://www.radix-ui.com |
+| Headless UI | headless 原语（Tailwind 官方，Vue/React 双栈） | https://headlessui.com |
+| Park UI | headless 组件（Ark UI 底座，多框架） | https://park-ui.com |
+| Origin UI | block 层（大量可直接复制的组合段） | https://originui.com |
+| shadcnblocks | block 层（成套落地页/后台区块） | https://www.shadcnblocks.com |
+| Mantine | batteries-included 全家桶（120+ 组件 + 40 hooks） | https://mantine.dev |
+| Untitled UI React | 设计系统级 React 组件（与 Untitled UI Figma 对齐） | https://www.untitledui.com/react |
 
 > 企业级组件库的 Token 定制入口、与语义 Token 层的映射方式见 design 子技能 Part 7
 > 「国内企业级组件库」小节；B 端模式参考 `references/admin-enterprise-patterns.md`。
@@ -190,6 +198,11 @@
      → Radix / Base UI 无样式原语 + 自研（参考 professional-software.md）
 ```
 
+**选库路线先于选库**——三条路线的本质区别（选错路线再挑库都是白挑）：
+- **headless 路线**（Radix / Base UI / Headless UI / Park UI）：只管逻辑与无障碍，样式全自定义——适合有强品牌诉求、有工艺纪律的团队（配合 craft-polish）
+- **batteries-included 路线**（Mantine / 企业四库）：开箱即用组件全、样式系统自带——适合效率优先的 B 端
+- **block/模板层路线**（Origin UI / shadcnblocks / Launch UI / 21st.dev）：复制成品段落再改——适合快速起步，但**必须改到 Token 体系里**（原样堆叠 = 通用模板脸，触发 saturated-lanes）
+
 **选库红线**：
 - 一个项目**一个基础件库**（shadcn 或企业库二选一），视觉/动效库可叠加但组件入口必须统一
 - 库的默认样式不豁免门禁——自定义样式的颜色/字号照走 Token（structure_lint 的 strict-value 不认"这是库的类"）
@@ -203,3 +216,5 @@
 | **HeroUI** | `npm i @heroui/react` + provider 包裹 | 主题定制在 tailwind.config 的 `heroui` 键（colors 对象）——把品牌色映射进去，别双轨覆盖 |
 | **daisyUI** | `npm i -D daisyui` + tailwind 插件注册 | 主题用 `daisyui.themes` 定义 data-theme；语义色走其 primary/secondary 命名，与 `:root` 语义层做一层映射 |
 | **Tremor** | `npx @tremor/cli` 或按组件复制 | 颜色 prop 接收 Token 数组——传 `var(--chart-1)` 系列而非裸 hex；与 chart-types.md 的选型配合 |
+| **Base UI** | `npm i @base-ui-components/react` 按原语引入 | 无样式原语——样式全走本项目 Token（与 shadcn 的 CSS 变量主题兼容，可渐进替换 Radix） |
+| **Mantine** | `npm i @mantine/core` + MantineProvider | 主题对象（`createTheme`）承载品牌色/字体/圆角——与语义 Token 层做映射，禁用内联样式覆盖 |
