@@ -1,3 +1,14 @@
+v2.15.0 (2026-10-31)
+- 参考生态与媒体层（用户提出"多接入参考网站/组件库/UI 设计网站/可直接调用/企业级落地页手法/视频图片嵌入"，先调研后实施）：
+  - inspiration-sources.md 双层化：§0 动态搜索优先（三层检索式模板 + WebFetch 验证 + 清单回流——静态清单降级为种子，正面回应"清单太少"）；§4 用户浏览目录（11 类意图的种子表：组件级/整页区块/整页气质/真实产品/图标/素材/图案/样机/主题/字体/元目录）；§5 回流映射（URL/截图/组件名/整站/字体图标配色各怎么接）；agent 层补 Figma Community/站酷/即时设计/UI8/Landingfolio + Dribbble·Behance 低噪检索式
+  - component-block-catalog.md：索引 +8（Base UI/Radix/Headless UI/Park UI/Origin UI/shadcnblocks/Mantine/Untitled UI React）+ 选库三路线说明（headless/batteries-included/block 层）+ 接入速查 +2（Base UI/Mantine）
+  - 新增 references/enterprise-landing-anatomy.md：企业级宣传落地页解剖——十段主流结构（含信任桥/企业合规条）+ 社会证明七型类型学与放置规则 + 企业特化（采购链角色/ROI 论证/demo 表单纪律）+ §5 审查清单；与 admin-enterprise（B 端后台）划界
+  - 新增 references/media-craft.md：媒体嵌入手法——背景视频规范（10-30s 循环静音/poster/CSS overlay 层/三降级）+ 图片处理库（duotone/grain/遮罩/混合模式/截图精致化）+ 性能纪律（AVIF/fetchpriority/CLS）+ AI 配图通道（seedream CLI 接入规范与提示词模板，ARK_API_KEY 未配置时可选通道，禁占位 CDN 顶替）+ 图标体系 + lightbox 克制原则
+  - mcp-integration.md 升级为 MCP 与可调用通道总表：验证状态列（4 个 MCP 全标"未验证"——诚实纪律）+ Figma 完整消费流程并入（来自本机 figma skill）+ 旁路工具小节（seedream/site-cloner/web-artifacts-builder）+ 开源 skill 生态入口
+- 接线：research 搜索区（动态搜索优先+浏览菜单触发）、design Part 2（media-craft 引用）、review §0（营销落地页对照指引）、SKILL.md §6 索引 +2
+- evals 47 → 51（v215-001 浏览目录 / v215-002 企业落地页 / v215-003 背景视频 / v215-004 AI 配图）
+- 版本号 2.14.1 → 2.15.0（SKILL.md frontmatter / evals.json / README 徽章三处同步）
+
 v2.14.1 (2026-10-24)
 - dogfood 回流收口（三项）：
   - state_check 声明必填语义收紧（用户拍板方案 A）：此前"实现了但零声明"在不带 --complexity 的独立调用下只 warn 放行，与 state-absent"必填项"文案矛盾（集成 dogfood 反向探针实证）；新增规则 state-declared-absent——有实现证据而无任何声明判 hard 失败（实现先于声明不豁免：没有声明，复杂度派生与 review #14 的对账就断了），static 豁免不变；--complexity 帮助文本同步。test_state_check 26 → 27（原"不阻塞"用例改为拦截 + static 有状态字样仍豁免）

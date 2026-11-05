@@ -1,5 +1,51 @@
 # super-frontend-design Release Notes
 
+## v2.15.0 (2026-10-31) — 参考生态与媒体层
+
+### 为什么做这件事
+
+用户提出五项扩展：更多参考风格网站与前端设计网站、调研开源项目与最新前端设计 skill、组件库与 UI 设计网站、"可以直接调用或让用户去网上找好看的拿回来"、企业级宣传落地页的风格与实现手法、网站嵌入视频图片的精美方法。先调研（本地 6 skill 资产盘点 + sfd 四话题缺口精查 + 3 路外部检索）后实施，实测缺口：灵感站缺 Figma Community/站酷/即时设计/UI8；组件库缺 Base UI/Radix/Headless UI/Park UI/Origin UI/shadcnblocks/Mantine/Untitled UI（2026 两大趋势全缺席）；企业落地页与媒体嵌入**接近空白**（仅零散提及）。
+
+### A. 灵感站地图双层化（references/inspiration-sources.md 重写）
+
+- **§0 动态搜索优先**（机制升级，正面回应"静态清单太少"）：需要参考时先用三层检索式模板现场搜（站内定向/品类泛搜/新站发现），WebFetch 验证后**把新好站追加回本文件**——清单是活的、越用越全；站点表降级为种子
+- **§4 用户浏览目录**（新增，11 类意图种子表）：挑单个组件（21st.dev community/uiverse/Awesome-Components）、挑区块（shadcnblocks/Shadcn UI Blocks ~3,900/Origin UI/pagedone/tailgrids）、整页气质、真实产品实录、图标（lucide/tabler/phosphor/simpleicons/iconify）、素材（unsplash/lummi/unDraw/Ouch/lottiefiles/coverr）、图案底纹（heropatterns/svgbackgrounds）、样机（Mockup World/LS Graphics/shots.so）、主题配色（tweakcn/uicolors）、字体（fontshare/google fonts/fontpair）、元目录（design-resources.com/Good Design Tools）
+- **§5 回流映射**：用户带回来的每种形式都有既有机制接——组件 URL/名字 → Magic MCP 直接装或读源码并 Token 化；截图 → 多模态解构；页面 URL → Token 提取；整站 → site-cloner；字体图标配色 → 直进 Token 体系
+- Agent 层补 Figma Community/站酷/即时设计/UI8/Landingfolio；Dribbble/Behance 升级为低噪检索式 + 三警惕
+- **§6 本地实物参考**：awesome-design-html 的 26 个品牌可渲染单文件 HTML（含品牌 token）——零网络依赖解构源
+
+### B. 组件目录扩容（component-block-catalog.md）
+
+- 索引 +8：Base UI（headless 新贵，shadcn 已支持）/ Radix UI / Headless UI / Park UI / Origin UI（block 层）/ shadcnblocks（block 层）/ Mantine（batteries-included）/ Untitled UI React
+- 新增**选库三路线说明**：headless（强品牌诉求）vs batteries-included（效率优先 B 端）vs block 层（快速起步但必须改进 Token 体系——原样堆叠即通用模板脸，触发饱和赛道）
+- Top 库接入速查 +2：Base UI（无样式原语，样式全走 Token）、Mantine（createTheme 承载品牌色，禁内联覆盖）
+
+### C. 新建 references/enterprise-landing-anatomy.md（企业级宣传落地页解剖）
+
+- **十段主流结构**（与 macrostructures「SaaS 标准序列」同源，深化变体层）：hero 三变体 → 信任 logo 墙（"信任桥"位置学）→ 问题/方案 → 特性组 → 社会证明 → 案例深读 → 集成生态 → 定价 → FAQ → 尾部 CTA+合规条；每段配反模式
+- **社会证明七型类型学**：logo 墙/量化指标/案例/证言/评分认证/媒体背书/用户数——强度分级 + 放置规则（信任桥一次 + 每个 CTA 邻近一次；B2B 量化 > 情绪）
+- **企业级特化**：采购链角色（说服使用者+经济买家）、安全合规条（SOC2/ISO/GDPR 常驻+独立安全页）、ROI/TCO 论证口径、demo 请求表单纪律（字段 ≤4/响应时效/三态齐全）
+- **§5 审查清单**：review 阶段逐项核对；与 admin-enterprise-patterns.md（B 端后台）划界
+
+### D. 新建 references/media-craft.md（媒体嵌入手法）
+
+- **背景视频**：10-30 秒循环静音 + playsinline + poster 兜底 + 文字对比度靠 CSS overlay 层（不烤进视频）+ 性能预算（≤3MB，首屏 ≤1.5MB）+ 三降级（reduced-motion/页面隐藏/加载失败）
+- **图片处理库**：品牌色 duotone、grain 噪点、渐变遮罩、混合模式构图、圆角 mask 构图、截图精致化——每种给"什么时候用/反模式"；配图风格全站一致体系
+- **性能纪律**：AVIF+srcset、fetchpriority 仅 LCP、其余 lazy、CLS 防抖、视频 preload=metadata（与 UX-036/premium#15 收编对齐）
+- **AI 配图通道（seedream）**：design 阶段可直调本机 CLI 生成 hero/示意图——提示词四要素模板（氛围词+品牌色约束+构图要求+风格锚）、URL 24h 过期必须落盘、生成图同样纳入对比度与风格检查；`ARK_API_KEY` 未配置时为可选通道，**禁占位 CDN 顶替**
+- **图标体系**（Lucide/Tabler/Phosphor/Iconify 一套贯穿）与 **lightbox 克制原则**
+
+### E. mcp-integration.md 升级为"MCP 与可调用通道总表"
+
+- 加**验证状态列**（现有 4 个 MCP 全标"未验证"——诚实纪律，验证轮另排）
+- Figma 段并入本机 figma skill 的完整消费流程（get_design_context → get_screenshot → assets 三步 + 排障指针）
+- 新增**旁路工具**小节：Seedream 生图 / site-cloner 整站抓取 / web-artifacts-builder 打包（各标进入条件）
+- 新增**开源 skill 生态入口**（awesome-claude-skills 等聚合源——发现新 skill 的渠道）
+
+### 接线与验证
+
+research 搜索区（动态搜索优先 + 浏览菜单触发）、design Part 2（media-craft 引用）、review §0（营销落地页对照指引）、SKILL.md §6 索引 +2 行 + mcp-integration 行更新。evals 47 → 51（v215-001 浏览目录 / v215-002 企业落地页 / v215-003 背景视频 / v215-004 AI 配图）。验证基线见下方（audit + 8 套件 + mutation）。
+
 ## v2.14.1 (2026-10-24) — dogfood 回流收口：声明必填语义 + 裁判盲区 + 清理
 
 ### state_check：声明必填（方案 A，用户拍板）
